@@ -55,8 +55,10 @@ def prop_compare_seq_gpu(lp_file_path: str) -> None:
     equal_seq_gpu_full = arrays_equal(seq_new_lbs, gpu_new_lbs) and arrays_equal(seq_new_ubs, gpu_new_ubs)
     equal_seq_omp = arrays_equal(seq_new_lbs, omp_new_lbs) and arrays_equal(seq_new_ubs, omp_new_ubs)
 
-    print("\nprop results: seq to gpu: ", equal_seq_gpu_full, ", seq to gpu atomic: ", equal_seq_gpu_atomic,
-          ",seq to omp: ", equal_seq_omp, ", final result correct: ", equal_seq_gpu_atomic and equal_seq_gpu_full and equal_seq_omp)
+    print("\ncpu_seq to cpu_omp results match: ", equal_seq_omp)
+    print("cpu_seq to gpu_reduction results match: ", equal_seq_gpu_full)
+    print("cpu_seq to gpu_atomic results match: ", equal_seq_gpu_atomic)
+    print("all results match: ", equal_seq_gpu_atomic and equal_seq_gpu_full and equal_seq_omp)
 
 
 if __name__ == "__main__":

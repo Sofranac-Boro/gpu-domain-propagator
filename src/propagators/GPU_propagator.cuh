@@ -85,7 +85,7 @@ void propagateConstraintsFullGPU(
     #ifdef VERBOSE
     auto start = std::chrono::steady_clock::now();
     #endif
-    VERBOSE_CALL( printf("\nFull GPU exeution begin...") );
+    VERBOSE_CALL( printf("\ngpu_reduction exectution start...") );
      
     GPUPropEntryKernel<datatype> <<<1, 1>>>
     (
@@ -95,7 +95,7 @@ void propagateConstraintsFullGPU(
     CUDA_CALL( cudaPeekAtLastError() );
     CUDA_CALL( cudaDeviceSynchronize() );
 
-    VERBOSE_CALL( measureTime("Total Full GPU no bound transfer", start, std::chrono::steady_clock::now()) );
+    VERBOSE_CALL( measureTime("gpu_reduction", start, std::chrono::steady_clock::now()) );
     gpu.getMemFromGPU<datatype>(d_ubs, ubs, n_vars);
     gpu.getMemFromGPU<datatype>(d_lbs, lbs, n_vars);
   //  VERBOSE_CALL( measureTime("Total Full GPU", start, std::chrono::steady_clock::now()) );
@@ -147,7 +147,7 @@ void propagateConstraintsGPUAtomic(
      #ifdef VERBOSE
      auto start = std::chrono::steady_clock::now();
      #endif
-     VERBOSE_CALL( printf("\nAtomic GPU exeution begin...") );
+     VERBOSE_CALL( printf("\ngpu_atomic exectution start...") );
 
      GPUAtomicPropEntryKernel<datatype> <<<1, 1>>>
      (
@@ -157,7 +157,7 @@ void propagateConstraintsGPUAtomic(
      CUDA_CALL( cudaPeekAtLastError() );
      CUDA_CALL( cudaDeviceSynchronize() );
 
-     VERBOSE_CALL( measureTime("Total Atomic GPU no bound transfer", start, std::chrono::steady_clock::now()) );
+     VERBOSE_CALL( measureTime("gpu_atomic", start, std::chrono::steady_clock::now()) );
      gpu.getMemFromGPU<datatype>(d_ubs, ubs, n_vars);
      gpu.getMemFromGPU<datatype>(d_lbs, lbs, n_vars);
    //  VERBOSE_CALL( measureTime("Total Atomic GPU", start, std::chrono::steady_clock::now()) );

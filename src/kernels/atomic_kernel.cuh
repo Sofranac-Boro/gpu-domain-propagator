@@ -365,8 +365,7 @@ __global__ void GPUAtomicPropEntryKernel
     cudaDeviceSynchronize();
 
   }
-
-  VERBOSE_CALL( printf("Atomic GPU propagation done. num rounds: %d\n", prop_round) );
+  VERBOSE_CALL( printf("\ngpu_atomic propagation done. Num rounds: %d\n", prop_round) );
 }
 
 #endif

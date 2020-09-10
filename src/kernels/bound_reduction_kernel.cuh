@@ -429,7 +429,7 @@ __global__ void GPUPropEntryKernel
 
   }
 
-  VERBOSE_CALL( printf("FULL GPU propagation done. num rounds: %d\n", prop_round) );
+  VERBOSE_CALL( printf("\ngpu_reduction propagation done. Num rounds: %d\n", prop_round) );
 }
 
 #endif

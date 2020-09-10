@@ -51,8 +51,6 @@ bool OMPPropagationRound
       }
    }
 
-   printf("Round %d, num marked cons: %d\n", round, num_marked_cons);
-
    #pragma omp parallel for default(shared) private(slack, surplus, val_idx, var_idx, coeff, isVarCont) schedule(static) num_threads(SHARED_MEM_THREADS)
    for (int i=0; i < num_marked_cons; i++)
    {
@@ -137,8 +135,7 @@ void fullOMPPropagate
    auto start = std::chrono::steady_clock::now();
 #endif
 
-   VERBOSE_CALL( printf("\nStarting FULL_OMP exectution!\nOMP num threads: %d\n", SHARED_MEM_THREADS) );
-
+   VERBOSE_CALL( printf("\ncpu_omp exectution start with OMP num threads: %d\n", SHARED_MEM_THREADS) );
 
    //initialize omp locks used in propagation rounds:
    omp_lock_t locks[n_vars];
@@ -159,8 +156,8 @@ void fullOMPPropagate
    for (int i=0; i<n_vars; i++)
       omp_destroy_lock(&(locks[i]));
 
-   VERBOSE_CALL( measureTime("Total FULL_OMP", start, std::chrono::steady_clock::now()) );
-   VERBOSE_CALL( printf("FULL_OMP propagation done. num rounds: %d\n", prop_round) );
+   VERBOSE_CALL( printf("cpu_omp propagation done. Num rounds: %d\n", prop_round) );
+   VERBOSE_CALL( measureTime("cpu_omp", start, std::chrono::steady_clock::now()) );
 
    free( minacts );
    free( maxacts );

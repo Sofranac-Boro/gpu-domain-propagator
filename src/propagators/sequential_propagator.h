@@ -145,7 +145,7 @@ void sequentialPropagateDisjoint
     auto start = std::chrono::steady_clock::now();
     #endif
     
-    VERBOSE_CALL( printf("\nStarting SEQ exectution!\n") );
+    VERBOSE_CALL( printf("\nStarting cpu_seq exectution!\n") );
 
     bool change_found = true;
     int prop_round = 0;
@@ -164,8 +164,8 @@ void sequentialPropagateDisjoint
 
     }
     
-    VERBOSE_CALL( measureTime("Total SEQ", start, std::chrono::steady_clock::now()) );
-    VERBOSE_CALL( printf("SEQ propagation done. num rounds: %d\n\n", prop_round) );
+    VERBOSE_CALL( measureTime("\n cpu_seq", start, std::chrono::steady_clock::now()) );
+    VERBOSE_CALL( printf("cpu_seq num rounds: %d\n", prop_round) );
 
     free( minacts );
     free( maxacts );
@@ -209,7 +209,7 @@ void sequentialPropagate
     auto start = std::chrono::steady_clock::now();
     #endif
     
-    VERBOSE_CALL( printf("\nStarting SEQ exectution!") );
+    VERBOSE_CALL( printf("\ncpu_seq exectution start...") );
 
     bool change_found = true;
     int prop_round;
@@ -223,9 +223,9 @@ void sequentialPropagate
                                 lbs, ubs, vartypes, minacts, maxacts, maxactdeltas, consmarked, RECOMPUTE_ACTS_TRUE
         );
     }
-    
-    VERBOSE_CALL( measureTime("Total SEQ", start, std::chrono::steady_clock::now()) );
-    VERBOSE_CALL( printf("SEQ propagation done. num rounds: %d\n", prop_round) );
+
+    VERBOSE_CALL( printf("\ncpu_seq propagation done. Num rounds: %d\n", prop_round) );
+    VERBOSE_CALL( measureTime("cpu_seq", start, std::chrono::steady_clock::now()) );
 
     free( minacts );
     free( maxacts );
