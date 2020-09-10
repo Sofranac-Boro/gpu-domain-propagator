@@ -38,5 +38,5 @@ while true ; do
 done
 
 printf "\n\n === $FILE ===\n"
-python3 -u run_propagtion.py -f $FILE 2>&1 | tee -a $LOGFILE
+python3 -u run_propagation.py -f $FILE 2>&1 | tee -a $LOGFILE
 
