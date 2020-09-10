@@ -135,7 +135,7 @@ void fullOMPPropagate
    auto start = std::chrono::steady_clock::now();
 #endif
 
-   VERBOSE_CALL( printf("\ncpu_omp exectution start with OMP num threads: %d\n", SHARED_MEM_THREADS) );
+   VERBOSE_CALL( printf("\ncpu_omp execution start with OMP num threads: %d\n", SHARED_MEM_THREADS) );
 
    //initialize omp locks used in propagation rounds:
    omp_lock_t locks[n_vars];

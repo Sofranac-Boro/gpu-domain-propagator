@@ -209,7 +209,7 @@ void sequentialPropagate
     auto start = std::chrono::steady_clock::now();
     #endif
     
-    VERBOSE_CALL( printf("\ncpu_seq exectution start...") );
+    VERBOSE_CALL( printf("\ncpu_seq execution start...") );
 
     bool change_found = true;
     int prop_round;

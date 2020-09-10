@@ -85,7 +85,7 @@ void propagateConstraintsFullGPU(
     #ifdef VERBOSE
     auto start = std::chrono::steady_clock::now();
     #endif
-    VERBOSE_CALL( printf("\ngpu_reduction exectution start...") );
+    VERBOSE_CALL( printf("\ngpu_reduction execution start...") );
      
     GPUPropEntryKernel<datatype> <<<1, 1>>>
     (
@@ -147,7 +147,7 @@ void propagateConstraintsGPUAtomic(
      #ifdef VERBOSE
      auto start = std::chrono::steady_clock::now();
      #endif
-     VERBOSE_CALL( printf("\ngpu_atomic exectution start...") );
+     VERBOSE_CALL( printf("\ngpu_atomic execution start...") );
 
      GPUAtomicPropEntryKernel<datatype> <<<1, 1>>>
      (
