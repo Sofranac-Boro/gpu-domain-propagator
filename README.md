@@ -1,10 +1,10 @@
 # GPU Domain Propagator
 
-Given a Mixed Integer Linear Program (MIP), this code performs iterated domain propagation on a GPU. It is used as a C shared library. For testing purposes (or for usage as a standalone program), a Python file reader is provided.
+Given a Mixed Integer Linear Program (MIP), this code performs iterated domain propagation on a GPU. It can be used as a C shared library. For testing purposes a Python file reader is provided. The GPU functions could also be used to embed the GPU algorithms in a GPU only program. 
 The following algorithm implementations are provided:
 * **cpu_seq** is the sequential (single-threaded) implementation of domain propagation
 * **cpu_omp** is the parallelized version of the algorithm above. Parallelization is done in shared CPU memory with OpenMP.
-* **gpu_atomic** is a GPU implementation of domain propagation. It uses atomic updates in GPU global memory to resolve dependencies.
+* **gpu_atomic** is a GPU implementation of domain propagation. It uses atomic updates in GPU global memory to resolve dependencies. After sending the initial input memory to the GPU, this algorithm runs fully on the GPU and requires no interaction with the CPU.
 * **gpu_reduciton** is a version of the GPU implementation which avoids using atomics by saving the data in global memory followed by a reduction.
 
 ## Building
@@ -39,7 +39,7 @@ ample, for a compute capability 6.0, pass 60; for compute capability 7.5, pass 7
 OpenMP threads the *cpu_omp* algorithm should use, set the
 `SHARED_MEM_THREADS` macro in `src/params.h` to the
 desired value before the installation process. The default value
-is 8.
+is 8. This parameters file also contains a number of different parameters that control the internal behavior of the algorithms which the user can set to the desired values.
 
 If you intend to use the file reader, please also install the Python dependencies. From the home folder, do:
 ```
@@ -66,7 +66,7 @@ You can see all the tests available in the files in `test/testCases`
 
 The compilation process creates a C shared library file `libGpuProp.so` in the `build` folder. Available interface functions can be found in `include/interface.h`.
 
-## Using the Python file reader
+## Testing by using the Python file reader
 
 For testing purposes, the code supports reading standard MIP file formats such as `.mps` and executing the available algorithms on it. For this, we use the `mip` package to load standard MIP file formats. For the full description of supported file formats see https://python-mip.com/.
 
