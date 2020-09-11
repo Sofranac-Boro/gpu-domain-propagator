@@ -2,10 +2,10 @@
 
 Given a Mixed Integer Linear Program (MIP), this code performs iterated domain propagation on a GPU. It is used as a C shared library. For testing purposes (or for usage as a standalone program), a Python file reader is provided.
 The following algorithm implementations are provided:
-* **cpu_seq** is the sequential (single threaded) implementation of domain propagation
+* **cpu_seq** is the sequential (single-threaded) implementation of domain propagation
 * **cpu_omp** is the parallelized version of the algorithm above. Parallelization is done in shared CPU memory with OpenMP.
 * **gpu_atomic** is a GPU implementation of domain propagation. It uses atomic updates in GPU global memory to resolve dependencies.
-* **gpu_reduciton** is a version of the GPU implementation which avoids using atomics by saving the data in global memory followed by a reduciton.
+* **gpu_reduciton** is a version of the GPU implementation which avoids using atomics by saving the data in global memory followed by a reduction.
 
 ## Building
 
@@ -35,14 +35,13 @@ $ make
 ```
 The `compute_capability` is the compute capability of
 your device, as passed to the nvcc compiler. For ex-
-ample, for a compute capability 6.0, pass 60; for com-
-pute capability 7.5, pass 75. To set the number of
-OpenMP threads the cpu omp algorithm should use, set the
+ample, for a compute capability 6.0, pass 60; for compute capability 7.5, pass 75. To set the number of
+OpenMP threads the *cpu_omp* algorithm should use, set the
 `SHARED_MEM_THREADS` macro in `src/params.h` to the
 desired value before the installation process. The default value
 is 8.
 
-If you intend to use the file reader, please also isntall the Python dependencies. From the home folder, do:
+If you intend to use the file reader, please also install the Python dependencies. From the home folder, do:
 ```
 $ cd fileReader/
 $ pip3 install -r requirements.txt
@@ -69,7 +68,7 @@ The compilation process creates a C shared library file `libGpuProp.so` in the `
 
 ## Using the Python file reader
 
-For testing purposes, the code supports reading standard MIP file formats such as `.mps` and executing the available algorithms on it. For this, we use the `mip` package to load standard MIP file formats. For full description of supported file formats see https://python-mip.com/.
+For testing purposes, the code supports reading standard MIP file formats such as `.mps` and executing the available algorithms on it. For this, we use the `mip` package to load standard MIP file formats. For the full description of supported file formats see https://python-mip.com/.
 
 To read a MIP file and execute all the algorithms on it, execute the following commands from the home folder:
 ```
