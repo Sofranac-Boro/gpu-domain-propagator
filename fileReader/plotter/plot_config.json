@@ -1,0 +1,15 @@
+{
+  "base_case": "example1.log",
+  "log_files": {
+    "example1.log": {
+      "cpu_omp": "cpu1",
+      "gpu_reduction": "gpu1",
+      "gpu_atomic": "gpu1"
+    },
+    "example2.log": {
+      "cpu_omp": "cpu2",
+      "gpu_reduction": "gpu2",
+      "gpu_atomic": "gpu2"
+    }
+  }
+}
