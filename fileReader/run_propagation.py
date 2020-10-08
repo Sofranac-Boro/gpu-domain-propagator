@@ -3,6 +3,15 @@ from GPUDomPropInterface import propagateGPU, propagateGPUAtomic, propagateSeque
 import numpy as np
 from typing import List
 import argparse
+from scipy.sparse import csr_matrix
+import matplotlib.pyplot as plt
+
+
+def vis_sparsity_pattern(m: int, n: int, col_indices: List[float], row_ptrs: List[float], coeffs: List[float]) -> None:
+    A = csr_matrix((coeffs, col_indices, row_ptrs), shape=(m, n)).toarray()
+    plt.spy(A, markersize=1)
+    plt.show()
+    exit(1)
 
 
 def normalize_infs(arr: List[float]) -> List[float]:
