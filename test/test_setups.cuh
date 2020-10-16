@@ -4,6 +4,7 @@
 #include "../src/misc.h"
 #include "../src/commons.cuh"
 #include "test_infra.cuh"
+#include "../src/params.h"
 
 template <typename datatype>
 class TestSetup{
@@ -218,11 +219,11 @@ public:
         std::vector<int> col_indices{3, 4, 3, 4, 3, 4, 0, 3, 1, 4, 2, 5}; // dim nnz
         std::vector<int> row_indices{0, 2, 4, 6, 8, 10, nnz}; // dim m+1
         
-        std::vector<double> lhss{15, 10, 20, -INF, -INF, -INF}; // dim m
-        std::vector<double> rhss{INF, INF, INF, 0, 0, 0}; // dim m
+        std::vector<double> lhss{15, 10, 20, -GDP_INF, -GDP_INF, -GDP_INF}; // dim m
+        std::vector<double> rhss{GDP_INF, GDP_INF, GDP_INF, 0, 0, 0}; // dim m
         
         std::vector<double> lbs{0, 0, 0, 0, 0, 0}; // dim n
-        std::vector<double> ubs{1, 1, 1, INF, INF, INF}; // dim n
+        std::vector<double> ubs{1, 1, 1, GDP_INF, GDP_INF, GDP_INF}; // dim n
         std::vector<int> vartypes{0, 0, 0, 3, 3, 3}; // dim n
         std::vector<int> consmarked(m, 1);
 
@@ -283,11 +284,11 @@ public:
         std::vector<int> col_indices{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 4, 8, 12, 1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15}; // dim nnz
         std::vector<int> row_indices{0, 4, 8, 12, 16, 20, 24, nnz}; // dim m+1
         
-        std::vector<double> lhss{80, 70, 40, -INF, -INF, -INF, -INF}; // dim m
+        std::vector<double> lhss{80, 70, 40, -GDP_INF, -GDP_INF, -GDP_INF, -GDP_INF}; // dim m
         std::vector<double> rhss{80, 70, 40, 0, 0, 0, 0}; // dim m
         
         std::vector<double> lbs{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // dim n
-        std::vector<double> ubs{INF, INF, INF, INF, INF, INF, INF, INF, INF, INF, INF, INF, 1, 1, 1, 1}; // dim n
+        std::vector<double> ubs{GDP_INF, GDP_INF, GDP_INF, GDP_INF, GDP_INF, GDP_INF, GDP_INF, GDP_INF, GDP_INF, GDP_INF, GDP_INF, GDP_INF, 1, 1, 1, 1}; // dim n
         std::vector<int> vartypes{3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 0, 0, 0, 0}; // dim n
         std::vector<int> consmarked(m, 1);
 
@@ -481,14 +482,14 @@ public:
             current_row += i<k? k: k+1;
             row_indices.push_back(current_row);
 
-            lhss.push_back( i<k? (i+1) % capacity : -INF );
+            lhss.push_back( i<k? (i+1) % capacity : -GDP_INF );
             rhss.push_back( i<k? (i+1) % capacity : 0);
         }
 
         for (int i=0; i<n_vars; i++)
         {
             varlbs.push_back(0);
-            varubs.push_back( i<k*k? INF : 1.0 );
+            varubs.push_back( i<k*k? GDP_INF : 1.0 );
             vartypes.push_back( i<k*k? 3 : 0 );
         }
 
@@ -567,7 +568,7 @@ public:
         for (int i=0; i<this->n_vars; i++)
         {
             varlbs.push_back(0);
-            varubs.push_back( i<_k*_k? INF : 1.0 );
+            varubs.push_back( i<_k*_k? GDP_INF : 1.0 );
         }
 
         memcpy(this->lbs            , varlbs.data()      , this->n_vars     * sizeof( datatype )); 

@@ -3,6 +3,7 @@
 
 #include <math.h>       /* fabs */
 #include <omp.h>
+#include "params.h"
 
 
 struct ActivitiesTupleStruct {
@@ -180,7 +181,7 @@ bool tightenVariable
    NewBoundTuple newb_tuple;
 
    if (coeff > 0.0) {
-      if (coeff * (ub - lb) > slack && rhs < 1e20 && minact > -1e20) {
+      if (coeff * (ub - lb) > slack && rhs < GDP_INF && minact > -GDP_INF) {
          newb_tuple = tightenVarUpperBound(coeff, slack, lb, ub, isVarCont);
          if (newb_tuple.is_tightened) {
             markConstraints(var_idx, csc_col_ptrs, csc_row_indices, consmarked);
@@ -192,7 +193,7 @@ bool tightenVariable
          }
       }
 
-      if (coeff * (ub - lb) > surplus && lhs > -1e20 && maxact < 1e20) {
+      if (coeff * (ub - lb) > surplus && lhs > -GDP_INF && maxact < GDP_INF) {
          newb_tuple = tightenVarLowerBound(coeff, surplus, lb, ub, isVarCont);
          if (newb_tuple.is_tightened) {
             markConstraints(var_idx, csc_col_ptrs, csc_row_indices, consmarked);
@@ -201,7 +202,7 @@ bool tightenVariable
          }
       }
    } else {
-      if (coeff * (lb - ub) > slack && rhs < 1e20 && minact > -1e20) {
+      if (coeff * (lb - ub) > slack && rhs < GDP_INF && minact > -GDP_INF) {
          newb_tuple = tightenVarLowerBound(coeff, slack, lb, ub, isVarCont);
          if (newb_tuple.is_tightened) {
             markConstraints(var_idx, csc_col_ptrs, csc_row_indices, consmarked);
@@ -212,7 +213,7 @@ bool tightenVariable
          }
       }
 
-      if (coeff * (lb - ub) > surplus && lhs > -1e20 && maxact < 1e20) {
+      if (coeff * (lb - ub) > surplus && lhs > -GDP_INF && maxact < GDP_INF) {
          newb_tuple = tightenVarUpperBound(coeff, surplus, lb, ub, isVarCont);
          if (newb_tuple.is_tightened) {
             markConstraints(var_idx, csc_col_ptrs, csc_row_indices, consmarked);

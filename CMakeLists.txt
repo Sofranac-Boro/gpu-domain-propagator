@@ -19,8 +19,34 @@ else ()
     message("No CUDA architecture specified. To compile optimized code for your CUDA device please specify your device architecture through the ARCH flag.")
 endif ()
 
-#string(APPEND CMAKE_CUDA_FLAGS_DEBUG " -G")
+#
 
+# make 'Release' the default build type
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+
+if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
+   # add_definitions(-DVERBOSE -DDEBUG)
+    add_definitions(-DVERBOSE)
+    string(APPEND CMAKE_CUDA_FLAGS_DEBUG " -G")
+endif()
+
+if("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
+    # add_definitions(-DVERBOSE -DDEBUG)
+    add_definitions(-DVERBOSE)
+    string(APPEND CMAKE_CUDA_FLAGS_DEBUG " -G")
+endif()
+
+if("${VERBOSITY}" STREQUAL 1)
+    add_definitions(-DVERBOSE)
+endif()
+
+if("${VERBOSITY}" STREQUAL 2)
+     add_definitions(-DVERBOSE -DDEBUG)
+endif()
 
 add_library(GpuProp SHARED
         src/misc.cpp

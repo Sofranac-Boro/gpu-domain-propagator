@@ -1,12 +1,13 @@
 #ifndef __GPUPROPAGATOR_INTERFACE_CUH__
 #define __GPUPROPAGATOR_INTERFACE_CUH__
 
+#include "../src/def.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-void propagateConstraintsFullGPUdouble(
+GDP_RETCODE propagateConstraintsFullGPUdouble(
         const int n_cons,
         const int n_vars,
         const int nnz,
@@ -28,7 +29,7 @@ void propagateConstraintsFullGPUdouble(
 extern "C" {
 #endif
 
-void propagateConstraintsGPUAtomicDouble(
+GDP_RETCODE propagateConstraintsGPUAtomicDouble(
         const int n_cons,
         const int n_vars,
         const int nnz,
@@ -50,7 +51,7 @@ void propagateConstraintsGPUAtomicDouble(
 extern "C" {
 #endif
 
-void propagateConstraintsSequentialDouble
+GDP_RETCODE propagateConstraintsSequentialDouble
         (
                 const int n_cons,
                 const int n_vars,
@@ -73,7 +74,7 @@ void propagateConstraintsSequentialDouble
 extern "C" {
 #endif
 
-void propagateConstraintsFullOMPDouble
+GDP_RETCODE propagateConstraintsFullOMPDouble
         (
                 const int n_cons,
                 const int n_vars,
@@ -96,7 +97,7 @@ void propagateConstraintsFullOMPDouble
 extern "C" {
 #endif
 
-void propagateConstraintsSequentialDisjointDouble
+GDP_RETCODE propagateConstraintsSequentialDisjointDouble
         (
                 const int n_cons,
                 const int n_vars,

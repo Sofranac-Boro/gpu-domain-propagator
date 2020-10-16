@@ -76,6 +76,8 @@ bool sequentialPropagationRound
             maxactdeltas[considx] = activities.maxactdelta;
          }
 
+         DEBUG_CALL( printf("cons %d: minact: %.5f, maxact: %.5f\n", considx, minacts[considx], maxacts[considx]) );
+
          rhs = rhss[considx];
          lhs = lhss[considx];
          slack = rhs - minacts[considx];
@@ -142,7 +144,7 @@ void sequentialPropagateDisjoint
    int prop_round = 0;
    for (prop_round = 1; prop_round <= MAX_NUM_ROUNDS && change_found; prop_round++)  // maxnumrounds = 100
    {
-      VERBOSE_CALL(printf("propagation round: %d\n", prop_round));
+      DEBUG_CALL(printf("propagation round: %d\n", prop_round));
       //VERBOSE_CALL( countPrintNumMarkedCons<int>(n_cons, consmarked) );
 
       sequentialComputeActivities<datatype>(n_cons, col_indices, row_indices, vals, ubs, lbs, minacts, maxacts,
@@ -206,7 +208,7 @@ void sequentialPropagate
    int prop_round;
    for (prop_round = 1; prop_round <= MAX_NUM_ROUNDS && change_found; prop_round++)  // maxnumrounds = 100
    {
-      //      VERBOSE_CALL( printf("propagation round: %d\n", prop_round) );
+      DEBUG_CALL( printf("\nPropagation round: %d\n\n", prop_round) );
       //    VERBOSE_CALL( countPrintNumMarkedCons<int>(n_cons, consmarked) );
       change_found = sequentialPropagationRound<datatype>
               (

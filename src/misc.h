@@ -5,13 +5,19 @@
 #include <string>
 #include <chrono>
 #include <iostream>
+#include <fstream>
 
-#define VERBOSE
 
 #ifdef VERBOSE
 #define VERBOSE_CALL(ans) {(ans);}
 #else
 #define VERBOSE_CALL(ans) do { } while(0)
+#endif
+
+#ifdef DEBUG
+#define DEBUG_CALL(ans) {(ans);}
+#else
+#define DEBUG_CALL(ans) do { } while(0)
 #endif
 
 void measureTime(const char alg_name[30], std::chrono::_V2::steady_clock::time_point start,
@@ -71,6 +77,21 @@ void consistify_var_bounds(const int n_vars, datatype *lbs, datatype *ubs, const
       ubs[j] = isVarCont ? ubs[j] : floor(ubs[j]);
       lbs[j] = isVarCont ? lbs[j] : ceil(lbs[j]);
    }
+}
+
+template<typename datatype>
+void save_acts_to_file(int n_cons, datatype* minacts, datatype* maxacts, int round)
+{
+   std::ofstream file;
+   file.open("round_" + std::to_string(round) + "_activities.txt");
+   file << "constraint: min_act max_act" << std::endl;
+
+   for (int i=0; i<n_cons; i++)
+   {
+      file << i <<": " << minacts[i] << " " << maxacts[i] << std::endl;
+   }
+
+   file.close();
 }
 
 #endif

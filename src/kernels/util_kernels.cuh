@@ -210,9 +210,12 @@ void csr_to_csc_device_only
 
 
     CUDA_CALL( cudaDeviceSynchronize() );
-   
-    assert(status1 == CUSPARSE_STATUS_SUCCESS);
-    assert(status2 == CUSPARSE_STATUS_SUCCESS);
+
+    if (status1 != CUSPARSE_STATUS_SUCCESS || status2 != CUSPARSE_STATUS_SUCCESS )
+    {
+        throw "CSR to CSC conversion error on device";
+    }
+
     CUDA_CALL( cudaFree(pBuffer) );
 }
 
@@ -290,14 +293,48 @@ __device__ void getNewBoundCandidates
   datatype pos_newb = (rhs - min_residual) / coeff;
   datatype neg_newb = (lhs - max_residual) / coeff;
 
-  pos_newb = rhs >=  1e20?  coeff_sign*1e20    : pos_newb;
-  neg_newb = lhs <= -1e20?  coeff_sign*(-1e20) : neg_newb;
+  pos_newb = rhs >=  GDP_INF?  coeff_sign*GDP_INF    : pos_newb;
+  neg_newb = lhs <= -GDP_INF?  coeff_sign*(-GDP_INF) : neg_newb;
 
-  pos_newb = minact <= -1e20?  coeff_sign*1e20    : pos_newb;
-  neg_newb = maxact >=  1e20?  coeff_sign*(-1e20) : neg_newb;
+  pos_newb = minact <= -GDP_INF?  coeff_sign*GDP_INF    : pos_newb;
+  neg_newb = maxact >=  GDP_INF?  coeff_sign*(-GDP_INF) : neg_newb;
 
   *newub = coeff>0? pos_newb : neg_newb;
   *newlb = coeff>0? neg_newb : pos_newb;
+}
+
+template<typename datatype>
+__device__ void print_acts_csr_vector(int considx, datatype minact, datatype maxact)
+{
+    if (threadIdx.x == 0)
+    {
+      printf("cons %d: minact: %.5f, maxact: %.5f\n", considx, minact, maxact);
+    }
+}
+
+template<typename datatype>
+__device__ void print_acts_csr_stream(int nnz_in_block, int* validx_considx_map, int n_cons, int block_row_begin, datatype* minacts, datatype* maxacts)
+{
+        __syncthreads();
+
+        int considx;
+        int previous_idx = validx_considx_map[0];
+
+        if (threadIdx.x == 0)
+        {
+              for (int i=0; i<nnz_in_block; i++)
+              {
+                  considx = validx_considx_map[i];
+                  if (considx < n_cons && considx != previous_idx)
+                  {
+                        printf("cons: %d: %.5f %.5f\n", considx, minacts[considx - block_row_begin], maxacts[considx - block_row_begin]);
+                        previous_idx = considx;
+                  }
+
+              }
+        }
+
+        __syncthreads();
 }
 
 #endif

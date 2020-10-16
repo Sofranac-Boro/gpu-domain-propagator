@@ -51,11 +51,13 @@ __global__ void compActsAndBoundsAdaptiveKernel
 
     /// CSR-Stream case
     const int thread_data_begin = block_data_begin + threadIdx.x;
-    const int varidx = col_indices[thread_data_begin];
+    int varidx;
 
     // compute local contributions to activities
     if (threadIdx.x < nnz_in_block)
     {
+        varidx = col_indices[thread_data_begin];
+
         coeff = vals[thread_data_begin];
         lb = lbs[varidx];
         ub = ubs[varidx];
@@ -201,7 +203,7 @@ __global__ void compActsAndBoundsAdaptiveKernel
     // if nnz_in_block<=64, than computing this row with one warp is more efficient then using all the threads in the block
     if (nnz_in_block <= VECTOR_VS_VECTORL_NNZ_THRESHOLD || NNZ_PER_WG <= WARP_SIZE)
     {
-      // printf("vector kernel, cons: %d\n", row);
+
       /// CSR-Vector case
       if (block_row_begin < n_cons)
       {
@@ -362,14 +364,14 @@ __global__ void reduceBoundsKernel_naive
             */
             if (newub < best_ub)
             {
-                newub = isVarCont? newub : floor(newub);
+                newub = isVarCont? newub : EPSFLOOR(newub, GDP_EPS);
                 best_ub = newub;
                 *change_found = true;
             }
 
             if (newlb > best_lb)
             {
-                newlb = isVarCont? newlb : ceil(newlb);
+                newlb = isVarCont? newlb : EPSCEIL(newlb, GDP_EPS);
                 best_lb = newlb;
                 *change_found = true;
             }

@@ -98,7 +98,6 @@ void propagateConstraintsFullGPU(
     VERBOSE_CALL( measureTime("gpu_reduction", start, std::chrono::steady_clock::now()) );
     gpu.getMemFromGPU<datatype>(d_ubs, ubs, n_vars);
     gpu.getMemFromGPU<datatype>(d_lbs, lbs, n_vars);
-  //  VERBOSE_CALL( measureTime("Total Full GPU", start, std::chrono::steady_clock::now()) );
 
    // CUDA_CALL( cudaProfilerStop() );
 }
@@ -160,7 +159,6 @@ void propagateConstraintsGPUAtomic(
      VERBOSE_CALL( measureTime("gpu_atomic", start, std::chrono::steady_clock::now()) );
      gpu.getMemFromGPU<datatype>(d_ubs, ubs, n_vars);
      gpu.getMemFromGPU<datatype>(d_lbs, lbs, n_vars);
-   //  VERBOSE_CALL( measureTime("Total Atomic GPU", start, std::chrono::steady_clock::now()) );
 
     // CUDA_CALL( cudaProfilerStop() );
 }

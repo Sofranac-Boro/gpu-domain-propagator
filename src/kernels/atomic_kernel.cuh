@@ -3,6 +3,7 @@
 
 #include "../params.h"
 #include "util_kernels.cuh"
+#include "../misc.h"
 
 template <typename datatype>
 __global__ void GPUAtomicDomainPropagation
@@ -19,7 +20,8 @@ __global__ void GPUAtomicDomainPropagation
     const int* vartypes,
     const datatype* lhss,
     const datatype* rhss,
-    bool* change_found
+    bool* change_found,
+    const int round
 )
 {
   // Launched with NNZ_PER_WG threads per block and NUM_BLOCKS blocks
@@ -31,7 +33,7 @@ __global__ void GPUAtomicDomainPropagation
 
   __shared__ datatype cache_minacts[NNZ_PER_WG];
   __shared__ datatype cache_maxacts[NNZ_PER_WG];
-  __shared__ datatype validx_considx_map[NNZ_PER_WG];
+  __shared__ int validx_considx_map[NNZ_PER_WG];
 
   extern __shared__ datatype shared_mem[]; // constains one array for minacts and another for maxacts
 
@@ -46,17 +48,17 @@ __global__ void GPUAtomicDomainPropagation
   datatype lb;
   datatype ub;
 
-  if (block_row_end - block_row_begin > 1) // if the block consists of more than 1 row in the matrix
+  if (block_row_end - block_row_begin > 1) // if the block consists of more than 1 row in the matrix, use CSR-Stream
   {
 
-    /// CSR-Stream case
-    const int thread_data_begin = block_data_begin + threadIdx.x;
-    const int varidx = col_indices[thread_data_begin];
+    int varidx;
 
     // compute local contributions to activities
     if (threadIdx.x < nnz_in_block)
     {
-        coeff = vals[thread_data_begin];
+        varidx = col_indices[block_data_begin + threadIdx.x];
+
+        coeff = vals[block_data_begin + threadIdx.x];
         lb = lbs[varidx];
         ub = ubs[varidx];
         cache_minacts[threadIdx.x] = coeff > 0? coeff*lb : coeff*ub; // minactivity
@@ -69,8 +71,10 @@ __global__ void GPUAtomicDomainPropagation
 
     if (threads_for_reduction > 1)
     {
-      /// Reduce all non zeroes of row by multiple threads
+      // ID of the thread in the group of threads reducing local_row
       const int thread_in_block = threadIdx.x % threads_for_reduction;
+
+      // which row is this thread reducing
       const int local_row = block_row_begin + threadIdx.x / threads_for_reduction;
 
       datatype dot_minact = 0.0;
@@ -78,7 +82,9 @@ __global__ void GPUAtomicDomainPropagation
 
       if (local_row < block_row_end)
       {
+        // first element in the row this thread is reducing
         const int local_first_element = row_ptrs[local_row] - block_data_begin;
+        // last element in the row this thread is reducing
         const int local_last_element = row_ptrs[local_row + 1] - block_data_begin;
 
         //#pragma unroll
@@ -171,6 +177,8 @@ __global__ void GPUAtomicDomainPropagation
         datatype newlb;
         datatype newub;
 
+        DEBUG_CALL( print_acts_csr_stream(nnz_in_block, validx_considx_map, n_cons, block_row_begin, minacts, maxacts) );
+
         getNewBoundCandidates(
           lhss[considx],
           rhss[considx],
@@ -184,8 +192,8 @@ __global__ void GPUAtomicDomainPropagation
         );
 
          bool isVarCont = vartypes[varidx] == 3;
-         newub = isVarCont? newub : floor(newub);
-         newlb = isVarCont? newlb : ceil(newlb);
+         newub = isVarCont? newub : EPSFLOOR(newub, GDP_EPS);
+         newlb = isVarCont? newlb : EPSCEIL(newlb, GDP_EPS);
 
          double oldub = atomicMin(&ubs[varidx], newub);
          double oldlb = atomicMax(&lbs[varidx], newlb);
@@ -301,6 +309,8 @@ __global__ void GPUAtomicDomainPropagation
           datatype newlb;
           datatype newub;
 
+          DEBUG_CALL( print_acts_csr_vector(block_row_begin, minacts[0], maxacts[0]) );
+
           getNewBoundCandidates(
             lhss[block_row_begin],
             rhss[block_row_begin],
@@ -314,8 +324,8 @@ __global__ void GPUAtomicDomainPropagation
           );
 
          bool isVarCont = vartypes[varidx] == 3;
-         newub = isVarCont? newub : floor(newub);
-         newlb = isVarCont? newlb : ceil(newlb);
+         newub = isVarCont? newub : EPSFLOOR(newub, GDP_EPS);
+         newlb = isVarCont? newlb : EPSCEIL(newlb, GDP_EPS);
 
          double oldub = atomicMin(&ubs[varidx], newub);
          double oldlb = atomicMax(&lbs[varidx], newlb);
@@ -352,6 +362,7 @@ __global__ void GPUAtomicPropEntryKernel
 
   for (prop_round=1; prop_round <= MAX_NUM_ROUNDS && *change_found; prop_round++)
   {
+    DEBUG_CALL( printf("\nPropagation round: %d\n\n", prop_round) );
     *change_found = false;
 
     // shared memory layout:
@@ -359,7 +370,7 @@ __global__ void GPUAtomicPropEntryKernel
     // - max_num_cons_in_block elems of type datatype for maxactivities
     GPUAtomicDomainPropagation<datatype> <<< blocks_count, NNZ_PER_WG, 2 * max_num_cons_in_block * sizeof(datatype) >>>
     (
-        n_cons, n_vars, max_num_cons_in_block, col_indices, row_ptrs, row_blocks, vals, lbs, ubs, vartypes, lhss, rhss, change_found
+        n_cons, n_vars, max_num_cons_in_block, col_indices, row_ptrs, row_blocks, vals, lbs, ubs, vartypes, lhss, rhss, change_found, prop_round
     );
 
     cudaDeviceSynchronize();

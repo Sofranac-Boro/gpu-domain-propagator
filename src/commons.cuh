@@ -24,8 +24,10 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 
 #define REALABS(x)          ( fabs(x) )
 #define EPSLE(x,y,eps)    ((x)-(y) <= (eps))
+#define EPSGE(x,y,eps)    ((x)-(y) >= -(eps))
 #define EPSEQ(x,y,eps)      ( REALABS((x)-(y)) <= (eps) )
 #define MIN(x,y)      ((x) <= (y) ? (x) : (y))     /**< returns minimum of x and y */
-#define INF 100000000.0
+#define EPSFLOOR(x,eps)   (floor((x)+(eps)))
+#define EPSCEIL(x,eps)    (ceil((x)-(eps)))
 
 #endif
