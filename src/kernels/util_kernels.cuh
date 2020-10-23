@@ -284,7 +284,7 @@ __device__ __forceinline__ datatype adjustLowerBound(datatype lb, bool is_var_co
 }
 
 template <typename datatype>
-__device__ void getNewBoundCandidates
+__device__ __forceinline__ void getNewBoundCandidates
 (
   const datatype lhs,
   const datatype rhs,

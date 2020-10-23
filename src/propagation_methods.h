@@ -31,28 +31,25 @@ void markConstraints
 template<class datatype>
 datatype adjustUpperBound
         (
-                const bool isVarContinuous,
+                const bool is_var_cont,
                 const datatype ub
         ) {
-   if (!isVarContinuous)
-      return floor(ub);
-   return ub;
+   return is_var_cont? ub : EPSFLOOR(ub, GDP_EPS);
 }
 
 template<class datatype>
-datatype adjustLowerBound(const bool isVarContinuous, const datatype lb) {
-   if (!isVarContinuous)
-      return ceil(lb);
-   return lb;
+datatype adjustLowerBound(const bool is_var_cont, const datatype lb) {
+   return is_var_cont? lb : EPSCEIL(lb, GDP_EPS);
 }
 
 template<class datatype>
 bool isLbBetter(const datatype lb, const datatype ub, const datatype newlb) {
    assert(lb <= ub);
 
+   /* from SCIP, todo do we need this in the GPU version? */
    /* if lower bound is moved to 0 or higher, always accept bound change */
-   if (lb < 0.0 && newlb >= 0.0)
-      return true;
+   //if (lb < 0.0 && newlb >= 0.0)
+   //   return true;
 
    return (newlb > lb);
 }
@@ -62,9 +59,10 @@ bool isUbBetter(const datatype lb, const datatype ub, const datatype newub) {
 
    assert(lb <= ub);
 
+   /* from SCIP, todo do we need this in the GPU version? */
    /* if upper bound is moved to 0 or lower, always accept bound change */
-   if (ub > 0.0 && newub <= 0.0)
-      return true;
+   //if (ub > 0.0 && newub <= 0.0)
+   //   return true;
 
    return (newub < ub);
 }
