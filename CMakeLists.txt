@@ -48,6 +48,10 @@ if("${VERBOSITY}" STREQUAL 2)
      add_definitions(-DVERBOSE -DDEBUG)
 endif()
 
+if("${CACL_PROGRESS}" STREQUAL "On")
+    add_definitions(-DCALC_PROGRESS)
+endif()
+
 add_library(GpuProp SHARED
         src/misc.cpp
         src/kernels/util_kernels.cu

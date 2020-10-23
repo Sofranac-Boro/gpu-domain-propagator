@@ -342,7 +342,7 @@ __global__ void reduceBoundsKernel_naive
         datatype newub;
         datatype newlb;
 
-        bool isVarCont = vartypes[varidx] == 3;
+        bool is_var_cont = vartypes[varidx] == 3;
 
         int var_data_begin = csc_col_ptrs[varidx];
         int var_data_end   = csc_col_ptrs[varidx+1];
@@ -359,19 +359,21 @@ __global__ void reduceBoundsKernel_naive
             If this is done here, it would tighten even if we started with a decimal bound for a integer variable.
             Otherwise, if this is done after the check, it tightens only if new decimal value improves on the old one.
             Which to do??
-            newub = isVarCont? newub : floor(newub);
-            newlb = isVarCont? newlb : ceil(newlb);
+            newub = adjustUpperBound(newub, is_var_cont);
+            newlb = adjustLowerBound(newlb, is_var_cont);
             */
             if (newub < best_ub)
             {
-                newub = isVarCont? newub : EPSFLOOR(newub, GDP_EPS);
+                newub = adjustUpperBound(newub, is_var_cont);
+
+
                 best_ub = newub;
                 *change_found = true;
             }
 
             if (newlb > best_lb)
             {
-                newlb = isVarCont? newlb : EPSCEIL(newlb, GDP_EPS);
+                newlb = adjustLowerBound(newlb, is_var_cont);
                 best_lb = newlb;
                 *change_found = true;
             }

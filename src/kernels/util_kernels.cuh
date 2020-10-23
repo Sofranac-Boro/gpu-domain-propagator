@@ -272,6 +272,18 @@ __device__ __forceinline__ float atomicMax(float *address, float val)
 }
 
 template <typename datatype>
+__device__ __forceinline__ datatype adjustUpperBound(datatype ub, bool is_var_cont)
+{
+    return is_var_cont? ub : EPSFLOOR(ub, GDP_EPS);
+}
+
+template <typename datatype>
+__device__ __forceinline__ datatype adjustLowerBound(datatype lb, bool is_var_cont)
+{
+    return is_var_cont? lb : EPSCEIL(lb, GDP_EPS);
+}
+
+template <typename datatype>
 __device__ void getNewBoundCandidates
 (
   const datatype lhs,
@@ -335,6 +347,40 @@ __device__ void print_acts_csr_stream(int nnz_in_block, int* validx_considx_map,
         }
 
         __syncthreads();
+}
+
+template<typename datatype>
+__global__ void calc_local_progress_measure(
+        int n_vars,
+        datatype* oldubs,
+        datatype* oldlbs,
+        datatype* newubs,
+        datatype* newlbs,
+        datatype* measures
+)
+{
+    int varidx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (varidx < n_vars)
+    {
+            datatype oldlb = oldlbs[varidx];
+            datatype oldub = oldubs[varidx];
+            datatype newlb = newlbs[varidx];
+            datatype newub = newubs[varidx];
+
+            if (oldub >= GDP_INF && oldlb >= -GDP_INF)
+            {
+                measures[varidx] =  newub < GDP_INF || newlb < -GDP_INF? 1.0 : 0.0;
+            }
+            else
+            {
+                datatype rel_domain = oldub - oldlb < GDP_INF ? oldub - oldlb : MIN(REALABS(oldub), REALABS(oldlb));
+                measures[varidx] = (oldub - newub + newlb - oldlb) / rel_domain;
+            }
+
+           // printf("var: %d, score: %.10f\n", varidx, measures[varidx]);
+    }
+
 }
 
 #endif

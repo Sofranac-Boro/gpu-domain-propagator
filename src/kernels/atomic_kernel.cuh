@@ -4,6 +4,7 @@
 #include "../params.h"
 #include "util_kernels.cuh"
 #include "../misc.h"
+#include "../../lib/cub/cub.cuh"
 
 template <typename datatype>
 __global__ void GPUAtomicDomainPropagation
@@ -191,9 +192,9 @@ __global__ void GPUAtomicDomainPropagation
           &newub
         );
 
-         bool isVarCont = vartypes[varidx] == 3;
-         newub = isVarCont? newub : EPSFLOOR(newub, GDP_EPS);
-         newlb = isVarCont? newlb : EPSCEIL(newlb, GDP_EPS);
+         bool is_var_cont = vartypes[varidx] == 3;
+         newub = adjustUpperBound(newub, is_var_cont);
+         newlb = adjustLowerBound(newlb, is_var_cont);
 
          double oldub = atomicMin(&ubs[varidx], newub);
          double oldlb = atomicMax(&lbs[varidx], newlb);
@@ -323,16 +324,15 @@ __global__ void GPUAtomicDomainPropagation
             &newub
           );
 
-         bool isVarCont = vartypes[varidx] == 3;
-         newub = isVarCont? newub : EPSFLOOR(newub, GDP_EPS);
-         newlb = isVarCont? newlb : EPSCEIL(newlb, GDP_EPS);
+         bool is_var_cont = vartypes[varidx] == 3;
+         newub = adjustUpperBound(newub, is_var_cont);
+         newlb = adjustLowerBound(newlb, is_var_cont);
 
          double oldub = atomicMin(&ubs[varidx], newub);
          double oldlb = atomicMax(&lbs[varidx], newlb);
 
          if (newub < oldub || newlb > oldlb)
             *change_found = true;
-
       }  
     }
   }
@@ -365,6 +365,16 @@ __global__ void GPUAtomicPropEntryKernel
     DEBUG_CALL( printf("\nPropagation round: %d\n\n", prop_round) );
     *change_found = false;
 
+    #ifdef CALC_PROGRESS
+    datatype* oldlbs = (datatype*)malloc(n_vars * sizeof(datatype));
+    datatype* oldubs = (datatype*)malloc(n_vars * sizeof(datatype));
+    datatype* measures = (datatype*)malloc(n_vars * sizeof(datatype));
+
+    memcpy(oldlbs, lbs, n_vars * sizeof(datatype));
+    memcpy(oldubs, ubs, n_vars * sizeof(datatype));
+    memcpy(measures, ubs, n_vars * sizeof(datatype));
+    #endif
+
     // shared memory layout:
     // - max_num_cons_in_block elems of type datatype for minactivities
     // - max_num_cons_in_block elems of type datatype for maxactivities
@@ -374,6 +384,35 @@ __global__ void GPUAtomicPropEntryKernel
     );
 
     cudaDeviceSynchronize();
+
+    #ifdef CALC_PROGRESS
+    const int num_threads_per_block = 256;
+    const int num_blocks = ceil(double(n_vars) / num_threads_per_block);
+    calc_local_progress_measure<datatype><<< num_blocks, num_threads_per_block >>>
+    (
+        n_vars,
+        oldubs,
+        oldlbs,
+        ubs,
+        lbs,
+        measures
+    );
+    cudaPeekAtLastError();
+
+    datatype* score = (datatype*)malloc(sizeof(datatype));
+
+    // Determine temporary device storage requirements
+    void     *d_temp_storage = NULL;
+    size_t   temp_storage_bytes = 0;
+    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, measures, score, n_vars);
+
+    d_temp_storage = malloc(temp_storage_bytes);
+
+    cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, measures, score, n_vars);
+
+    cudaDeviceSynchronize();
+    printf("\nround %d total score: %.10f", prop_round, *score);
+    #endif
 
   }
   VERBOSE_CALL( printf("\ngpu_atomic propagation done. Num rounds: %d\n", prop_round) );
