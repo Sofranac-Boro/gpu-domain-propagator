@@ -7,6 +7,7 @@
 #include <assert.h>
 #include<iostream>
 #include "../params.h"
+#include "../misc.h"
 
 #define THREADS_PER_BLOCK 256
 
@@ -158,8 +159,8 @@ void csr_to_csc_device_only
 
     //// BEGIN TEMPORARY CODE /// 
     // until the INT type in vals bug is solved !
-    double* csr2csc_index_map_double = (double*)malloc(nnz * sizeof(double));
-    int* csr2csc_index_map = (int*)malloc(nnz* sizeof(int));
+    double* csr2csc_index_map_double = (double*)SAFEMALLOC(nnz * sizeof(double));
+    int* csr2csc_index_map = (int*)SAFEMALLOC(nnz* sizeof(int));
     double* d_csr2csc_index_map_double = gpu.allocArrayGPU<double>(nnz);
     /// END TEMPORARY CODE ///
 
@@ -349,13 +350,47 @@ __device__ void print_acts_csr_stream(int nnz_in_block, int* validx_considx_map,
         __syncthreads();
 }
 
+template <typename datatype>
+__device__ __host__ __forceinline__ datatype calcVarLocProgressMeasure(
+        datatype oldlb,
+        datatype oldub,
+        datatype newlb,
+        datatype newub
+)
+{
+        // TODO think if tightening which is still > inf will be handled correctly
+      if ( EPSEQ(oldub, newub, GDP_EPS) && EPSEQ(oldlb, newlb, GDP_EPS) )
+      {
+        return 0.0;
+      }
+      else if ( (oldub >= GDP_INF && newub < GDP_INF) || (oldlb <= -GDP_INF && newlb > -GDP_INF) )
+      {
+         // Handle explicitly the case when either of the sides of the domain changed from infinite to finite value.
+         return  1.0;
+      }
+      else
+      {
+         datatype rel_domain = oldub - oldlb < GDP_INF ? oldub - oldlb : MAX( MIN(REALABS(oldub), REALABS(oldlb)), 1.0);
+
+         // newub < oldub. If oldub < INF => newub < INF. If oldub >= INF => newlb >=INF becuase oldub >= GDP_INF && newub < GDP_INF was handled above explicitly
+         datatype ub_cutoff = oldub <  GDP_INF? oldub - newub : 0.0;
+
+         // newlb > oldlb. If oldlb > -INF => newlb > -INF. If oldlb <= -INF => newlb <= -INF bacase oldlb <= -GDP_INF && newlb > -GDP_INF was handled above explicitly
+         datatype lb_cutoff = oldlb > -GDP_INF? newlb - oldlb : 0.0;
+
+         // Measure of progress: amount of domain that is cut off relative to the original size of the domain if it is finite, or magnitude of the changed bound if domain is infinite.
+         // if one side is infinite and the other's magnitude is <1, the measure can get >1.0. Hence, cap the final measure at 1.0.
+         return MIN( (ub_cutoff + lb_cutoff) / rel_domain, 1.0);
+      }
+}
+
 template<typename datatype>
 __global__ void calc_local_progress_measure(
         int n_vars,
-        datatype* oldubs,
         datatype* oldlbs,
-        datatype* newubs,
+        datatype* oldubs,
         datatype* newlbs,
+        datatype* newubs,
         datatype* measures
 )
 {
@@ -363,24 +398,26 @@ __global__ void calc_local_progress_measure(
 
     if (varidx < n_vars)
     {
-            datatype oldlb = oldlbs[varidx];
-            datatype oldub = oldubs[varidx];
-            datatype newlb = newlbs[varidx];
-            datatype newub = newubs[varidx];
-
-            if (oldub >= GDP_INF && oldlb >= -GDP_INF)
-            {
-                measures[varidx] =  newub < GDP_INF || newlb < -GDP_INF? 1.0 : 0.0;
-            }
-            else
-            {
-                datatype rel_domain = oldub - oldlb < GDP_INF ? oldub - oldlb : MIN(REALABS(oldub), REALABS(oldlb));
-                measures[varidx] = (oldub - newub + newlb - oldlb) / rel_domain;
-            }
-
-           // printf("var: %d, score: %.10f\n", varidx, measures[varidx]);
+         measures[varidx] = calcVarLocProgressMeasure(oldubs[varidx], oldlbs[varidx], newubs[varidx], newlbs[varidx]);
     }
+}
 
+template<typename datatype>
+__global__ void copy_bounds_kernel(
+        const int n_vars,
+        datatype* lbs,
+        datatype* ubs,
+        datatype* newlbs,
+        datatype* newubs
+)
+{
+    int varidx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (varidx < n_vars)
+    {
+         lbs[varidx] = newlbs[varidx];
+         ubs[varidx] = newubs[varidx];
+    }
 }
 
 #endif

@@ -1,7 +1,7 @@
 #ifndef __GPUPROPAGATOR_SHAREDMEM_CUH__
 #define __GPUPROPAGATOR_SHAREDMEM_CUH__
 
-#include "../propagation_methods.h"
+#include "../propagation_methods.cuh"
 #include "../commons.cuh"
 #include "../misc.h"
 #include "../params.h"
@@ -150,7 +150,7 @@ void fullOMPPropagate
    for (int i = 0; i < n_vars; i++)
       omp_destroy_lock(&(locks[i]));
 
-   VERBOSE_CALL(printf("cpu_omp propagation done. Num rounds: %d\n", prop_round));
+   VERBOSE_CALL(printf("cpu_omp propagation done. Num rounds: %d\n", prop_round-1));
    VERBOSE_CALL(measureTime("cpu_omp", start, std::chrono::steady_clock::now()));
 
    free(minacts);

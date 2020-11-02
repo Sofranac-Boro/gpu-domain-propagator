@@ -70,8 +70,8 @@ def prop_compare_seq_gpu(lp_file_path: str) -> None:
     print("cpu_seq to gpu_atomic results match: ", equal_seq_gpu_atomic)
     print("all results match: ", equal_seq_gpu_atomic and equal_seq_gpu_full and equal_seq_omp)
 
-   # compare_arrays_diff_idx(seq_new_lbs, gpuatomic_new_lbs, "lbs")
-  #  compare_arrays_diff_idx(seq_new_ubs, gpuatomic_new_ubs, "ubs")
+ #   compare_arrays_diff_idx(gpu_new_lbs, gpuatomic_new_lbs, "lbs")
+ #   compare_arrays_diff_idx(gpu_new_ubs, gpuatomic_new_ubs, "ubs")
     #print_bounds(seq_new_lbs, seq_new_ubs)
     #print_bounds(gpuatomic_new_lbs, gpuatomic_new_ubs)
 

@@ -6,7 +6,21 @@
 #include <chrono>
 #include <iostream>
 #include <fstream>
+#include <assert.h>
 
+// #define FOLLOW_CONS 581830
+
+inline static void* safe_malloc(size_t n, unsigned long line)
+{
+   void* p = malloc(n);
+   if (!p)
+   {
+      fprintf(stderr, "[%s:%lu]Out of memory(%lu bytes)\n",
+              __FILE__, line, (unsigned long)n);
+      exit(EXIT_FAILURE);
+   }
+   return p;
+}
 
 #ifdef VERBOSE
 #define VERBOSE_CALL(ans) {(ans);}
@@ -15,9 +29,29 @@
 #endif
 
 #ifdef DEBUG
+#define SAFEMALLOC(n) safe_malloc(n, __LINE__)
 #define DEBUG_CALL(ans) {(ans);}
 #else
+#define SAFEMALLOC(n) malloc(n)
 #define DEBUG_CALL(ans) do { } while(0)
+#endif
+
+#ifdef FOLLOW_VAR
+#define FOLLOW_VAR_CALL(varidx, ans) varidx==FOLLOW_VAR? (ans) : printf("")
+#else
+#define FOLLOW_VAR_CALL(varidx, ans) do { } while(0)
+#endif
+
+#ifdef FOLLOW_CONS
+#define FOLLOW_CONS_CALL(considx, ans) considx==FOLLOW_CONS? (ans) : printf("")
+#else
+#define FOLLOW_CONS_CALL(considx, ans) do { } while(0)
+#endif
+
+#ifdef CALC_PROGRESS
+#define CALC_PROGRESS_CALL(ans) {(ans);}
+#else
+#define CALC_PROGRESS_CALL(ans) do { } while(0)
 #endif
 
 void measureTime(const char alg_name[30], std::chrono::_V2::steady_clock::time_point start,
@@ -94,4 +128,12 @@ void save_acts_to_file(int n_cons, datatype* minacts, datatype* maxacts, int rou
    file.close();
 }
 
+//template <typename datatype>
+//void print_var_changes(int varidx, datatype oldbound, datatype )
+//{
+//   if (varidx == FOLLOW_VAR)
+//   {
+//
+//   }
+//}
 #endif

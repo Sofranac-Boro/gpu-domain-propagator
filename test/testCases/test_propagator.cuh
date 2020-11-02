@@ -1,5 +1,5 @@
 
-#include "../../src/propagation_methods.h"
+#include "../../src/propagation_methods.cuh"
 
 TEST_CASE( "Adjusting variable upper bound")
 {

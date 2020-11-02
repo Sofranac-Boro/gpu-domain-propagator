@@ -116,9 +116,9 @@ GDP_RETCODE propagateConstraintsSequentialDouble
       int *d_row_ptrs = gpu.initArrayGPU<int>(row_indices, n_cons + 1);
       double *d_vals = gpu.initArrayGPU<double>(vals, nnz);
 
-      double *csc_vals = (double *) malloc(nnz * sizeof(double));
-      int *csc_row_indices = (int *) malloc(nnz * sizeof(int));
-      int *csc_col_ptrs = (int *) malloc((n_vars + 1) * sizeof(int));
+      double *csc_vals = (double *) SAFEMALLOC(nnz * sizeof(double));
+      int *csc_row_indices = (int *) SAFEMALLOC(nnz * sizeof(int));
+      int *csc_col_ptrs = (int *) SAFEMALLOC((n_vars + 1) * sizeof(int));
 
       csr_to_csc(gpu, n_cons, n_vars, nnz, d_col_indices, d_row_ptrs, csc_col_ptrs, csc_row_indices, csc_vals, d_vals);
 
@@ -178,9 +178,9 @@ GDP_RETCODE propagateConstraintsFullOMPDouble
       int *d_row_ptrs = gpu.initArrayGPU<int>(row_indices, n_cons + 1);
       double *d_vals = gpu.initArrayGPU<double>(vals, nnz);
 
-      double *csc_vals = (double *) malloc(nnz * sizeof(double));
-      int *csc_row_indices = (int *) malloc(nnz * sizeof(int));
-      int *csc_col_ptrs = (int *) malloc((n_vars + 1) * sizeof(int));
+      double *csc_vals = (double *) SAFEMALLOC(nnz * sizeof(double));
+      int *csc_row_indices = (int *) SAFEMALLOC(nnz * sizeof(int));
+      int *csc_col_ptrs = (int *) SAFEMALLOC((n_vars + 1) * sizeof(int));
 
       csr_to_csc(gpu, n_cons, n_vars, nnz, d_col_indices, d_row_ptrs, csc_col_ptrs, csc_row_indices, csc_vals, d_vals);
 
@@ -241,9 +241,9 @@ GDP_RETCODE propagateConstraintsSequentialDisjointDouble
       int *d_row_ptrs = gpu.initArrayGPU<int>(row_indices, n_cons + 1);
       double *d_vals = gpu.initArrayGPU<double>(vals, nnz);
 
-      double *csc_vals = (double *) malloc(nnz * sizeof(double));
-      int *csc_row_indices = (int *) malloc(nnz * sizeof(int));
-      int *csc_col_ptrs = (int *) malloc((n_vars + 1) * sizeof(int));
+      double *csc_vals = (double *) SAFEMALLOC(nnz * sizeof(double));
+      int *csc_row_indices = (int *) SAFEMALLOC(nnz * sizeof(int));
+      int *csc_col_ptrs = (int *) SAFEMALLOC((n_vars + 1) * sizeof(int));
 
       csr_to_csc(gpu, n_cons, n_vars, nnz, d_col_indices, d_row_ptrs, csc_col_ptrs, csc_row_indices, csc_vals, d_vals);
 

@@ -4,6 +4,7 @@
 #include <math.h>       /* fabs */
 #include <omp.h>
 #include "params.h"
+#include "kernels/util_kernels.cuh"
 
 
 struct ActivitiesTupleStruct {
@@ -183,6 +184,7 @@ bool tightenVariable
          newb_tuple = tightenVarUpperBound(coeff, slack, lb, ub, isVarCont);
          if (newb_tuple.is_tightened) {
             markConstraints(var_idx, csc_col_ptrs, csc_row_indices, consmarked);
+            //FOLLOW_VAR_CALL(  );
             ubs[var_idx] = newb_tuple.newb;
             // update surplus and ub for tightening the lower bound
             surplus = surplus - coeff * (ub - newb_tuple.newb);
@@ -221,6 +223,23 @@ bool tightenVariable
       }
    }
    return change_found;
+}
+
+template<typename datatype>
+datatype calcLocalProgressMeasureSeq(
+        int n_vars,
+        datatype* oldubs,
+        datatype* oldlbs,
+        datatype* newubs,
+        datatype* newlbs
+)
+{
+   datatype sum = 0.0;
+   for (int varidx = 0; varidx < n_vars; varidx++)
+   {
+      sum += calcVarLocProgressMeasure(oldubs[varidx], oldlbs[varidx], newubs[varidx], newlbs[varidx]);
+   }
+    return sum;
 }
 
 #endif

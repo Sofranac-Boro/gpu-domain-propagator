@@ -2,7 +2,7 @@
 #ifndef __GPUPROPAGATOR_SEQUENTIAL_CUH__
 #define __GPUPROPAGATOR_SEQUENTIAL_CUH__
 
-#include "../propagation_methods.h"
+#include "../propagation_methods.cuh"
 #include "../misc.h"
 #include "../params.h"
 
@@ -159,7 +159,7 @@ void sequentialPropagateDisjoint
    }
 
    VERBOSE_CALL(measureTime("\n cpu_seq", start, std::chrono::steady_clock::now()));
-   VERBOSE_CALL(printf("cpu_seq num rounds: %d\n", prop_round));
+   VERBOSE_CALL(printf("cpu_seq num rounds: %d\n", prop_round-1));
 
    free(minacts);
    free(maxacts);
@@ -202,6 +202,11 @@ void sequentialPropagate
    auto start = std::chrono::steady_clock::now();
 #endif
 
+#ifdef CALC_PROGRESS
+  datatype* oldlbs = (datatype*)SAFEMALLOC(n_vars * sizeof(datatype));
+  datatype* oldubs = (datatype*)SAFEMALLOC(n_vars * sizeof(datatype));
+#endif
+
    VERBOSE_CALL(printf("\ncpu_seq execution start..."));
 
    bool change_found = true;
@@ -210,20 +215,30 @@ void sequentialPropagate
    {
       DEBUG_CALL( printf("\nPropagation round: %d\n\n", prop_round) );
       //    VERBOSE_CALL( countPrintNumMarkedCons<int>(n_cons, consmarked) );
+      CALC_PROGRESS_CALL( memcpy(oldlbs, lbs, n_vars * sizeof(datatype)) );
+      CALC_PROGRESS_CALL( memcpy(oldubs, ubs, n_vars * sizeof(datatype)) );
+
       change_found = sequentialPropagationRound<datatype>
               (
                       n_cons, n_vars, col_indices, row_indices, csc_col_ptrs, csc_row_indices, vals, lhss, rhss,
                       lbs, ubs, vartypes, minacts, maxacts, maxactdeltas, consmarked, RECOMPUTE_ACTS_TRUE
               );
+
+      CALC_PROGRESS_CALL(
+              printf("\nround %d total score: %.10f",
+                      prop_round, calcLocalProgressMeasureSeq(n_vars, oldubs, oldlbs, ubs, lbs))
+              );
    }
 
-   VERBOSE_CALL(printf("\ncpu_seq propagation done. Num rounds: %d\n", prop_round));
+   VERBOSE_CALL(printf("\ncpu_seq propagation done. Num rounds: %d\n", prop_round-1));
    VERBOSE_CALL(measureTime("cpu_seq", start, std::chrono::steady_clock::now()));
 
    free(minacts);
    free(maxacts);
    free(maxactdeltas);
    free(consmarked);
+   CALC_PROGRESS_CALL( free(oldlbs) );
+   CALC_PROGRESS_CALL( free(oldubs) );
 }
 
 #endif

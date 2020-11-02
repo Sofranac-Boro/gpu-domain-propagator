@@ -78,23 +78,23 @@ public:
 protected:
     void allocMem(int n_cons, int n_vars, int nnz)
     {
-        csr_vals        = (datatype*) malloc( nnz        * sizeof( datatype ));
-        csr_col_indices = (int*)      malloc( nnz        * sizeof( int      )); 
-        csr_row_ptrs    = (int*)      malloc( (n_cons+1) * sizeof( int      )); 
-        csc_vals        = (datatype*) malloc( nnz        * sizeof( datatype ));
-        csc_col_ptrs    = (int*)      malloc( (n_vars+1) * sizeof( int      ));
-        csc_row_indices = (int*)      malloc( nnz        * sizeof( int      ));
-        lhss            = (datatype*) malloc( n_cons     * sizeof( datatype ));
-        rhss            = (datatype*) malloc( n_cons     * sizeof( datatype ));
-        maxacts         = (datatype*) malloc( n_cons     * sizeof( datatype ));
-        minacts         = (datatype*) malloc( n_cons     * sizeof( datatype ));
-        maxactdeltas    = (datatype*) malloc( n_cons     * sizeof( datatype ));
-        lbs             = (datatype*) malloc( n_vars     * sizeof( datatype ));
-        ubs             = (datatype*) malloc( n_vars     * sizeof( datatype ));
-        vartypes        = (int*)      malloc( n_vars     * sizeof( int      ));
-        consmarked      = (int*)      malloc( n_cons     * sizeof( int      ));
-        lbs_analytical  = (datatype*) malloc( n_vars     * sizeof( datatype ));
-        ubs_analytical  = (datatype*) malloc( n_vars     * sizeof( datatype ));
+        csr_vals        = (datatype*) SAFEMALLOC( nnz        * sizeof( datatype ));
+        csr_col_indices = (int*)      SAFEMALLOC( nnz        * sizeof( int      ));
+        csr_row_ptrs    = (int*)      SAFEMALLOC( (n_cons+1) * sizeof( int      ));
+        csc_vals        = (datatype*) SAFEMALLOC( nnz        * sizeof( datatype ));
+        csc_col_ptrs    = (int*)      SAFEMALLOC( (n_vars+1) * sizeof( int      ));
+        csc_row_indices = (int*)      SAFEMALLOC( nnz        * sizeof( int      ));
+        lhss            = (datatype*) SAFEMALLOC( n_cons     * sizeof( datatype ));
+        rhss            = (datatype*) SAFEMALLOC( n_cons     * sizeof( datatype ));
+        maxacts         = (datatype*) SAFEMALLOC( n_cons     * sizeof( datatype ));
+        minacts         = (datatype*) SAFEMALLOC( n_cons     * sizeof( datatype ));
+        maxactdeltas    = (datatype*) SAFEMALLOC( n_cons     * sizeof( datatype ));
+        lbs             = (datatype*) SAFEMALLOC( n_vars     * sizeof( datatype ));
+        ubs             = (datatype*) SAFEMALLOC( n_vars     * sizeof( datatype ));
+        vartypes        = (int*)      SAFEMALLOC( n_vars     * sizeof( int      ));
+        consmarked      = (int*)      SAFEMALLOC( n_cons     * sizeof( int      ));
+        lbs_analytical  = (datatype*) SAFEMALLOC( n_vars     * sizeof( datatype ));
+        ubs_analytical  = (datatype*) SAFEMALLOC( n_vars     * sizeof( datatype ));
     }
 
     void freeMem()

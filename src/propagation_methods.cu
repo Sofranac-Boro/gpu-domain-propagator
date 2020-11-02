@@ -1,4 +1,4 @@
-#include "propagation_methods.h"
+#include "propagation_methods.cuh"
 #include <stdio.h>
 
 void markConstraints

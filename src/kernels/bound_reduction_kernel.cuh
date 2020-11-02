@@ -92,6 +92,8 @@ __global__ void compActsAndBoundsAdaptiveKernel
           // element at index i belongs to. We need this to easily access data saved per row, such as lhs and rhs. 
           validx_considx_map[local_element] = local_row;
 
+          FOLLOW_CONS_CALL(local_row, printf("considx: %7d, threadidx: %7d, minact summand: %9.2e, maxact summand: %9.2e\n", local_row, threadIdx.x, cache_minacts[local_element], cache_maxacts[local_element] ) );
+
           dot_minact += cache_minacts[local_element];
           dot_maxact += cache_maxacts[local_element];
         }
@@ -149,7 +151,9 @@ __global__ void compActsAndBoundsAdaptiveKernel
         {
           // The following line saves the map between the index i of the vals array and the constraint j the
           // element at index i belongs to. We need this to easily access data saved per row, such as lhs and rhs.
-          validx_considx_map[local_element] = local_row; 
+          validx_considx_map[local_element] = local_row;
+
+          FOLLOW_CONS_CALL(local_row, printf("considx: %7d, threadidx: %7d, minact summand: %9.2e, maxact summand: %9.2e\n", local_row, threadIdx.x, cache_minacts[local_element], cache_maxacts[local_element] ) );
           
           dot_minact += cache_minacts[local_element];
           dot_maxact += cache_maxacts[local_element];
@@ -185,6 +189,11 @@ __global__ void compActsAndBoundsAdaptiveKernel
           &newub
         );
 
+         FOLLOW_VAR_CALL( varidx,
+                          printf("varidx: %7d, considx: %7d, lhs: %9.2e, rhs: %9.2e, coeff: %9.2e, minact: %9.2e, maxact: %9.2e, oldlb: %9.2e, oldub: %9.2e, newlb: %9.2e, newub: %9.2e\n",
+                                  varidx, considx, lhss[considx], rhss[considx], coeff, minacts[considx - block_row_begin], maxacts[considx - block_row_begin], lb, ub, newlb, newub)
+                        );
+
         // save in CSC format
         int csc_index = csr2csc_index_map[thread_data_begin];
         newubs[csc_index] = newub;
@@ -218,6 +227,9 @@ __global__ void compActsAndBoundsAdaptiveKernel
 
             dot_minact += coeff > 0? coeff*lb : coeff*ub; // minactivity
             dot_maxact += coeff > 0? coeff*ub : coeff*lb; // maxactivity
+
+            FOLLOW_CONS_CALL(block_row_begin, printf("considx: %7d, threadidx: %7d, minact summand: %9.2e, maxact summand: %9.2e\n", block_row_begin, threadIdx.x, dot_minact, dot_maxact ) );
+
         }  
       }
 
@@ -309,6 +321,12 @@ __global__ void compActsAndBoundsAdaptiveKernel
             &newlb,
             &newub
           );
+
+          FOLLOW_VAR_CALL(
+                          varidx,
+                           printf("varidx: %7d, considx: %7d, lhs: %9.2e, rhs: %9.2e, coeff: %9.2e, minact: %9.2e, maxact: %9.2e, oldlb: %9.2e, oldub: %9.2e, newlb: %9.2e, newub: %9.2e\n",
+                                   varidx, block_row_begin, lhss[block_row_begin], rhss[block_row_begin], vals[element], minacts[0], maxacts[0], lbs[varidx], ubs[varidx], newlb, newub)
+                          );
 
        //    save in CSC format
           int csc_index = csr2csc_index_map[element];
@@ -414,6 +432,7 @@ __global__ void GPUPropEntryKernel
   for (prop_round=1; prop_round <= MAX_NUM_ROUNDS && *change_found; prop_round++)
   {
     *change_found = false;
+    FOLLOW_VAR_CALL( FOLLOW_VAR, printf("round: %d, varidx: %7d, lb: %9.2e, ub: %9.2e\n", prop_round, FOLLOW_VAR, lbs[FOLLOW_VAR], ubs[FOLLOW_VAR]) );
 
     // shared memory layout:
     // - max_num_cons_in_block elems of type datatype for minactivities
@@ -431,9 +450,11 @@ __global__ void GPUPropEntryKernel
 
     cudaDeviceSynchronize();
 
+     FOLLOW_VAR_CALL( FOLLOW_VAR, printf("bounds after round: %d, varidx: %7d, lb: %9.2e, ub: %9.2e\n", prop_round, FOLLOW_VAR, lbs[FOLLOW_VAR], ubs[FOLLOW_VAR]) );
+
   }
 
-  VERBOSE_CALL( printf("\ngpu_reduction propagation done. Num rounds: %d\n", prop_round) );
+  VERBOSE_CALL( printf("\ngpu_reduction propagation done. Num rounds: %d\n", prop_round-1) );
 }
 
 #endif

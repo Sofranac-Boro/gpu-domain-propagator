@@ -115,6 +115,7 @@ if __name__ == "__main__":
                 "res_eq": res_eq
             }
 
+
             # Only add the instance to the data struct if the results of all algorithms match
             if res_eq == "True":
                 test_sets[log_file].append(instace)

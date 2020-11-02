@@ -48,14 +48,18 @@ if("${VERBOSITY}" STREQUAL 2)
      add_definitions(-DVERBOSE -DDEBUG)
 endif()
 
-if("${CACL_PROGRESS}" STREQUAL "On")
+if("${CALC_PROGRESS}" STREQUAL "On")
     add_definitions(-DCALC_PROGRESS)
+endif()
+
+if (FOLLOW_VAR)
+    add_definitions(-DFOLLOW_VAR=${FOLLOW_VAR})
 endif()
 
 add_library(GpuProp SHARED
         src/misc.cpp
         src/kernels/util_kernels.cu
-        src/propagation_methods.cpp
+        src/propagation_methods.cu
         src/interface.cu)
 
 # build with -std=c++11. PUBLIC will make anything linking to this to also build with c++11
@@ -69,7 +73,7 @@ target_link_libraries(GpuProp ${CUDA_cusparse_LIBRARY})
 add_executable(testexec test/test_main.cu
         src/misc.cpp
         src/kernels/util_kernels.cu
-        src/propagation_methods.cpp
+        src/propagation_methods.cu
         test/test_infra.cu
         src/interface.cu)
 set_property(TARGET testexec PROPERTY CUDA_SEPARABLE_COMPILATION ON)
