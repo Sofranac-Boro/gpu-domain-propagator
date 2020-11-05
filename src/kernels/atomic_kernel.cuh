@@ -446,7 +446,7 @@ __global__ void GPUAtomicPropEntryKernel
   free(d_temp_storage);
   #endif
 
-  VERBOSE_CALL( printf("\ngpu_atomic propagation done. Num rounds: %d\n", prop_round-1) );
+  VERBOSE_CALL( printf("gpu_atomic propagation done. Num rounds: %d\n", prop_round-1) );
 }
 
 #endif
