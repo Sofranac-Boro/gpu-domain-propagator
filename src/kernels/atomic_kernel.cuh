@@ -19,8 +19,8 @@ __global__ void GPUAtomicDomainPropagation
     const int* row_ptrs,
     const int* row_blocks,
     const datatype* vals,
-    const datatype* lbs,
-    const datatype* ubs,
+    datatype* lbs,
+    datatype* ubs,
     datatype* newlbs,
     datatype* newubs,
     const int* vartypes,
@@ -202,7 +202,7 @@ __global__ void GPUAtomicDomainPropagation
         );
 
          FOLLOW_VAR_CALL( varidx,
-                          printf("varidx: %7d, considx: %7d, lhs: %9.2e, rhs: %9.2e, coeff: %9.2e, minact: %9.2e, maxact: %9.2e, oldlb: %9.2e, oldub: %9.2e, newlb: %9.2e, newub: %9.2e\n",
+                          printf("CSR-stream cand: varidx: %7d, considx: %7d, lhs: %9.2e, rhs: %9.2e, coeff: %9.2e, minact: %9.2e, maxact: %9.2e, oldlb: %9.2e, oldub: %9.2e, newlb: %9.2e, newub: %9.2e\n",
                                   varidx, considx, lhss[considx], rhss[considx], coeff, minacts[considx - block_row_begin], maxacts[considx - block_row_begin], lb, ub, newlb, newub)
                         );
 
@@ -210,11 +210,16 @@ __global__ void GPUAtomicDomainPropagation
          newub = adjustUpperBound(newub, is_var_cont);
          newlb = adjustLowerBound(newlb, is_var_cont);
 
-         double oldub = atomicMin(&newubs[varidx], newub);
-         double oldlb = atomicMax(&newlbs[varidx], newlb);
+         double oldub = atomicMin(&ubs[varidx], newub);
+         double oldlb = atomicMax(&lbs[varidx], newlb);
 
-         if (newub < oldub || newlb > oldlb)
+         if ( is_change_found(oldlb, oldub, newlb, newub) )
+         {
             *change_found = true;
+             FOLLOW_VAR_CALL( varidx,
+                              printf("CSR-stream change found for varidx: %7d, considx: %7d. oldlb: %9.2e, oldub: %9.2e, newlb: %9.2e, newub: %9.2e\n", varidx, considx, oldlb, oldub, newlb, newub)
+                            );
+         }
       }
   }
   else
@@ -342,7 +347,7 @@ __global__ void GPUAtomicDomainPropagation
 
           FOLLOW_VAR_CALL(
                           varidx,
-                           printf("varidx: %7d, considx: %7d, lhs: %9.2e, rhs: %9.2e, coeff: %9.2e, minact: %9.2e, maxact: %9.2e, oldlb: %9.2e, oldub: %9.2e, newlb: %9.2e, newub: %9.2e\n",
+                           printf("CSR-vector cand: varidx: %7d, considx: %7d, lhs: %9.2e, rhs: %9.2e, coeff: %9.2e, minact: %9.2e, maxact: %9.2e, oldlb: %9.2e, oldub: %9.2e, newlb: %9.2e, newub: %9.2e\n",
                                    varidx, block_row_begin, lhss[block_row_begin], rhss[block_row_begin], vals[element], minacts[0], maxacts[0], lbs[col_indices[element]], ubs[col_indices[element]], newlb, newub)
                           );
 
@@ -350,12 +355,16 @@ __global__ void GPUAtomicDomainPropagation
          newub = adjustUpperBound(newub, is_var_cont);
          newlb = adjustLowerBound(newlb, is_var_cont);
 
-         double oldub = atomicMin(&newubs[varidx], newub);
-         double oldlb = atomicMax(&newlbs[varidx], newlb);
+         double oldub = atomicMin(&ubs[varidx], newub);
+         double oldlb = atomicMax(&lbs[varidx], newlb);
 
-         if (newub < oldub || newlb > oldlb)
+         if ( is_change_found(oldlb, oldub, newlb, newub) )
+         {
             *change_found = true;
-
+             FOLLOW_VAR_CALL( varidx,
+                              printf("CSR-vector change found for varidx: %7d, considx: %7d. oldlb: %9.2e, oldub: %9.2e, newlb: %9.2e, newub: %9.2e\n", varidx, block_row_begin, oldlb, oldub, newlb, newub)
+                            );
+         }
 
       }  
     }
@@ -376,8 +385,8 @@ __global__ void GPUAtomicPropEntryKernel
     const datatype* vals,
     datatype* lbs,
     datatype* ubs,
-    datatype* newlbs,
-    datatype* newubs,
+    datatype* oldlbs,
+    datatype* oldubs,
     const int* vartypes,
     const datatype* lhss,
     const datatype* rhss,
@@ -390,6 +399,12 @@ __global__ void GPUAtomicPropEntryKernel
   #ifdef CALC_PROGRESS
   datatype* measures = (datatype*)SAFEMALLOC(n_vars * sizeof(datatype));
   datatype* score = (datatype*)SAFEMALLOC(sizeof(datatype));
+  int* abs_measure_n = (int*)SAFEMALLOC(sizeof(int));
+  int* abs_measure_k = (int*)SAFEMALLOC(sizeof(int));
+  datatype* abs_measure_score = (datatype*)SAFEMALLOC(sizeof(datatype));
+
+  *abs_measure_n = 0;
+  *abs_measure_k = 0;
 
   // Determine temporary device storage requirements
   void     *d_temp_storage = NULL;
@@ -406,37 +421,58 @@ __global__ void GPUAtomicPropEntryKernel
 
     FOLLOW_VAR_CALL( FOLLOW_VAR, printf("round: %d, varidx: %7d, lb: %9.2e, ub: %9.2e\n", prop_round, FOLLOW_VAR, lbs[FOLLOW_VAR], ubs[FOLLOW_VAR]) );
 
+    #ifdef CALC_PROGRESS
+    copy_bounds_kernel<datatype><<< num_blocks_bound_copy, BOUND_COPY_NUM_THREADS >>>(n_vars, oldlbs, oldubs, lbs, ubs);
+    #endif
+
     // shared memory layout:
     // - max_num_cons_in_block elems of type datatype for minactivities
     // - max_num_cons_in_block elems of type datatype for maxactivities
     GPUAtomicDomainPropagation<datatype> <<< blocks_count, NNZ_PER_WG, 2 * max_num_cons_in_block * sizeof(datatype) >>>
     (
-        n_cons, n_vars, max_num_cons_in_block, col_indices, row_ptrs, row_blocks, vals, lbs, ubs, newlbs, newubs, vartypes, lhss, rhss, change_found, prop_round
+        n_cons, n_vars, max_num_cons_in_block, col_indices, row_ptrs, row_blocks, vals, lbs, ubs, oldlbs, oldubs, vartypes, lhss, rhss, change_found, prop_round
     );
     cudaDeviceSynchronize();
 
     #ifdef CALC_PROGRESS
-    calc_local_progress_measure<datatype><<< num_blocks_bound_copy, BOUND_COPY_NUM_THREADS >>>
+    //calc_local_progress_measure<datatype><<< num_blocks_bound_copy, BOUND_COPY_NUM_THREADS >>>
+    //(
+    //    n_vars,
+    //    oldlbs,
+    //    oldubs,
+    //    lbs,
+    //    ubs,
+    //    measures
+    //);
+//
+    //cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, measures, score, n_vars);
+    //cudaDeviceSynchronize();
+    //printf("\nround %d total relative score: %.10f", prop_round, *score);
+
+    calc_abs_progress_measure<datatype><<< num_blocks_bound_copy, BOUND_COPY_NUM_THREADS >>>
     (
         n_vars,
+        oldlbs,
+        oldubs,
         lbs,
         ubs,
-        newlbs,
-        newubs,
-        measures
+        measures,
+        abs_measure_n,
+        abs_measure_k
     );
 
     cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, measures, score, n_vars);
+    cudaDeviceSynchronize();
+    printf("\nround %d total absolute score: %.10f. n=%d, k=%d", prop_round, *score, *abs_measure_n, *abs_measure_k);
     #endif
 
 
-    if (*change_found)
-    {
-        copy_bounds_kernel<datatype><<< num_blocks_bound_copy, BOUND_COPY_NUM_THREADS >>>(n_vars, lbs, ubs, newlbs, newubs);
-    }
-    cudaDeviceSynchronize();
+  //  if (*change_found)
+  //  {
+  //      copy_bounds_kernel<datatype><<< num_blocks_bound_copy, BOUND_COPY_NUM_THREADS >>>(n_vars, lbs, ubs, newlbs, newubs);
+  //  }
+  //  cudaDeviceSynchronize();
 
-    CALC_PROGRESS_CALL( printf("\nround %d total score: %.10f", prop_round, *score); );
     FOLLOW_VAR_CALL( FOLLOW_VAR, printf("bounds after round: %d, varidx: %7d, lb: %9.2e, ub: %9.2e\n", prop_round, FOLLOW_VAR, lbs[FOLLOW_VAR], ubs[FOLLOW_VAR]) );
   }
 
@@ -444,6 +480,9 @@ __global__ void GPUAtomicPropEntryKernel
   free(measures);
   free(score);
   free(d_temp_storage);
+  free(abs_measure_n);
+  free(abs_measure_k);
+  free(abs_measure_score);
   #endif
 
   VERBOSE_CALL( printf("gpu_atomic propagation done. Num rounds: %d\n", prop_round-1) );

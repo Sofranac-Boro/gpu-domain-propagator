@@ -15,3 +15,13 @@ def compare_arrays_diff_idx(arr1: List[float], arr2: List[float], arr_name: str 
             print(arr_name, " index: ", i, ", val1: ", arr1[i], ", val2:", arr2[i])
             res_eq = False
     return res_eq
+
+
+def num_inf_bounds(lbs: List[float], ubs: List[float]) -> int:
+    num = 0
+    for i, lb in enumerate(lbs):
+        if lbs[i] <= -1e20:
+            num += 1
+        if ubs[i] >= 1e20:
+            num += 1
+    return num

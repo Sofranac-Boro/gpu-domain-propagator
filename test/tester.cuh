@@ -61,7 +61,7 @@ public:
         );
     }
 
-    void executeFullGPUPropagator(TestSetup<datatype>& ts)
+    void executeGPUReduction(TestSetup<datatype>& ts)
     {
         propagateConstraintsFullGPU<datatype>
         (
@@ -79,10 +79,9 @@ public:
 
     void checkSolution(TestSetup<datatype>& ts)
     {
-        compareArrays<datatype>(ts.n_vars, ts.ubs,     ts.ubs_analytical);
-        compareArrays<datatype>(ts.n_vars, ts.lbs,     ts.lbs_analytical);
+        compareArrays<datatype>(ts.n_vars, ts.ubs,     ts.ubs_analytical, TEST_EPS);
+        compareArrays<datatype>(ts.n_vars, ts.lbs,     ts.lbs_analytical, TEST_EPS);
     }
-    
 };
 
 #endif

@@ -384,6 +384,75 @@ __device__ __host__ __forceinline__ datatype calcVarLocProgressMeasure(
       }
 }
 
+template <typename datatype>
+__device__ __host__ __forceinline__ datatype calcVarAbsProgressMeasure(
+        datatype oldlb,
+        datatype oldub,
+        datatype newlb,
+        datatype newub,
+        int* abs_measure_n,
+        int* abs_measure_k
+)
+{
+
+        // TODO think if tightening which is still > inf will be handled correctly
+      if ( EPSEQ(oldub, newub, GDP_EPS) && EPSEQ(oldlb, newlb, GDP_EPS) )
+      {
+        return 0.0;
+      }
+      else if ( (oldub >= GDP_INF && newub < GDP_INF) && (oldlb <= -GDP_INF && newlb > -GDP_INF) )
+      {
+         #ifdef  __CUDA_ARCH__
+           atomicAdd(abs_measure_n, 1);
+           atomicAdd(abs_measure_k, 2);
+         #else
+           __sync_fetch_and_add(abs_measure_n, 1);
+           __sync_fetch_and_add(abs_measure_k, 2);
+         #endif
+         return 0.0;
+      }
+      else if (oldub >= GDP_INF && newub < GDP_INF)
+      {
+         #ifdef  __CUDA_ARCH__
+            atomicAdd(abs_measure_n, 1);
+            atomicAdd(abs_measure_k, 1);
+         #else
+            __sync_fetch_and_add(abs_measure_n, 1);
+            __sync_fetch_and_add(abs_measure_k, 1);
+         #endif
+
+         datatype rel_domain = MAX( REALABS(oldlb), 1.0);
+         return MIN( newlb - oldlb / rel_domain, 1.0);
+      }
+       else if (oldlb <= -GDP_INF && newlb > -GDP_INF)
+      {
+         #ifdef  __CUDA_ARCH__
+            atomicAdd(abs_measure_n, 1);
+            atomicAdd(abs_measure_k, 1);
+         #else
+            __sync_fetch_and_add(abs_measure_n, 1);
+            __sync_fetch_and_add(abs_measure_k, 1);
+         #endif
+
+         datatype rel_domain = MAX( REALABS(oldub), 1.0);
+         return MIN( oldub - newub / rel_domain, 1.0);
+      }
+      else
+      {
+         datatype rel_domain = oldub - oldlb < GDP_INF ? oldub - oldlb : MAX( MIN(REALABS(oldub), REALABS(oldlb)), 1.0);
+
+         // newub < oldub. If oldub < INF => newub < INF. If oldub >= INF => newlb >=INF becuase oldub >= GDP_INF && newub < GDP_INF was handled above explicitly
+         datatype ub_cutoff = oldub < GDP_INF? oldub - newub : 0.0;
+
+         // newlb > oldlb. If oldlb > -INF => newlb > -INF. If oldlb <= -INF => newlb <= -INF bacase oldlb <= -GDP_INF && newlb > -GDP_INF was handled above explicitly
+         datatype lb_cutoff = oldlb > -GDP_INF? newlb - oldlb : 0.0;
+
+         // Measure of progress: amount of domain that is cut off relative to the original size of the domain if it is finite, or magnitude of the changed bound if domain is infinite.
+         // if one side is infinite and the other's magnitude is <1, the measure can get >1.0. Hence, cap the final measure at 1.0.
+         return MIN( (ub_cutoff + lb_cutoff) / rel_domain, 1.0);
+      }
+}
+
 template<typename datatype>
 __global__ void calc_local_progress_measure(
         int n_vars,
@@ -403,6 +472,26 @@ __global__ void calc_local_progress_measure(
 }
 
 template<typename datatype>
+__global__ void calc_abs_progress_measure(
+        int n_vars,
+        datatype* oldlbs,
+        datatype* oldubs,
+        datatype* newlbs,
+        datatype* newubs,
+        datatype* measures,
+        int* abs_measure_n,
+        int* abs_measure_k
+)
+{
+    int varidx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (varidx < n_vars)
+    {
+         measures[varidx] = calcVarAbsProgressMeasure(oldubs[varidx], oldlbs[varidx], newubs[varidx], newlbs[varidx], abs_measure_n, abs_measure_k);
+    }
+}
+
+template<typename datatype>
 __global__ void copy_bounds_kernel(
         const int n_vars,
         datatype* lbs,
@@ -418,6 +507,17 @@ __global__ void copy_bounds_kernel(
          lbs[varidx] = newlbs[varidx];
          ubs[varidx] = newubs[varidx];
     }
+}
+
+template<typename datatype>
+__device__ __forceinline__ bool is_change_found(
+    datatype oldlb,
+    datatype oldub,
+    datatype newlb,
+    datatype newub
+)
+{
+    return EPSLT(newub, oldub, GDP_EPS) || EPSGT(newlb, oldlb, GDP_EPS);
 }
 
 #endif

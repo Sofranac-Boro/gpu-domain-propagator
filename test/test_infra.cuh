@@ -10,9 +10,9 @@
 #include "../src/commons.cuh"
 #include <chrono>
 
-
-
 using namespace std;
+
+#define TEST_EPS 1e-4
 
 void assertDoubleEPSEQ(double val1, double val2, double eps = 1e-6);
 double getRand10(double seed);
@@ -21,7 +21,7 @@ double getRand10pos(double seed);
 // Template implementations
 
 template <typename T>
-void compareArrays(const int len, const T* arr1, const T* arr2, double epsilon = 1e-6, const char name[30] = "not given")
+void compareArrays(const int len, const T* arr1, const T* arr2, double epsilon = TEST_EPS, const char name[30] = "not given")
 {
     for (int i=0; i<len; i++)
     {

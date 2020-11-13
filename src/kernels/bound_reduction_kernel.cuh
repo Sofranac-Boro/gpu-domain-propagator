@@ -380,7 +380,7 @@ __global__ void reduceBoundsKernel_naive
             newub = adjustUpperBound(newub, is_var_cont);
             newlb = adjustLowerBound(newlb, is_var_cont);
             */
-            if (newub < best_ub)
+            if (EPSLT(newub, best_ub, GDP_EPS))
             {
                 newub = adjustUpperBound(newub, is_var_cont);
 
@@ -389,7 +389,7 @@ __global__ void reduceBoundsKernel_naive
                 *change_found = true;
             }
 
-            if (newlb > best_lb)
+            if (EPSGT(newlb, best_lb, GDP_EPS))
             {
                 newlb = adjustLowerBound(newlb, is_var_cont);
                 best_lb = newlb;

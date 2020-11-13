@@ -5,7 +5,7 @@ TEST_CASE( "Generalized CFP performance with analytical solution", "[endtoend]" 
     GeneralizedCFP<double> ts_hyb(size);
     GeneralizedCFP<double> ts_seq(size);
 
-    tester.executeFullGPUPropagator(ts_hyb);
+    tester.executeGPUReduction(ts_hyb);
     tester.executeSequentialPropagator(ts_seq);
     
     tester.checkSolution(ts_hyb);
@@ -36,7 +36,7 @@ TEST_CASE( "ATM Synthitic example performance test", "[performance]" ) {
         ts_1.compareSolutions(ts_2);
         ts_2.resetProblem();
 
-        tester.executeFullGPUPropagator(ts_2);
+        tester.executeGPUReduction(ts_2);
         ts_1.compareSolutions(ts_2);
         ts_2.resetProblem();
 

@@ -43,17 +43,17 @@ public:
 
     void compareAnalyticalSolution()
     {
-                printf("Comparing analytical solutions\n");
-                compareArrays<datatype>(n_vars, ubs, ubs_analytical, 1e-4, "ubs");
-                compareArrays<datatype>(n_vars, lbs, lbs_analytical, 1e-4, "lbs");
+        printf("Comparing analytical solutions\n");
+        compareArrays<datatype>(n_vars, ubs, ubs_analytical, TEST_EPS, "ubs");
+        compareArrays<datatype>(n_vars, lbs, lbs_analytical, TEST_EPS, "lbs");
     }
 
     void compareSolutions(TestSetup ts_ref)
     {
         printf("Comparing solutions\n");
         REQUIRE(n_vars == ts_ref.n_vars);
-        compareArrays<datatype>(n_vars, ubs, ts_ref.ubs, 1e-4, "ubs");
-        compareArrays<datatype>(n_vars, lbs, ts_ref.lbs, 1e-4, "lbs");
+        compareArrays<datatype>(n_vars, ubs, ts_ref.ubs, TEST_EPS, "ubs");
+        compareArrays<datatype>(n_vars, lbs, ts_ref.lbs, TEST_EPS, "lbs");
     }
 
     void printConsMatrix()
@@ -119,6 +119,71 @@ protected:
     }
 };
 
+
+// Two intersecting lines. Infinite convergence, however due to floating point arithmetic will converge.
+// 0.5x + y = 1 and x - y = 1.
+// Analytical solution is a point [1.33333..., 0.33333....]
+template <typename datatype>
+class TwoLinesExample: public TestSetup<datatype> {
+
+public:
+    TwoLinesExample(): TestSetup<datatype>()
+    {
+
+        this->n_cons = 2;
+        this->n_vars = 2;
+        this->nnz = 4;
+
+        this->allocMem(this->n_cons, this->n_vars, this->nnz);
+        initProblem();
+        initAnalyticalSolution();
+    }
+
+    ~TwoLinesExample()
+    {
+        this->freeMem();
+    }
+
+    void initProblem()
+    {
+
+        int m = 2; // number of constraints
+        int n = 2; // number of variables
+        int nnz = 4; // number of non zeros in the A matrix
+
+        // Initialize problem
+        std::vector<double> vals{0.5, 1, 1, -1}; // dim nnz
+        std::vector<int> col_indices{0, 1, 0, 1}; // dim nnz
+        std::vector<int> row_indices{0, 2, 4}; // dim m+1
+
+        std::vector<double> lhss{1, 1}; // dim m
+        std::vector<double> rhss{1, 1}; // dim m
+
+        std::vector<double> lbs{-2, -2}; // dim n
+        std::vector<double> ubs{2, 2}; // dim n
+        std::vector<int> vartypes{3, 3}; // dim n
+        std::vector<int> consmarked(m, 1);
+
+        memcpy(this->csr_vals       , vals.data()       , nnz   * sizeof( datatype ));
+        memcpy(this->csr_col_indices, col_indices.data(), nnz   * sizeof( int      ));
+        memcpy(this->csr_row_ptrs   , row_indices.data(), (m+1) * sizeof( int      ));
+        memcpy(this->lhss           , lhss.data()       , m     * sizeof( datatype ));
+        memcpy(this->rhss           , rhss.data()       , m     * sizeof( datatype ));
+        memcpy(this->lbs            , lbs.data()        , n     * sizeof( datatype ));
+        memcpy(this->ubs            , ubs.data()        , n     * sizeof( datatype ));
+        memcpy(this->vartypes       , vartypes.data()   , n     * sizeof( int      ));
+        memcpy(this->consmarked     , consmarked.data() , m     * sizeof( int      ));
+   }
+
+   void initAnalyticalSolution()
+   {
+        std::vector<double> ubs_analytical{1.333333333954215, 0.33333333395421505};
+        std::vector<double> lbs_analytical{1.33333333209157, 0.3333333330228925};
+        memcpy(this->lbs_analytical , lbs_analytical.data(), this->n_vars * sizeof( datatype ));
+        memcpy(this->ubs_analytical , ubs_analytical.data(), this->n_vars * sizeof( datatype ));
+   }
+
+};
 
 //from T. Achterberg's Thesis, page 172
 template <typename datatype>
