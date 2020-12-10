@@ -35,37 +35,37 @@ datatype adjustUpperBound
                 const bool is_var_cont,
                 const datatype ub
         ) {
-   return is_var_cont? ub : EPSFLOOR(ub, GDP_EPS);
+   return is_var_cont ? ub : EPSFLOOR(ub);
 }
 
 template<class datatype>
 datatype adjustLowerBound(const bool is_var_cont, const datatype lb) {
-   return is_var_cont? lb : EPSCEIL(lb, GDP_EPS);
+   return is_var_cont ? lb : EPSCEIL(lb);
 }
 
 template<class datatype>
 bool isLbBetter(const datatype lb, const datatype ub, const datatype newlb) {
-   assert(lb <= ub);
+   assert(EPSLE(lb, ub));
 
    /* from SCIP, todo do we need this in the GPU version? */
    /* if lower bound is moved to 0 or higher, always accept bound change */
    //if (lb < 0.0 && newlb >= 0.0)
    //   return true;
 
-   return (newlb > lb);
+   return EPSGT(newlb, lb);
 }
 
 template<class datatype>
 bool isUbBetter(const datatype lb, const datatype ub, const datatype newub) {
 
-   assert(lb <= ub);
+   assert(EPSLE(lb, ub));
 
    /* from SCIP, todo do we need this in the GPU version? */
    /* if upper bound is moved to 0 or lower, always accept bound change */
    //if (ub > 0.0 && newub <= 0.0)
    //   return true;
 
-   return (newub < ub);
+   return EPSLT(newub, ub);
 }
 
 template<class datatype>
@@ -101,7 +101,7 @@ NewBoundTuple tightenVarLowerBound(const datatype coeff, const datatype surplus,
 
 template<class datatype>
 bool canConsBeTightened(const datatype slack, const datatype surplus, const datatype maxactdelta) {
-   return !EPSLE(maxactdelta, MIN(slack, surplus), 1e-6); //todo epsilon
+   return !EPSLE(maxactdelta, MIN(slack, surplus));
 }
 
 template<class datatype>
@@ -142,11 +142,11 @@ ActivitiesTuple computeActivities
 
       maxactdelta = fabs(coeff) * (ub - lb);
 
-      if (maxactdelta > actsTuple.maxactdelta)
+      if (EPSGT(maxactdelta, actsTuple.maxactdelta))
          actsTuple.maxactdelta = maxactdelta;
 
-      minactivity += coeff > 0 ? coeff * lb : coeff * ub;
-      maxactivity += coeff > 0 ? coeff * ub : coeff * lb;
+      minactivity += EPSGT(coeff, 0) ? coeff * lb : coeff * ub;
+      maxactivity += EPSGT(coeff, 0) ? coeff * ub : coeff * lb;
 
    }
    actsTuple.minact = minactivity;
@@ -179,8 +179,8 @@ bool tightenVariable
    bool change_found = false;
    NewBoundTuple newb_tuple;
 
-   if (coeff > 0.0) {
-      if (coeff * (ub - lb) > slack && rhs < GDP_INF && minact > -GDP_INF) {
+   if (EPSGT(coeff, 0.0)) {
+      if (EPSGT(coeff * (ub - lb), slack) && EPSLT(rhs, GDP_INF) && EPSGT(minact, -GDP_INF)) {
          newb_tuple = tightenVarUpperBound(coeff, slack, lb, ub, isVarCont);
          if (newb_tuple.is_tightened) {
             markConstraints(var_idx, csc_col_ptrs, csc_row_indices, consmarked);
@@ -193,7 +193,7 @@ bool tightenVariable
          }
       }
 
-      if (coeff * (ub - lb) > surplus && lhs > -GDP_INF && maxact < GDP_INF) {
+      if (EPSGT(coeff * (ub - lb), surplus) && EPSGT(lhs, -GDP_INF) && EPSLT(maxact, GDP_INF)) {
          newb_tuple = tightenVarLowerBound(coeff, surplus, lb, ub, isVarCont);
          if (newb_tuple.is_tightened) {
             markConstraints(var_idx, csc_col_ptrs, csc_row_indices, consmarked);
@@ -202,7 +202,7 @@ bool tightenVariable
          }
       }
    } else {
-      if (coeff * (lb - ub) > slack && rhs < GDP_INF && minact > -GDP_INF) {
+      if (EPSGT(coeff * (lb - ub), slack) && EPSLT(rhs, GDP_INF) && EPSGT(minact, -GDP_INF)) {
          newb_tuple = tightenVarLowerBound(coeff, slack, lb, ub, isVarCont);
          if (newb_tuple.is_tightened) {
             markConstraints(var_idx, csc_col_ptrs, csc_row_indices, consmarked);
@@ -213,7 +213,7 @@ bool tightenVariable
          }
       }
 
-      if (coeff * (lb - ub) > surplus && lhs > -GDP_INF && maxact < GDP_INF) {
+      if (EPSGT(coeff * (lb - ub), surplus) && EPSGT(lhs, -GDP_INF) && EPSLT(maxact, GDP_INF)) {
          newb_tuple = tightenVarUpperBound(coeff, surplus, lb, ub, isVarCont);
          if (newb_tuple.is_tightened) {
             markConstraints(var_idx, csc_col_ptrs, csc_row_indices, consmarked);
@@ -226,20 +226,64 @@ bool tightenVariable
 }
 
 template<typename datatype>
-datatype calcLocalProgressMeasureSeq(
-        int n_vars,
-        datatype* oldubs,
-        datatype* oldlbs,
-        datatype* newubs,
-        datatype* newlbs
-)
-{
+datatype calcRelProgressMeasureSeq(
+        const int n_vars,
+        const datatype *oldlbs,
+        const datatype *oldubs,
+        const datatype *newlbs,
+        const datatype *newubs,
+        int *rel_measure_k
+) {
    datatype sum = 0.0;
-   for (int varidx = 0; varidx < n_vars; varidx++)
-   {
-      sum += calcVarLocProgressMeasure(oldubs[varidx], oldlbs[varidx], newubs[varidx], newlbs[varidx]);
+   int *inf_change_found = (int *) SAFEMALLOC(sizeof(int)); // dummy
+   for (int varidx = 0; varidx < n_vars; varidx++) {
+      sum += calcVarRelProgressMeasure(oldlbs[varidx], oldubs[varidx], newlbs[varidx], newubs[varidx], inf_change_found,
+                                       rel_measure_k);
    }
-    return sum;
+   free(inf_change_found);
+   return sum;
+}
+
+template<typename datatype>
+datatype calcAbsProgressMeasureSeq(
+        const int n_vars,
+        datatype *reflbs,
+        datatype *refubs,
+        const datatype *newlbs,
+        const datatype *newubs,
+        int *abs_measure_k,
+        int *abs_measure_n
+) {
+
+   assert(abs_measure_k >= 0);
+   assert(abs_measure_n >= 0);
+
+   datatype sum = 0.0;
+   int *inf_change_found = (int *) SAFEMALLOC(sizeof(int));
+   *inf_change_found = 0;
+
+   for (int varidx = 0; varidx < n_vars; varidx++) {
+      sum += calcVarRelProgressMeasure(reflbs[varidx], refubs[varidx], newlbs[varidx], newubs[varidx], inf_change_found,
+                                       abs_measure_k);
+   }
+
+   if (*inf_change_found) {
+      *abs_measure_n = *abs_measure_n + 1;
+   }
+
+   // If a bound was moved from inf to finite, record it as a reference bound.
+
+   for (int varidx = 0; varidx < n_vars; varidx++) {
+      if (reflbs[varidx] <= -GDP_INF && newlbs[varidx] > -GDP_INF) {
+         reflbs[varidx] = newlbs[varidx];
+      }
+
+      if (refubs[varidx] > GDP_INF && newubs[varidx] < GDP_INF) {
+         refubs[varidx] = newubs[varidx];
+      }
+   }
+
+   return sum;
 }
 
 #endif

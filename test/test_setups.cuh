@@ -2,7 +2,7 @@
 #define __GPUPROPAGATOR_TESTSETUP_CUH__
 
 #include "../src/misc.h"
-#include "../src/commons.cuh"
+#include "../src/cuda_def.cuh"
 #include "test_infra.cuh"
 #include "../src/params.h"
 

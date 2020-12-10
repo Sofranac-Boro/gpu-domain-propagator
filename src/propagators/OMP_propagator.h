@@ -2,7 +2,7 @@
 #define __GPUPROPAGATOR_SHAREDMEM_CUH__
 
 #include "../propagation_methods.cuh"
-#include "../commons.cuh"
+#include "../cuda_def.cuh"
 #include "../misc.h"
 #include "../params.h"
 #include <omp.h>
@@ -64,7 +64,7 @@ bool OMPPropagationRound
 
       if (canConsBeTightened(slack, surplus, maxactdeltas[considx])) {
          int num_vars_in_cons = row_indices[considx + 1] - row_indices[considx];
-         slack = slack < 0 ? 0.0 : slack;
+         slack = EPSLT(slack, 0.0) ? 0.0 : slack;
          for (int var = 0; var < num_vars_in_cons; var++) {
             val_idx = row_indices[considx] + var;
             var_idx = col_indices[val_idx];
@@ -114,6 +114,8 @@ void fullOMPPropagate
                 const int *vartypes
         ) {
 
+   DEBUG_CALL(checkInput(n_cons, n_vars, row_indices[n_cons], vals, lhss, rhss, lbs, ubs));
+
    datatype *minacts = (datatype *) calloc(n_cons, sizeof(datatype));
    datatype *maxacts = (datatype *) calloc(n_cons, sizeof(datatype));
    datatype *maxactdeltas = (datatype *) calloc(n_cons, sizeof(datatype));
@@ -130,7 +132,8 @@ void fullOMPPropagate
    auto start = std::chrono::steady_clock::now();
 #endif
 
-   VERBOSE_CALL(printf("\ncpu_omp execution start with OMP num threads: %d\n", SHARED_MEM_THREADS));
+   VERBOSE_CALL(printf("\ncpu_omp execution start with OMP num threads: %d, MAXNUMROUNDS: %d\n", SHARED_MEM_THREADS,
+                       MAX_NUM_ROUNDS));
 
    //initialize omp locks used in propagation rounds:
    omp_lock_t locks[n_vars];
@@ -150,7 +153,7 @@ void fullOMPPropagate
    for (int i = 0; i < n_vars; i++)
       omp_destroy_lock(&(locks[i]));
 
-   VERBOSE_CALL(printf("cpu_omp propagation done. Num rounds: %d\n", prop_round-1));
+   VERBOSE_CALL(printf("cpu_omp propagation done. Num rounds: %d\n", prop_round - 1));
    VERBOSE_CALL(measureTime("cpu_omp", start, std::chrono::steady_clock::now()));
 
    free(minacts);

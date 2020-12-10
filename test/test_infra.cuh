@@ -7,7 +7,7 @@
 #include <vector>
 #include <set>
 #include<iostream>
-#include "../src/commons.cuh"
+#include "../src/def.h"
 #include <chrono>
 
 using namespace std;
@@ -25,13 +25,13 @@ void compareArrays(const int len, const T* arr1, const T* arr2, double epsilon =
 {
     for (int i=0; i<len; i++)
     {
-        if (!EPSEQ(arr1[i], arr2[i], epsilon))
+        if(!(REALABS((arr1[i])-(arr2[i])) <= (epsilon)))
         {
             std::cout << "\ncomnparison failed. Tag: " << name 
             << " differing nums: " << arr1[i] << " != " << arr2[i] << " len=" << len 
             << ", i=" << i << ". num1 - num2 = " << arr1[i] - arr2[i] << "\n" << std::endl;
         }
-        REQUIRE( EPSEQ(arr1[i], arr2[i], epsilon));
+        REQUIRE( (REALABS((arr1[i])-(arr2[i])) <= (epsilon)) );
     }
 }
 

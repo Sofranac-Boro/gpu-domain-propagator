@@ -1,5 +1,5 @@
-from typing import List
 import numpy as np
+from typing import List
 
 
 def print_bounds(lbs: List[float], ubs: List[float], prnt_name: str = "", num_print: int = 10) -> None:

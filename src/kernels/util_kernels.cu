@@ -1,6 +1,6 @@
 #include "util_kernels.cuh"
 #include "../GPU_interface.cuh"
-#include "../commons.cuh"
+#include "../cuda_def.cuh"
 
 //compute power of two less than or equal to n
 __device__ int prev_power_of_2(int n) {
@@ -95,7 +95,7 @@ void CSRValidxToConsidxMap
    const int num_threads_per_block = 256;
    const int num_blocks = ceil(double(n_rows) / num_threads_per_block);
    CSRValidxToConsidxMapKernel << < num_blocks, num_threads_per_block >> >
-                                                (n_rows, nnz, d_row_ptrs, d_validx_considx_map);
+   (n_rows, nnz, d_row_ptrs, d_validx_considx_map);
    CUDA_CALL(cudaPeekAtLastError());
    CUDA_CALL(cudaDeviceSynchronize());
 }

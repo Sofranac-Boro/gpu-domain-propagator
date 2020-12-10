@@ -8,13 +8,13 @@ void runAllAlgsAnalyticalSol()
         Problem<datatype> ts_gpu_r;
         Problem<datatype> ts_gpu_a;
 
-        printf("running cpu_omp");
-        tester.executeFullOMPPropagator(ts_omp);
-        tester.checkSolution(ts_omp);
-
         printf("running cpu_seq");
         tester.executeSequentialPropagator(ts_seq);
         tester.checkSolution(ts_seq);
+
+        printf("running cpu_omp");
+        tester.executeFullOMPPropagator(ts_omp);
+        tester.checkSolution(ts_omp);
 
         printf("running gpu_reduction");
         tester.executeGPUReduction(ts_gpu_r);

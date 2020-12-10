@@ -8,51 +8,12 @@
 #include <fstream>
 #include <assert.h>
 
+#include "def.h"
+#include "params.h"
+
 // #define FOLLOW_CONS 581830
 
-inline static void* safe_malloc(size_t n, unsigned long line)
-{
-   void* p = malloc(n);
-   if (!p)
-   {
-      fprintf(stderr, "[%s:%lu]Out of memory(%lu bytes)\n",
-              __FILE__, line, (unsigned long)n);
-      exit(EXIT_FAILURE);
-   }
-   return p;
-}
 
-#ifdef VERBOSE
-#define VERBOSE_CALL(ans) {(ans);}
-#else
-#define VERBOSE_CALL(ans) do { } while(0)
-#endif
-
-#ifdef DEBUG
-#define SAFEMALLOC(n) safe_malloc(n, __LINE__)
-#define DEBUG_CALL(ans) {(ans);}
-#else
-#define SAFEMALLOC(n) malloc(n)
-#define DEBUG_CALL(ans) do { } while(0)
-#endif
-
-#ifdef FOLLOW_VAR
-#define FOLLOW_VAR_CALL(varidx, ans) varidx==FOLLOW_VAR? (ans) : printf("")
-#else
-#define FOLLOW_VAR_CALL(varidx, ans) do { } while(0)
-#endif
-
-#ifdef FOLLOW_CONS
-#define FOLLOW_CONS_CALL(considx, ans) considx==FOLLOW_CONS? (ans) : printf("")
-#else
-#define FOLLOW_CONS_CALL(considx, ans) do { } while(0)
-#endif
-
-#ifdef CALC_PROGRESS
-#define CALC_PROGRESS_CALL(ans) {(ans);}
-#else
-#define CALC_PROGRESS_CALL(ans) do { } while(0)
-#endif
 
 void measureTime(const char alg_name[30], std::chrono::_V2::steady_clock::time_point start,
                  std::chrono::_V2::steady_clock::time_point end);
@@ -108,32 +69,46 @@ void consistify_var_bounds(const int n_vars, datatype *lbs, datatype *ubs, const
    // make sure no integer vars have decimal values.
    for (int j = 0; j < n_vars; j++) {
       bool isVarCont = vartypes[j] == 3;
-      ubs[j] = isVarCont ? ubs[j] : floor(ubs[j]);
-      lbs[j] = isVarCont ? lbs[j] : ceil(lbs[j]);
+      ubs[j] = isVarCont ? ubs[j] : EPSFLOOR(ubs[j]);
+      lbs[j] = isVarCont ? lbs[j] : EPSCEIL(lbs[j]);
    }
 }
 
 template<typename datatype>
-void save_acts_to_file(int n_cons, datatype* minacts, datatype* maxacts, int round)
-{
-   std::ofstream file;
-   file.open("round_" + std::to_string(round) + "_activities.txt");
-   file << "constraint: min_act max_act" << std::endl;
-
-   for (int i=0; i<n_cons; i++)
-   {
-      file << i <<": " << minacts[i] << " " << maxacts[i] << std::endl;
+void checkInput(
+        const int n_cons,
+        const int n_vars,
+        const int nnz,
+        const datatype *csr_vals,
+        const datatype *lhss,
+        const datatype *rhss,
+        const datatype *lbs,
+        const datatype *ubs
+) {
+   for (int i = 0; i < nnz; i++) {
+      assert(!EPSEQ(csr_vals[i], 0.0));
    }
 
-   file.close();
+   for (int i = 0; i < n_vars; i++) {
+      assert(EPSGE(ubs[i], lbs[i]));
+   }
+
+   for (int i = 0; i < n_cons; i++) {
+      assert(EPSGE(rhss[i], lhss[i]));
+   }
 }
 
-//template <typename datatype>
-//void print_var_changes(int varidx, datatype oldbound, datatype )
-//{
-//   if (varidx == FOLLOW_VAR)
-//   {
-//
-//   }
-//}
+template<typename datatype>
+datatype maxConsecutiveElemDiff(const datatype *array, const int size) {
+   assert(size >= 1);
+
+   datatype ret = array[1] - array[0];
+   for (int i = 1; i < size - 1; i++) {
+      if (array[i + 1] - array[i] > ret) {
+         ret = array[i + 1] - array[i];
+      }
+   }
+   return ret;
+}
+
 #endif

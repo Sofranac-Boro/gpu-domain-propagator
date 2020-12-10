@@ -13,7 +13,7 @@ TEST_CASE( "Generalized CFP performance with analytical solution", "[endtoend]" 
 }
 
 
-TEST_CASE( "ATM Synthitic example performance test", "[performance]" ) {
+TEST_CASE( "ATM Synthetic example performance test", "[performance]" ) {
 
     // std::vector<int> sizes{10000, 20000, 40000, 80000, 160000, 320000, 640000, 1280000, 2560000, 5120000, 10240000};
     Tester<double> tester;

@@ -22,8 +22,7 @@ GDP_RETCODE propagateConstraintsFullGPUdouble(
       printf("propagation of 0 size problem. Nothing to propagate.\n");
       return GDP_OKAY;
    }
-   try
-   {
+   try {
       propagateConstraintsFullGPU<double>
               (
                       n_cons,
@@ -39,8 +38,7 @@ GDP_RETCODE propagateConstraintsFullGPUdouble(
                       vartypes
               );
    }
-   catch (const std::exception &exc)
-   {
+   catch (const std::exception &exc) {
       std::cerr << exc.what();
       return GDP_ERROR;
    }
@@ -81,8 +79,7 @@ GDP_RETCODE propagateConstraintsGPUAtomicDouble(
                       vartypes
               );
    }
-   catch (const std::exception &exc)
-   {
+   catch (const std::exception &exc) {
       std::cerr << exc.what();
       return GDP_ERROR;
    }
@@ -103,13 +100,12 @@ GDP_RETCODE propagateConstraintsSequentialDouble
                 double *lbs,
                 double *ubs,
                 const int *vartypes
-        )
-  {
+        ) {
    if (n_cons == 0 || n_vars == 0 || nnz == 0) {
       printf("propagation of 0 size problem. Nothing to propagate.\n");
       return GDP_OKAY;
    }
-   try{
+   try {
       // need csc format of A. Convert on GPU
       GPUInterface gpu = GPUInterface();
       int *d_col_indices = gpu.initArrayGPU<int>(col_indices, nnz);
@@ -142,8 +138,7 @@ GDP_RETCODE propagateConstraintsSequentialDouble
       free(csc_col_ptrs);
       free(csc_row_indices);
    }
-   catch (const std::exception &exc)
-   {
+   catch (const std::exception &exc) {
       std::cerr << exc.what();
       return GDP_ERROR;
    }
@@ -169,7 +164,7 @@ GDP_RETCODE propagateConstraintsFullOMPDouble
       return GDP_OKAY;
    }
 
-   try{
+   try {
 
 
       // Need csc fomrat of A. Convert on GPU
@@ -205,8 +200,7 @@ GDP_RETCODE propagateConstraintsFullOMPDouble
       free(csc_col_ptrs);
       free(csc_row_indices);
    }
-   catch (const std::exception &exc)
-   {
+   catch (const std::exception &exc) {
       std::cerr << exc.what();
       return GDP_ERROR;
    }
@@ -232,7 +226,7 @@ GDP_RETCODE propagateConstraintsSequentialDisjointDouble
       return GDP_OKAY;
    }
 
-   try{
+   try {
 
 
       // todo csc conversion
@@ -267,8 +261,7 @@ GDP_RETCODE propagateConstraintsSequentialDisjointDouble
       free(csc_col_ptrs);
       free(csc_row_indices);
    }
-   catch (const std::exception &exc)
-   {
+   catch (const std::exception &exc) {
       std::cerr << exc.what();
       return GDP_ERROR;
    }

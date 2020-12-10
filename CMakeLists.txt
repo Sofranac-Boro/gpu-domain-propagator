@@ -22,34 +22,38 @@ endif ()
 #
 
 # make 'Release' the default build type
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release)
-endif()
+#if(NOT CMAKE_BUILD_TYPE)
+#    set(CMAKE_BUILD_TYPE Release)
+#endif()
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug")
    # add_definitions(-DVERBOSE -DDEBUG)
-    add_definitions(-DVERBOSE)
+    add_definitions(-DVERBOSE=1 -DDEBUG)
     string(APPEND CMAKE_CUDA_FLAGS_DEBUG " -G")
 endif()
 
 if("${CMAKE_BUILD_TYPE}" STREQUAL "RelWithDebInfo")
     # add_definitions(-DVERBOSE -DDEBUG)
-    add_definitions(-DVERBOSE)
+    add_definitions(-DVERBOSE=1)
     string(APPEND CMAKE_CUDA_FLAGS_DEBUG " -G")
 endif()
 
 if("${VERBOSITY}" STREQUAL 1)
-    add_definitions(-DVERBOSE)
+    add_definitions(-DVERBOSE=1)
 endif()
 
 if("${VERBOSITY}" STREQUAL 2)
-     add_definitions(-DVERBOSE -DDEBUG)
+     add_definitions(-DVERBOSE=2 -DDEBUG)
 endif()
 
-if("${CALC_PROGRESS}" STREQUAL "On")
-    add_definitions(-DCALC_PROGRESS)
+if("${CALC_PROGRESS_REL}" STREQUAL "On")
+    add_definitions(-DCALC_PROGRESS_REL)
+endif()
+
+if("${CALC_PROGRESS_ABS}" STREQUAL "On")
+    add_definitions(-DCALC_PROGRESS_ABS)
 endif()
 
 if (FOLLOW_VAR)
