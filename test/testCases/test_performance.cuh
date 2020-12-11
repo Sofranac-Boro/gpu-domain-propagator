@@ -40,22 +40,34 @@ printf("vartype at 9012: %d\n", ts_1.vartypes[9012]);
 
 tester.
 executeSequentialPropagator(ts_1);
-//tester.executeFullOMPPropagator(ts_2);
-//ts_1.compareSolutions(ts_2);
-//ts_2.resetProblem();
+tester.
+executeFullOMPPropagator(ts_2);
+ts_1.
+compareSolutions(ts_2);
+ts_2.
+
+resetProblem();
 
 tester.
 executeAtomicGPUPropagator(ts_2);
 ts_1.
 compareSolutions(ts_2);
-//  ts_2.resetProblem();
+ts_2.
 
-//  tester.executeGPUReduction(ts_2);
-//  ts_1.compareSolutions(ts_2);
-//   ts_2.resetProblem();
+resetProblem();
 
-//  tester.executeFullOMPPropagator(ts_2);
-//  ts_1.compareSolutions(ts_2);
+tester.
+executeGPUReduction(ts_2);
+ts_1.
+compareSolutions(ts_2);
+ts_2.
+
+resetProblem();
+
+tester.
+executeFullOMPPropagator(ts_2);
+ts_1.
+compareSolutions(ts_2);
 }
 }
 
