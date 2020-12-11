@@ -3,6 +3,7 @@
 
 #include "../params.h"
 #include "util_kernels.cuh"
+#include "../def.h"
 
 template<typename datatype>
 __global__ void compActsAndBoundsAdaptiveKernel
@@ -18,7 +19,7 @@ __global__ void compActsAndBoundsAdaptiveKernel
                 const int *csc_row_indices,
                 datatype *lbs,
                 datatype *ubs,
-                const int *vartypes,
+                const GDP_VARTYPE *vartypes,
                 const datatype *lhss,
                 const datatype *rhss,
                 const int *csr2csc_index_map,
@@ -328,7 +329,7 @@ __global__ void reduceBoundsKernel_naive
                 const int n_vars,
                 const int *csc_col_ptrs,
                 const int *csc_row_indices,
-                const int *vartypes,
+                const GDP_VARTYPE *vartypes,
                 const datatype *newlbs,
                 const datatype *newubs,
                 datatype *lbs,
@@ -342,7 +343,7 @@ __global__ void reduceBoundsKernel_naive
       datatype newub;
       datatype newlb;
 
-      bool is_var_cont = vartypes[varidx] == 3;
+      bool is_var_cont = vartypes[varidx] == GDP_CONTINUOUS;
 
       int var_data_begin = csc_col_ptrs[varidx];
       int var_data_end = csc_col_ptrs[varidx + 1];
@@ -395,7 +396,7 @@ __global__ void GPUPropEntryKernel
                 const int *csc_row_indices,
                 datatype *lbs,
                 datatype *ubs,
-                const int *vartypes,
+                const GDP_VARTYPE *vartypes,
                 const datatype *lhss,
                 const datatype *rhss,
                 const int *csr2csc_index_map,

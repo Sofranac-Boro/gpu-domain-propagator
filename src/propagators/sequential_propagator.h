@@ -46,7 +46,7 @@ bool sequentialPropagationRound
                 const datatype *rhss,
                 datatype *lbs,
                 datatype *ubs,
-                const int *vartypes,
+                const GDP_VARTYPE *vartypes,
                 datatype *minacts,
                 datatype *maxacts,
                 datatype *maxactdeltas,
@@ -92,7 +92,7 @@ bool sequentialPropagationRound
                var_idx = col_indices[val_idx];
                coeff = vals[val_idx];
 
-               isVarCont = vartypes[var_idx] == 3;
+               isVarCont = vartypes[var_idx] == GDP_CONTINUOUS;
 
                bool tightened = tightenVariable<datatype>
                        (
@@ -126,11 +126,10 @@ void sequentialPropagateDisjoint
                 const datatype *rhss,
                 datatype *lbs,
                 datatype *ubs,
-                const int *vartypes
+                const GDP_VARTYPE *vartypes
         ) {
 
-   DEBUG_CALL(checkInput(n_cons, n_vars, row_indices[n_cons], vals, lhss, rhss, lbs, ubs));
-   consistify_var_bounds(n_vars, lbs, ubs, vartypes);
+   DEBUG_CALL(checkInput(n_cons, n_vars, row_indices[n_cons], vals, lhss, rhss, lbs, ubs, vartypes));
 
    datatype *minacts = (datatype *) calloc(n_cons, sizeof(datatype));
    datatype *maxacts = (datatype *) calloc(n_cons, sizeof(datatype));
@@ -185,10 +184,10 @@ void sequentialPropagate
                 const datatype *rhss,
                 datatype *lbs,
                 datatype *ubs,
-                const int *vartypes
+                const GDP_VARTYPE *vartypes
         ) {
 
-   DEBUG_CALL(checkInput(n_cons, n_vars, row_indices[n_cons], vals, lhss, rhss, lbs, ubs));
+   DEBUG_CALL(checkInput(n_cons, n_vars, row_indices[n_cons], vals, lhss, rhss, lbs, ubs, vartypes));
 
    datatype *minacts = (datatype *) calloc(n_cons, sizeof(datatype));
    datatype *maxacts = (datatype *) calloc(n_cons, sizeof(datatype));
@@ -198,9 +197,6 @@ void sequentialPropagate
    // all cons marked for propagation in the first round
    for (int i = 0; i < n_cons; i++)
       consmarked[i] = 1;
-
-   // make sure var bounds are consistent - i.e. no integer vars have decimal values.
-   consistify_var_bounds(n_vars, lbs, ubs, vartypes);
 
 #ifdef VERBOSE
    auto start = std::chrono::steady_clock::now();

@@ -24,6 +24,23 @@ typedef enum GDP_Retcode GDP_RETCODE;           /**< return code for GDP method 
 }
 #endif
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+enum GDP_Vartype {
+    GDP_BINARY = 0,
+    GDP_INTEGER = 1,
+    GDP_CONTINUOUS = 3
+};
+typedef enum GDP_Vartype GDP_VARTYPE;
+
+#ifdef __cplusplus
+}
+#endif
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif

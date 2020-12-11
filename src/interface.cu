@@ -35,7 +35,7 @@ GDP_RETCODE propagateConstraintsFullGPUdouble(
                       rhss,
                       lbs,
                       ubs,
-                      vartypes
+                      (GDP_VARTYPE *) vartypes
               );
    }
    catch (const std::exception &exc) {
@@ -76,7 +76,7 @@ GDP_RETCODE propagateConstraintsGPUAtomicDouble(
                       rhss,
                       lbs,
                       ubs,
-                      vartypes
+                      (GDP_VARTYPE *) vartypes
               );
    }
    catch (const std::exception &exc) {
@@ -131,7 +131,7 @@ GDP_RETCODE propagateConstraintsSequentialDouble
                       rhss,
                       lbs,
                       ubs,
-                      vartypes
+                      (GDP_VARTYPE *) vartypes
               );
 
       free(csc_vals);
@@ -192,7 +192,7 @@ GDP_RETCODE propagateConstraintsFullOMPDouble
                       rhss,
                       lbs,
                       ubs,
-                      vartypes
+                      (GDP_VARTYPE *) vartypes
               );
 
 
@@ -254,7 +254,7 @@ GDP_RETCODE propagateConstraintsSequentialDisjointDouble
                       rhss,
                       lbs,
                       ubs,
-                      vartypes
+                      (GDP_VARTYPE *) vartypes
               );
 
       free(csc_vals);

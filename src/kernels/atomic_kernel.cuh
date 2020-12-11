@@ -1,6 +1,7 @@
 #ifndef __GPUPROPAGATOR_ATOMICKERNEL_CUH__
 #define __GPUPROPAGATOR_ATOMICKERNEL_CUH__
 
+#include "../def.h"
 #include "../params.h"
 #include "util_kernels.cuh"
 #include "../misc.h"
@@ -19,7 +20,7 @@ __global__ void GPUAtomicDomainPropagation
                 const datatype *vals,
                 datatype *lbs,
                 datatype *ubs,
-                const int *vartypes,
+                const GDP_VARTYPE *vartypes,
                 const datatype *lhss,
                 const datatype *rhss,
                 bool *change_found,
@@ -44,8 +45,6 @@ __global__ void GPUAtomicDomainPropagation
 
    datatype *minacts = shared_mem;
    datatype *maxacts = &shared_mem[max_n_cons_in_block];
-//  datatype* cache_lbs = &shared_mem[2*max_n_cons_in_block];
-// datatype* cache_ubs = &shared_mem[2*max_n_cons_in_block + max_n_vars_in_cons];
 
    datatype coeff;
    datatype lb;
@@ -201,7 +200,7 @@ __global__ void GPUAtomicDomainPropagation
                                 newub)
          );
 
-         bool is_var_cont = vartypes[varidx] == 3;
+         bool is_var_cont = vartypes[varidx] == GDP_CONTINUOUS;
          newub = adjustUpperBound(newub, is_var_cont);
          newlb = adjustLowerBound(newlb, is_var_cont);
 
@@ -337,7 +336,7 @@ __global__ void GPUAtomicDomainPropagation
                            minacts[0], maxacts[0], lbs[col_indices[element]], ubs[col_indices[element]], newlb, newub)
             );
 
-            bool is_var_cont = vartypes[varidx] == 3;
+            bool is_var_cont = vartypes[varidx] == GDP_CONTINUOUS;
             newub = adjustUpperBound(newub, is_var_cont);
             newlb = adjustLowerBound(newlb, is_var_cont);
 
@@ -379,7 +378,7 @@ __global__ void GPUAtomicPropEntryKernel
                 const datatype *vals,
                 datatype *lbs,
                 datatype *ubs,
-                const int *vartypes,
+                const GDP_VARTYPE *vartypes,
                 const datatype *lhss,
                 const datatype *rhss,
                 bool *change_found
@@ -430,8 +429,6 @@ __global__ void GPUAtomicPropEntryKernel
       // shared memory layout:
       // - max_num_cons_in_block elems of type datatype for minactivities
       // - max_num_cons_in_block elems of type datatype for maxactivities
-      // - max_n_vars_in_cons elems of type datatype for cache lbs.
-      // - max_n_vars_in_cons elems of type datatype for cache ubs
       VERBOSE_CALL_2(printf("Amount of dynamic shared memory requested: %.2f KB\n",
                             (2 * max_n_cons_in_block * sizeof(datatype)) / 1024.0));
       GPUAtomicDomainPropagation<datatype> <<< blocks_count, NNZ_PER_WG, 2 * max_n_cons_in_block * sizeof(datatype) >>>

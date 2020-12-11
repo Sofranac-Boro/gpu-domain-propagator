@@ -1,7 +1,7 @@
 #include "test_infra.cuh"
 
 void assertDoubleEPSEQ(double val1, double val2, double eps) {
-   REQUIRE((REALABS((val1)-(val2)) <= (eps)));
+   REQUIRE((REALABS((val1) - (val2)) <= (eps)));
 }
 
 double getRand10(double seed) {

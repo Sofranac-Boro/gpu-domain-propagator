@@ -65,16 +65,6 @@ void printBoundCandidates
 }
 
 template<typename datatype>
-void consistify_var_bounds(const int n_vars, datatype *lbs, datatype *ubs, const int *vartypes) {
-   // make sure no integer vars have decimal values.
-   for (int j = 0; j < n_vars; j++) {
-      bool isVarCont = vartypes[j] == 3;
-      ubs[j] = isVarCont ? ubs[j] : EPSFLOOR(ubs[j]);
-      lbs[j] = isVarCont ? lbs[j] : EPSCEIL(lbs[j]);
-   }
-}
-
-template<typename datatype>
 void checkInput(
         const int n_cons,
         const int n_vars,
@@ -83,7 +73,8 @@ void checkInput(
         const datatype *lhss,
         const datatype *rhss,
         const datatype *lbs,
-        const datatype *ubs
+        const datatype *ubs,
+        const GDP_VARTYPE *vartypes
 ) {
    for (int i = 0; i < nnz; i++) {
       assert(!EPSEQ(csr_vals[i], 0.0));
@@ -91,6 +82,12 @@ void checkInput(
 
    for (int i = 0; i < n_vars; i++) {
       assert(EPSGE(ubs[i], lbs[i]));
+      // make sure all integer vars have integer values
+
+      if (vartypes[i] != GDP_CONTINUOUS) {
+         assert(EPSEQ(lbs[i], EPSCEIL(lbs[i])));
+         assert(EPSEQ(ubs[i], EPSFLOOR(ubs[i])));
+      }
    }
 
    for (int i = 0; i < n_cons; i++) {

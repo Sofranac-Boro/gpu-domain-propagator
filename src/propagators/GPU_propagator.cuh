@@ -3,6 +3,7 @@
 
 #include <cuda_profiler_api.h>
 
+#include "../def.h"
 #include "../cuda_def.cuh"
 #include "../misc.h"
 #include "../kernels/atomic_kernel.cuh"
@@ -26,11 +27,9 @@ void propagateConstraintsFullGPU(
         datatype *rhss,
         datatype *lbs,
         datatype *ubs,
-        int *vartypes
+        GDP_VARTYPE *vartypes
 ) {
-   DEBUG_CALL(checkInput(n_cons, n_vars, nnz, csr_vals, lhss, rhss, lbs, ubs));
-   // make sure var bounds are consistent - i.e. no integer vars have decimal values.
-   consistify_var_bounds(n_vars, lbs, ubs, vartypes);
+   DEBUG_CALL(checkInput(n_cons, n_vars, nnz, csr_vals, lhss, rhss, lbs, ubs, vartypes));
 
    // CUDA_CALL( cudaProfilerStart() );
    GPUInterface gpu = GPUInterface();
@@ -42,7 +41,7 @@ void propagateConstraintsFullGPU(
    datatype *d_rhss = gpu.initArrayGPU<datatype>(rhss, n_cons);
    datatype *d_lbs = gpu.initArrayGPU<datatype>(lbs, n_vars);
    datatype *d_ubs = gpu.initArrayGPU<datatype>(ubs, n_vars);
-   int *d_vartypes = gpu.initArrayGPU<int>(vartypes, n_vars);
+   GDP_VARTYPE *d_vartypes = gpu.initArrayGPU<GDP_VARTYPE>(vartypes, n_vars);
    int *d_csr2csc_index_map = gpu.allocArrayGPU<int>(nnz);
 
    const int blocks_count = fill_row_blocks(false, n_cons, csr_row_ptrs, nullptr);
@@ -100,12 +99,9 @@ void propagateConstraintsGPUAtomic(
         datatype *rhss,
         datatype *lbs,
         datatype *ubs,
-        int *vartypes
+        GDP_VARTYPE *vartypes
 ) {
-   DEBUG_CALL(checkInput(n_cons, n_vars, nnz, csr_vals, lhss, rhss, lbs, ubs));
-
-   // make sure var bounds are consistent - i.e. no integer vars have decimal values.
-   consistify_var_bounds(n_vars, lbs, ubs, vartypes);
+   DEBUG_CALL(checkInput(n_cons, n_vars, nnz, csr_vals, lhss, rhss, lbs, ubs, vartypes));
 
    // CUDA_CALL( cudaProfilerStart() );
    GPUInterface gpu = GPUInterface();
@@ -117,7 +113,7 @@ void propagateConstraintsGPUAtomic(
    datatype *d_rhss = gpu.initArrayGPU<datatype>(rhss, n_cons);
    datatype *d_lbs = gpu.initArrayGPU<datatype>(lbs, n_vars);
    datatype *d_ubs = gpu.initArrayGPU<datatype>(ubs, n_vars);
-   int *d_vartypes = gpu.initArrayGPU<int>(vartypes, n_vars);
+   GDP_VARTYPE *d_vartypes = gpu.initArrayGPU<GDP_VARTYPE>(vartypes, n_vars);
 
    const int blocks_count = fill_row_blocks(false, n_cons, csr_row_ptrs, nullptr);
    std::unique_ptr<int[]> row_blocks(new int[blocks_count + 1]);
