@@ -136,6 +136,10 @@ void sequentialPropagateDisjoint
    datatype *maxactdeltas = (datatype *) calloc(n_cons, sizeof(datatype));
    int *consmarked = (int *) calloc(n_cons, sizeof(int));
 
+   // all cons marked for propagation in the first round
+   for (int i = 0; i < n_cons; i++)
+      consmarked[i] = 1;
+
 #ifdef VERBOSE
    auto start = std::chrono::steady_clock::now();
 #endif
@@ -143,11 +147,10 @@ void sequentialPropagateDisjoint
    VERBOSE_CALL(printf("\ncpu_seq_dis execution start... Params: MAXNUMROUNDS: %d", MAX_NUM_ROUNDS));
 
    bool change_found = true;
-   int prop_round = 0;
+   int prop_round;
    for (prop_round = 1; prop_round <= MAX_NUM_ROUNDS && change_found; prop_round++)  // maxnumrounds = 100
    {
       VERBOSE_CALL_2(printf("\nPropagation round: %d\n\n", prop_round));
-      //VERBOSE_CALL( countPrintNumMarkedCons<int>(n_cons, consmarked) );
 
       sequentialComputeActivities<datatype>(n_cons, col_indices, row_indices, vals, ubs, lbs, minacts, maxacts,
                                             maxactdeltas);
@@ -226,7 +229,7 @@ void sequentialPropagate
    for (prop_round = 1; prop_round <= MAX_NUM_ROUNDS && change_found; prop_round++)  // maxnumrounds = 100
    {
       VERBOSE_CALL_2(printf("\nPropagation round: %d\n\n", prop_round));
-      //    VERBOSE_CALL( countPrintNumMarkedCons<int>(n_cons, consmarked) );
+
       CALC_PROGRESS_REL_CALL(memcpy(oldlbs, lbs, n_vars * sizeof(datatype)));
       CALC_PROGRESS_REL_CALL(memcpy(oldubs, ubs, n_vars * sizeof(datatype)));
 

@@ -148,6 +148,10 @@ def create_plots(dist_data, speedups):
 
 
 result_pattern = r"Reding of  (?P<prob_file>.*)  model done!\nnum vars:  (?P<n_vars>\d*)\nnum cons:  (?P<n_cons>\d*)\nnnz     :  (?P<nnz>\d*)\n\n.*\n.*\ncpu_seq execution time : (?P<cpu_seq_time>\d*).*\n\n.*\n.*\ncpu_omp execution time : (?P<cpu_omp_time>\d*).*\n\n.*\n.*\ngpu_reduction execution time : (?P<gpu_reduction_time>\d*).*\n\n.*\n.*\ngpu_atomic execution time : (?P<gpu_atomic_time>\d*).*\n\n.*\n.*\n.*\nall results match:  (?P<results_correct>.*)"
+seq_to_omp_pattern = r"cpu_seq to cpu_omp results match:  (?P<match>.*)"
+seq_to_red_pattern = r"cpu_seq to gpu_reduction results match:  (?P<match>.*)"
+seq_to_ato_pattern = r"cpu_seq to gpu_atomic results match:  (?P<match>.*)"
+seq_to_dis_pattern = r"cpu_seq to cpu_seq_dis results match:  (?P<match>.*)"
 
 # Main
 if __name__ == "__main__":

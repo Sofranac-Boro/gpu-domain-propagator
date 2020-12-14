@@ -5,7 +5,7 @@ import threading
 import time
 import unittest
 
-from plotter.plot_results import result_pattern
+from plotter.plot_results import result_pattern, seq_to_omp_pattern, seq_to_red_pattern, seq_to_ato_pattern
 from run_propagation import prop_compare_seq_gpu
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -93,10 +93,24 @@ class TestGDP(unittest.TestCase):
         with out:
             prop_compare_seq_gpu(os.path.join(BASE_PATH, TEST_DATA_PATH, instance_name))
 
-        results_regex = re.compile(result_pattern)
-        self.assertTrue(bool(results_regex.search(out.capturedtext)))
-        for g1 in re.finditer(results_regex, out.capturedtext):
-            self.assertEqual(str(g1.group('results_correct')), 'True')
+        seqomp_regex = re.compile(seq_to_omp_pattern)
+        seqred_regex = re.compile(seq_to_red_pattern)
+        seqato_regex = re.compile(seq_to_ato_pattern)
+        self.assertTrue(
+            bool(seqomp_regex.search(out.capturedtext)) and bool(seqred_regex.search(out.capturedtext)) and bool(
+                seqato_regex.search(out.capturedtext)))
+        for g1 in re.finditer(seqomp_regex, out.capturedtext):
+            self.assertEqual(str(g1.group('match')), 'True')
+        for g1 in re.finditer(seqred_regex, out.capturedtext):
+            self.assertEqual(str(g1.group('match')), 'True')
+        for g1 in re.finditer(seqato_regex, out.capturedtext):
+            self.assertEqual(str(g1.group('match')), 'True')
+
+        # comment out for release. only for internal testing
+
+    #   seqdis_regex = re.compile(seq_to_dis_pattern)
+    #   for g1 in re.finditer(seqdis_regex, out.capturedtext):
+    #       self.assertEqual(str(g1.group('match')), 'True')
 
     def test_regex(self):
         input_file = r'drayage-25-27.mps.gz'
@@ -116,6 +130,24 @@ class TestGDP(unittest.TestCase):
 
     def test_p0201(self):
         self.run_instance_checck_result('p0201.mps.gz')
+
+    def test_ofi(self):
+        self.run_instance_checck_result('ofi.mps.gz')
+
+    def test_osorio_cta(self):
+        self.run_instance_checck_result('osorio-cta.mps.gz')
+
+    def test_reblock166(self):
+        self.run_instance_checck_result('reblock166.mps.gz')
+
+    def test_square37(self):
+        self.run_instance_checck_result('square37.mps.gz')
+
+    def test_traininstance6(self):
+        self.run_instance_checck_result('traininstance6.mps.gz')
+
+    def test_van(self):
+        self.run_instance_checck_result('van.mps.gz')
 
 
 if __name__ == '__main__':
