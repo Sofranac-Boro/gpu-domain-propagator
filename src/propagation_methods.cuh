@@ -20,6 +20,12 @@ struct NewBoundTupleStruct {
 };
 typedef struct NewBoundTupleStruct NewBoundTuple;
 
+struct NewBoundsStruct {
+    NewBoundTuple lb;
+    NewBoundTuple ub;
+};
+typedef struct NewBoundsStruct NewBounds;
+
 
 void markConstraints
         (
@@ -156,7 +162,7 @@ ActivitiesTuple computeActivities
 }
 
 template<class datatype>
-bool tightenVariable
+NewBounds tightenVariable
         (
                 const datatype coeff,
                 const datatype lhs,
@@ -168,61 +174,49 @@ bool tightenVariable
                 const int val_idx,
                 const int *csc_col_ptrs,
                 const int *csc_row_indices,
-                int *consmarked,
-                datatype *lbs,
-                datatype *ubs
+                const datatype *lbs,
+                const datatype *ubs
         ) {
+
    datatype ub = ubs[var_idx];
    datatype lb = lbs[var_idx];
    datatype slack = rhs - minact;
    datatype surplus = maxact - lhs;
-   bool change_found = false;
-   NewBoundTuple newb_tuple;
+
+   // initialize return data.
+   NewBounds newbds;
+   newbds.lb = {false, lb};
+   newbds.ub = {false, ub};
+
 
    if (EPSGT(coeff, 0.0)) {
       if (EPSGT(coeff * (ub - lb), slack) && EPSLT(rhs, GDP_INF) && EPSGT(minact, -GDP_INF)) {
-         newb_tuple = tightenVarUpperBound(coeff, slack, lb, ub, isVarCont);
-         if (newb_tuple.is_tightened) {
-            markConstraints(var_idx, csc_col_ptrs, csc_row_indices, consmarked);
-            //FOLLOW_VAR_CALL(  );
-            ubs[var_idx] = newb_tuple.newb;
-            // update surplus and ub for tightening the lower bound
-            surplus = surplus - coeff * (ub - newb_tuple.newb);
-            ub = newb_tuple.newb;
-            change_found = true;
+         newbds.ub = tightenVarUpperBound(coeff, slack, lb, ub, isVarCont);
+         // update data for lower bound tightening
+         if (newbds.ub.is_tightened) {
+            surplus = surplus - coeff * (ub - newbds.ub.newb);
+            ub = newbds.ub.newb;
          }
       }
 
       if (EPSGT(coeff * (ub - lb), surplus) && EPSGT(lhs, -GDP_INF) && EPSLT(maxact, GDP_INF)) {
-         newb_tuple = tightenVarLowerBound(coeff, surplus, lb, ub, isVarCont);
-         if (newb_tuple.is_tightened) {
-            markConstraints(var_idx, csc_col_ptrs, csc_row_indices, consmarked);
-            lbs[var_idx] = newb_tuple.newb;
-            change_found = true;
-         }
+         newbds.lb = tightenVarLowerBound(coeff, surplus, lb, ub, isVarCont);
       }
    } else {
       if (EPSGT(coeff * (lb - ub), slack) && EPSLT(rhs, GDP_INF) && EPSGT(minact, -GDP_INF)) {
-         newb_tuple = tightenVarLowerBound(coeff, slack, lb, ub, isVarCont);
-         if (newb_tuple.is_tightened) {
-            markConstraints(var_idx, csc_col_ptrs, csc_row_indices, consmarked);
-            lbs[var_idx] = newb_tuple.newb;
-            surplus = surplus - coeff * (newb_tuple.newb - lb);
-            lb = newb_tuple.newb;
-            change_found = true;
+         newbds.lb = tightenVarLowerBound(coeff, slack, lb, ub, isVarCont);
+         // update data for upper bound tightening
+         if (newbds.lb.is_tightened) {
+            surplus = surplus - coeff * (newbds.lb.newb - lb);
+            lb = newbds.lb.newb;
          }
       }
 
       if (EPSGT(coeff * (lb - ub), surplus) && EPSGT(lhs, -GDP_INF) && EPSLT(maxact, GDP_INF)) {
-         newb_tuple = tightenVarUpperBound(coeff, surplus, lb, ub, isVarCont);
-         if (newb_tuple.is_tightened) {
-            markConstraints(var_idx, csc_col_ptrs, csc_row_indices, consmarked);
-            ubs[var_idx] = newb_tuple.newb;
-            change_found = true;
-         }
+         newbds.ub = tightenVarUpperBound(coeff, surplus, lb, ub, isVarCont);
       }
    }
-   return change_found;
+   return newbds;
 }
 
 template<typename datatype>

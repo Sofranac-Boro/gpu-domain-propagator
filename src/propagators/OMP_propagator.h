@@ -77,14 +77,28 @@ bool OMPPropagationRound
             // the hood, and there is little computation in each task to justify it
             // #pragma omp task depend(inout: ubs[var_idx], lbs[var_idx])
             {
-               bool tightened = tightenVariable<datatype>
+               NewBounds newbds = tightenVariable<datatype>
                        (
                                coeff, lhss[considx], rhss[considx], minacts[considx], maxacts[considx], isVarCont,
                                var_idx, val_idx,
-                               csc_col_ptrs, csc_row_indices, consmarked_nextround, lbs, ubs
+                               csc_col_ptrs, csc_row_indices, lbs, ubs
                        );
 
-               change_found = tightened ? tightened : change_found;
+               if (newbds.lb.is_tightened)
+               {
+                  lbs[var_idx] = newbds.lb.newb;
+               }
+
+               if (newbds.ub.is_tightened)
+               {
+                  ubs[var_idx] = newbds.ub.newb;
+               }
+
+               if (newbds.ub.is_tightened || newbds.lb.is_tightened)
+               {
+                  change_found = true;
+                  markConstraints(var_idx, csc_col_ptrs, csc_row_indices, consmarked_nextround);
+               }
             }
             omp_unset_lock(&(locks[var_idx]));
          }

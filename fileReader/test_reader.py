@@ -5,7 +5,7 @@ import threading
 import time
 import unittest
 
-from plotter.plot_results import result_pattern, seq_to_omp_pattern, seq_to_red_pattern, seq_to_ato_pattern
+from plotter.plot_results import result_pattern, seq_to_omp_pattern, seq_to_red_pattern, seq_to_ato_pattern, seq_to_dis_pattern
 from run_propagation import prop_compare_seq_gpu
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -108,9 +108,10 @@ class TestGDP(unittest.TestCase):
 
         # comment out for release. only for internal testing
 
-    #   seqdis_regex = re.compile(seq_to_dis_pattern)
-    #   for g1 in re.finditer(seqdis_regex, out.capturedtext):
-    #       self.assertEqual(str(g1.group('match')), 'True')
+      #  seqdis_regex = re.compile(seq_to_dis_pattern)
+      #  self.assertTrue(bool(seqdis_regex.search(out.capturedtext)))
+      #  for g1 in re.finditer(seqdis_regex, out.capturedtext):
+      #      self.assertEqual(str(g1.group('match')), 'True')
 
     def test_regex(self):
         input_file = r'drayage-25-27.mps.gz'
