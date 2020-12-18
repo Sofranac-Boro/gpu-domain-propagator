@@ -107,5 +107,4 @@ datatype maxConsecutiveElemDiff(const datatype *array, const int size) {
    }
    return ret;
 }
-
 #endif

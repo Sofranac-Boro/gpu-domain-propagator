@@ -92,14 +92,14 @@ void propagateConstraintsGPUAtomic(
         const int n_cons,
         const int n_vars,
         const int nnz,
-        int *csr_col_indices,
-        int *csr_row_ptrs,
-        datatype *csr_vals,
-        datatype *lhss,
-        datatype *rhss,
+        const int *csr_col_indices,
+        const int *csr_row_ptrs,
+        const datatype *csr_vals,
+        const datatype *lhss,
+        const datatype *rhss,
         datatype *lbs,
         datatype *ubs,
-        GDP_VARTYPE *vartypes
+        const GDP_VARTYPE *vartypes
 ) {
    DEBUG_CALL(checkInput(n_cons, n_vars, nnz, csr_vals, lhss, rhss, lbs, ubs, vartypes));
 
@@ -118,9 +118,7 @@ void propagateConstraintsGPUAtomic(
    const int blocks_count = fill_row_blocks(false, n_cons, csr_row_ptrs, nullptr);
    std::unique_ptr<int[]> row_blocks(new int[blocks_count + 1]);
    fill_row_blocks(true, n_cons, csr_row_ptrs, row_blocks.get());
-
    const int max_num_cons_in_block = maxConsecutiveElemDiff<int>(row_blocks.get(), blocks_count + 1);
-
    int *d_row_blocks = gpu.initArrayGPU<int>(row_blocks.get(), blocks_count + 1);
 
    bool *d_change_found = gpu.allocArrayGPU<bool>(1);
@@ -134,8 +132,7 @@ void propagateConstraintsGPUAtomic(
    GPUAtomicPropEntryKernel<datatype> <<<1, 1>>>
            (
                    blocks_count, n_cons, n_vars, max_num_cons_in_block, d_col_indices, d_row_ptrs, d_row_blocks, d_vals,
-                   d_lbs,
-                   d_ubs, d_vartypes, d_lhss, d_rhss, d_change_found
+                   d_lbs, d_ubs, d_vartypes, d_lhss, d_rhss, d_change_found
            );
    CUDA_CALL(cudaPeekAtLastError());
    CUDA_CALL(cudaDeviceSynchronize());
@@ -146,6 +143,5 @@ void propagateConstraintsGPUAtomic(
 
    // CUDA_CALL( cudaProfilerStop() );
 }
-
 
 #endif

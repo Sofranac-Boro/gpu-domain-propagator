@@ -13,13 +13,8 @@ template<typename datatype>
 class Tester {
 public:
     void executeSequentialPropagator(TestSetup<datatype> &ts) {
-       GPUInterface gpu = GPUInterface();
-       int *d_col_indices = gpu.initArrayGPU<int>(ts.csr_col_indices, ts.nnz);
-       int *d_row_ptrs = gpu.initArrayGPU<int>(ts.csr_row_ptrs, ts.n_cons + 1);
-       datatype *d_vals = gpu.initArrayGPU<datatype>(ts.csr_vals, ts.nnz);
-
-       csr_to_csc(gpu, ts.n_cons, ts.n_vars, ts.nnz, d_col_indices, d_row_ptrs, ts.csc_col_ptrs, ts.csc_row_indices,
-                  ts.csc_vals, d_vals);
+       csr_to_csc(ts.n_cons, ts.n_vars, ts.nnz, ts.csr_col_indices, ts.csr_row_ptrs, ts.csc_col_ptrs, ts.csc_row_indices,
+                  ts.csc_vals, ts.csr_vals);
 
        sequentialPropagate<datatype>
                (
@@ -30,13 +25,9 @@ public:
     }
 
     void executeFullOMPPropagator(TestSetup<datatype> &ts) {
-       GPUInterface gpu = GPUInterface();
-       int *d_col_indices = gpu.initArrayGPU<int>(ts.csr_col_indices, ts.nnz);
-       int *d_row_ptrs = gpu.initArrayGPU<int>(ts.csr_row_ptrs, ts.n_cons + 1);
-       datatype *d_vals = gpu.initArrayGPU<datatype>(ts.csr_vals, ts.nnz);
 
-       csr_to_csc(gpu, ts.n_cons, ts.n_vars, ts.nnz, d_col_indices, d_row_ptrs, ts.csc_col_ptrs, ts.csc_row_indices,
-                  ts.csc_vals, d_vals);
+       csr_to_csc(ts.n_cons, ts.n_vars, ts.nnz, ts.csr_col_indices, ts.csr_row_ptrs, ts.csc_col_ptrs, ts.csc_row_indices,
+                  ts.csc_vals, ts.csr_vals);
 
        fullOMPPropagate<datatype>
                (
@@ -48,13 +39,8 @@ public:
 
 
     void executeSequentialDisjointPropagator(TestSetup<datatype> &ts) {
-       GPUInterface gpu = GPUInterface();
-       int *d_col_indices = gpu.initArrayGPU<int>(ts.csr_col_indices, ts.nnz);
-       int *d_row_ptrs = gpu.initArrayGPU<int>(ts.csr_row_ptrs, ts.n_cons + 1);
-       datatype *d_vals = gpu.initArrayGPU<datatype>(ts.csr_vals, ts.nnz);
-
-       csr_to_csc(gpu, ts.n_cons, ts.n_vars, ts.nnz, d_col_indices, d_row_ptrs, ts.csc_col_ptrs, ts.csc_row_indices,
-                  ts.csc_vals, d_vals);
+       csr_to_csc(ts.n_cons, ts.n_vars, ts.nnz, ts.csr_col_indices, ts.csr_row_ptrs, ts.csc_col_ptrs, ts.csc_row_indices,
+                  ts.csc_vals, ts.csr_vals);
 
        sequentialPropagateDisjoint<datatype>
                (

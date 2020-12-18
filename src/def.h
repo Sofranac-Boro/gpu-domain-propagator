@@ -101,7 +101,7 @@ inline static void *safe_malloc(size_t n, unsigned long line) {
 #endif
 
 #ifdef FOLLOW_VAR
-#define FOLLOW_VAR_CALL(varidx, ans) varidx==FOLLOW_VAR? (ans) : printf("")
+#define FOLLOW_VAR_CALL(varidx, ans) varidx==FOLLOW_VAR? (ans) : printf("%c",0)
 #else
 #define FOLLOW_VAR_CALL(varidx, ans) do { } while(0)
 #endif
@@ -110,18 +110,6 @@ inline static void *safe_malloc(size_t n, unsigned long line) {
 #define FOLLOW_CONS_CALL(considx, ans) considx==FOLLOW_CONS? (ans) : printf("")
 #else
 #define FOLLOW_CONS_CALL(considx, ans) do { } while(0)
-#endif
-
-#ifdef CALC_PROGRESS_REL
-#define CALC_PROGRESS_REL_CALL(ans) {(ans);}
-#else
-#define CALC_PROGRESS_REL_CALL(ans) do { } while(0)
-#endif
-
-#ifdef CALC_PROGRESS_ABS
-#define CALC_PROGRESS_ABS_CALL(ans) {(ans);}
-#else
-#define CALC_PROGRESS_ABS_CALL(ans) do { } while(0)
 #endif
 
 #endif //GPU_DOMAIN_PROPAGATOR_RETCODES_H

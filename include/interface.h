@@ -116,4 +116,50 @@ GDP_RETCODE propagateConstraintsSequentialDisjointDouble
 }
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+GDP_RETCODE sequentialPropagateWithMeasureDouble
+        (
+                const int n_cons,
+                const int n_vars,
+                const int nnz,
+                const int *col_indices,
+                const int *row_indices,
+                const double *vals,
+                const double *lhss,
+                const double *rhss,
+                double *lbs,
+                double *ubs,
+                const int *vartypes
+        );
+
+#ifdef __cplusplus
+}
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+GDP_RETCODE atomicPropagateWithMeasureDouble
+        (
+                const int n_cons,
+                const int n_vars,
+                const int nnz,
+                const int *col_indices,
+                const int *row_indices,
+                const double *vals,
+                const double *lhss,
+                const double *rhss,
+                double *lbs,
+                double *ubs,
+                const int *vartypes
+        );
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

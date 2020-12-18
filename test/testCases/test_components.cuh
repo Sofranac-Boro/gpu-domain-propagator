@@ -21,27 +21,7 @@ vector<int> csc_col_ptrs(n + 1, 0);
 vector<int> csc_row_indices(nnz, 0);
 vector<double> csc_vals(nnz, 0);
 
-//declare GPU memory
-GPUInterface gpu = GPUInterface();
-
-int *d_col_indices = gpu.initArrayGPU<int>(col_indices.data(), nnz);
-int *d_row_ptr = gpu.initArrayGPU<int>(row_ptr.data(), m + 1);
-double *d_vals = gpu.initArrayGPU<double>(vals.data(), nnz);
-
-csr_to_csc(gpu, m, n, nnz, d_col_indices, d_row_ptr, csc_col_ptrs
-.
-
-data(), csc_row_indices
-
-.
-
-data(), csc_vals
-
-.
-
-data(), d_vals
-
-);
+csr_to_csc(m, n, nnz, col_indices.data(), row_ptr.data(), csc_col_ptrs.data(), csc_row_indices.data(), csc_vals.data(), vals.data());
 
 // build expected solutions
 std::vector<double> exp_vals{1, 3, 1, 2, 2, 1, -15, 1, -20, 1, -5, 1}; // dim nnz

@@ -19,12 +19,10 @@ else ()
     message("No CUDA architecture specified. To compile optimized code for your CUDA device please specify your device architecture through the ARCH flag.")
 endif ()
 
-#
-
 # make 'Release' the default build type
-#if(NOT CMAKE_BUILD_TYPE)
-#    set(CMAKE_BUILD_TYPE Release)
-#endif()
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
 
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
@@ -46,14 +44,6 @@ endif()
 
 if("${VERBOSITY}" STREQUAL 2)
      add_definitions(-DVERBOSE=2 -DDEBUG)
-endif()
-
-if("${CALC_PROGRESS_REL}" STREQUAL "On")
-    add_definitions(-DCALC_PROGRESS_REL)
-endif()
-
-if("${CALC_PROGRESS_ABS}" STREQUAL "On")
-    add_definitions(-DCALC_PROGRESS_ABS)
 endif()
 
 if (FOLLOW_VAR)

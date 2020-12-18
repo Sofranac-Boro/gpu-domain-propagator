@@ -63,7 +63,7 @@ bool sequentialPropagationRound
 
    bool change_found = false;
    int val_idx;
-   int var_idx;
+   int varidx;
 
    int *consmarked_nextround = (int *) calloc(n_cons, sizeof(int));
 
@@ -89,31 +89,38 @@ bool sequentialPropagationRound
 
             for (int var = 0; var < num_vars_in_cons; var++) {
                val_idx = row_indices[considx] + var;
-               var_idx = col_indices[val_idx];
+               varidx = col_indices[val_idx];
                coeff = vals[val_idx];
 
-               isVarCont = vartypes[var_idx] == GDP_CONTINUOUS;
+               isVarCont = vartypes[varidx] == GDP_CONTINUOUS;
 
                NewBounds newbds = tightenVariable<datatype>
                        (
-                               coeff, lhs, rhs, minacts[considx], maxacts[considx], isVarCont, var_idx, val_idx,
+                               coeff, lhs, rhs, minacts[considx], maxacts[considx], isVarCont, varidx, val_idx,
                                csc_col_ptrs, csc_row_indices, lbs, ubs
                        );
 
                if (newbds.lb.is_tightened)
                {
-                  lbs[var_idx] = newbds.lb.newb;
+                  FOLLOW_VAR_CALL(varidx,
+                                  printf("cpu_seq lb change found: varidx: %7d, considx: %7d, oldlb: %9.2e, newlb: %9.2e\n", varidx, considx, lbs[varidx],
+                                         newbds.lb.newb));
+                  lbs[varidx] = newbds.lb.newb;
+
                }
 
                if (newbds.ub.is_tightened)
                {
-                  ubs[var_idx] = newbds.ub.newb;
+                  FOLLOW_VAR_CALL(varidx,
+                                  printf("cpu_seq ub change found: varidx: %7d, considx: %7d, oldub: %9.2e, newub: %9.2e\n", varidx, considx, ubs[varidx],
+                                         newbds.ub.newb));
+                  ubs[varidx] = newbds.ub.newb;
                }
 
                if (newbds.ub.is_tightened || newbds.lb.is_tightened)
                {
                   change_found = true;
-                  markConstraints(var_idx, csc_col_ptrs, csc_row_indices, consmarked_nextround);
+                  markConstraints(varidx, csc_col_ptrs, csc_row_indices, consmarked_nextround);
                }
             }
          }
@@ -164,7 +171,7 @@ void sequentialPropagateDisjoint
    int prop_round;
    for (prop_round = 1; prop_round <= MAX_NUM_ROUNDS && change_found; prop_round++)  // maxnumrounds = 100
    {
-      VERBOSE_CALL_2(printf("\nPropagation round: %d\n\n", prop_round));
+      VERBOSE_CALL_2(printf("Propagation round: %d\n", prop_round));
 
       sequentialComputeActivities<datatype>(n_cons, col_indices, row_indices, vals, ubs, lbs, minacts, maxacts,
                                             maxactdeltas);
@@ -219,33 +226,21 @@ void sequentialPropagate
    auto start = std::chrono::steady_clock::now();
 #endif
 
-#ifdef CALC_PROGRESS_REL
-   datatype* oldlbs = (datatype*)SAFEMALLOC(n_vars * sizeof(datatype));
-   datatype* oldubs = (datatype*)SAFEMALLOC(n_vars * sizeof(datatype));
-
-   int* rel_measure_k = (int*)SAFEMALLOC(sizeof(int));
-#endif
-#ifdef CALC_PROGRESS_ABS
-   datatype* reflbs = (datatype*)SAFEMALLOC(n_vars * sizeof(datatype));
-   datatype* refubs = (datatype*)SAFEMALLOC(n_vars * sizeof(datatype));
-   memcpy(reflbs, lbs, n_vars * sizeof(datatype));
-   memcpy(refubs, ubs, n_vars * sizeof(datatype));
-   int* abs_measure_k = (int*)SAFEMALLOC(sizeof(int));
-   int* abs_measure_n = (int*)SAFEMALLOC(sizeof(int));
-   *abs_measure_k = 0;
-   *abs_measure_n = 0;
-#endif
-
    VERBOSE_CALL(printf("\ncpu_seq execution start... Params: MAXNUMROUNDS: %d", MAX_NUM_ROUNDS));
+   VERBOSE_CALL_2( printf("\n") );
 
    bool change_found = true;
    int prop_round;
    for (prop_round = 1; prop_round <= MAX_NUM_ROUNDS && change_found; prop_round++)  // maxnumrounds = 100
    {
-      VERBOSE_CALL_2(printf("\nPropagation round: %d\n\n", prop_round));
+#if VERBOSE >= 2
+      auto start_round = std::chrono::steady_clock::now();
+#endif
+      VERBOSE_CALL_2(printf("Propagation round: %d, ", prop_round));
 
-      CALC_PROGRESS_REL_CALL(memcpy(oldlbs, lbs, n_vars * sizeof(datatype)));
-      CALC_PROGRESS_REL_CALL(memcpy(oldubs, ubs, n_vars * sizeof(datatype)));
+      FOLLOW_VAR_CALL(FOLLOW_VAR,
+                      printf("cpu_seq varidx: %7d bounds beofre round: %7d: lb: %9.2e, ub: %9.2e\n", FOLLOW_VAR, prop_round, lbs[FOLLOW_VAR],
+                             ubs[FOLLOW_VAR]));
 
       change_found = sequentialPropagationRound<datatype>
               (
@@ -253,15 +248,9 @@ void sequentialPropagate
                       lbs, ubs, vartypes, minacts, maxacts, maxactdeltas, consmarked, RECOMPUTE_ACTS_TRUE
               );
 
-#ifdef CALC_PROGRESS_REL
-      *rel_measure_k = 0;
-      double score = calcRelProgressMeasureSeq(n_vars, oldlbs, oldubs, lbs, ubs, rel_measure_k);
-      printf("\nround %d total relative score: %.10f, k=%d", prop_round, score, *rel_measure_k);
-#endif
-#ifdef CALC_PROGRESS_ABS
-      double abs_score = calcAbsProgressMeasureSeq(n_vars, reflbs, refubs, lbs, ubs, abs_measure_k, abs_measure_n);
-      printf("\nround %d total absolute score: %.10f, k=%d, n=%d", prop_round, abs_score, *abs_measure_k, *abs_measure_n);
-#endif
+      FOLLOW_VAR_CALL(FOLLOW_VAR,
+                      printf("cpu_seq varidx %7d bounds after round %7d: lb: %9.2e, ub: %9.2e\n", FOLLOW_VAR, prop_round, lbs[FOLLOW_VAR], ubs[FOLLOW_VAR]));
+      VERBOSE_CALL_2( measureTime("cpu_seq", start, std::chrono::steady_clock::now()) );
    }
 
    VERBOSE_CALL(printf("\ncpu_seq propagation done. Num rounds: %d\n", prop_round - 1));
@@ -271,9 +260,6 @@ void sequentialPropagate
    free(maxacts);
    free(maxactdeltas);
    free(consmarked);
-   CALC_PROGRESS_REL_CALL(free(oldlbs));
-   CALC_PROGRESS_REL_CALL(free(oldubs));
-   CALC_PROGRESS_REL_CALL(free(rel_measure_k));
 }
 
 #endif

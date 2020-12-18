@@ -6,7 +6,6 @@
 #include "util_kernels.cuh"
 #include "../misc.h"
 #include "../../lib/cub/cub.cuh"
-#include <cooperative_groups.h>
 
 template<typename datatype>
 __global__ void GPUAtomicDomainPropagation
@@ -209,7 +208,10 @@ __global__ void GPUAtomicDomainPropagation
          // on the old bound.
          double oldlb = EPSGT(newlb, lb) ? atomicMax(&lbs[varidx], newlb) : lb;
          double oldub = EPSLT(newub, ub) ? atomicMin(&ubs[varidx], newub) : ub;
-
+         if(!EPSGE(oldub, oldlb) || !EPSGE(newub, newlb))
+         {
+            printf("oldlb: %.5f, oldub: %5f, newlb: %.5f, newub: %.5f, varidx: %d\n", oldlb, oldub, newlb, newub, varidx);
+         }
          if (is_change_found(oldlb, oldub, newlb, newub)) {
             *change_found = true;
             FOLLOW_VAR_CALL(varidx,
@@ -234,10 +236,10 @@ __global__ void GPUAtomicDomainPropagation
 
             //#pragma unroll
             for (int element = block_data_begin + lane; element < block_data_end; element += WARP_SIZE) {
-
+               const int varidx = col_indices[element];
                coeff = vals[element];
-               lb = lbs[col_indices[element]];
-               ub = ubs[col_indices[element]];
+               lb = lbs[varidx];
+               ub = ubs[varidx];
 
                dot_minact += EPSGT(coeff, 0) ? coeff * lb : coeff * ub; // minactivity
                dot_maxact += EPSGT(coeff, 0) ? coeff * ub : coeff * lb; // maxactivity
@@ -264,9 +266,10 @@ __global__ void GPUAtomicDomainPropagation
 
             //#pragma unroll
             for (int element = block_data_begin + threadIdx.x; element < block_data_end; element += blockDim.x) {
+               const int varidx = col_indices[element];
                coeff = vals[element];
-               lb = lbs[col_indices[element]];
-               ub = ubs[col_indices[element]];
+               lb = lbs[varidx];
+               ub = ubs[varidx];
 
                dot_minact += EPSGT(coeff, 0) ? coeff * lb : coeff * ub; // minactivity
                dot_maxact += EPSGT(coeff, 0) ? coeff * ub : coeff * lb; // maxactivity
@@ -314,6 +317,8 @@ __global__ void GPUAtomicDomainPropagation
             const int varidx = col_indices[element];
             datatype newlb;
             datatype newub;
+            lb = lbs[varidx];
+            ub = ubs[varidx];
 
             //DEBUG_CALL( print_acts_csr_vector(block_row_begin, minacts[0], maxacts[0]) );
 
@@ -323,8 +328,8 @@ __global__ void GPUAtomicDomainPropagation
                     vals[element],
                     minacts[0], // this is in shared memory - each block's indexing strats from 0
                     maxacts[0], // this is in shared memory - each block's indexing strats from 0
-                    lbs[varidx],
-                    ubs[varidx],
+                    lb,
+                    ub,
                     &newlb,
                     &newub
             );
@@ -346,11 +351,11 @@ __global__ void GPUAtomicDomainPropagation
             double oldlb = EPSGT(newlb, lb) ? atomicMax(&lbs[varidx], newlb) : lb;
             double oldub = EPSLT(newub, ub) ? atomicMin(&ubs[varidx], newub) : ub;
 
-//         if (!EPSGE(oldub, oldlb))
-//         {
-//            printf("threadidx: %d, blockidx=%d, oldlb: %.10f, oldub: %.10f, lb: %.10f, ub: %.10f, newlb: %.10f, newub: %.10f, is_var_cont: %d, varidx: %d\n",
-//                   threadIdx.x, blockIdx.x, oldlb, oldub, lb, ub, newlb, newub, is_var_cont, varidx);
-//         }
+//           if (!EPSGE(oldub, oldlb))
+//           {
+//              printf("threadidx: %d, blockidx=%d, oldlb: %.10f, oldub: %.10f, lb: %.10f, ub: %.10f, newlb: %.10f, newub: %.10f, is_var_cont: %d, varidx: %d\n",
+//                     threadIdx.x, blockIdx.x, oldlb, oldub, lb, ub, newlb, newub, is_var_cont, varidx);
+//           }
 
             if (is_change_found(oldlb, oldub, newlb, newub)) {
                *change_found = true;
@@ -385,52 +390,20 @@ __global__ void GPUAtomicPropEntryKernel
         ) {
    int prop_round;
 
-#ifdef CALC_PROGRESS_REL
-   const int num_blocks_bound_copy = ceil(double(n_vars) / BOUND_COPY_NUM_THREADS);
-   int* rel_measure_k = (int*)SAFEMALLOC(sizeof(int));
-#endif
-
-#if defined(CALC_PROGRESS_REL) || defined(CALC_PROGRESS_ABS)
-   int* inf_change_found = (int*)SAFEMALLOC(sizeof(int));
-   datatype* measures = (datatype*)SAFEMALLOC(n_vars * sizeof(datatype));
-   datatype* score = (datatype*)SAFEMALLOC(sizeof(datatype));
-
-   // Determine temporary device storage requirements
-   void     *d_temp_storage = NULL;
-   size_t   temp_storage_bytes = 0;
-   cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, measures, score, n_vars);
-
-   d_temp_storage = SAFEMALLOC(temp_storage_bytes);
-#endif
-
-#ifdef CALC_PROGRESS_ABS
-   datatype* reflbs = (datatype*)SAFEMALLOC(n_vars * sizeof(datatype));
-   datatype* refubs = (datatype*)SAFEMALLOC(n_vars * sizeof(datatype));
-   copy_bounds_kernel<datatype><<< num_blocks_bound_copy, BOUND_COPY_NUM_THREADS >>>(n_vars, reflbs, refubs, lbs, ubs);
-   int* abs_measure_k = (int*)SAFEMALLOC(sizeof(int));
-   int* abs_measure_n = (int*)SAFEMALLOC(sizeof(int));
-   *abs_measure_k = 0;
-   *abs_measure_n = 0;
-#endif
-
    for (prop_round = 1; prop_round <= MAX_NUM_ROUNDS && *change_found; prop_round++) {
-      VERBOSE_CALL_2(printf("\nPropagation round: %d\n\n", prop_round));
+      VERBOSE_CALL_2(printf("\nPropagation round: %d, ", prop_round));
       *change_found = false;
 
       FOLLOW_VAR_CALL(FOLLOW_VAR,
                       printf("round: %d, varidx: %7d, lb: %9.2e, ub: %9.2e\n", prop_round, FOLLOW_VAR, lbs[FOLLOW_VAR],
                              ubs[FOLLOW_VAR]));
-
-#ifdef CALC_PROGRESS_REL
-      *rel_measure_k = 0;    // to measure the number of infinite to finite tightenings
-      copy_bounds_kernel<datatype><<< num_blocks_bound_copy, BOUND_COPY_NUM_THREADS >>>(n_vars, oldlbs, oldubs, lbs, ubs);
-#endif
+      const int num_blocks_bound_copy = ceil(double(n_vars) / BOUND_COPY_NUM_THREADS);
 
       // shared memory layout:
       // - max_num_cons_in_block elems of type datatype for minactivities
       // - max_num_cons_in_block elems of type datatype for maxactivities
-      VERBOSE_CALL_2(printf("Amount of dynamic shared memory requested: %.2f KB\n",
-                            (2 * max_n_cons_in_block * sizeof(datatype)) / 1024.0));
+   //   VERBOSE_CALL_2(printf("Amount of dynamic shared memory requested: %.2f KB\n",
+   //                         (2 * max_n_cons_in_block * sizeof(datatype)) / 1024.0));
       GPUAtomicDomainPropagation<datatype> <<< blocks_count, NNZ_PER_WG, 2 * max_n_cons_in_block * sizeof(datatype) >>>
               (
                       n_cons, n_vars, max_n_cons_in_block, col_indices, row_ptrs, row_blocks, vals, lbs, ubs, vartypes,
@@ -438,68 +411,10 @@ __global__ void GPUAtomicPropEntryKernel
               );
       cudaDeviceSynchronize();
 
-#ifdef CALC_PROGRESS_REL
-      calcRelProgressMeasure<datatype><<< num_blocks_bound_copy, BOUND_COPY_NUM_THREADS >>>
-      (
-          n_vars,
-          oldlbs,
-          oldubs,
-          lbs,
-          ubs,
-          measures,
-          inf_change_found,
-          rel_measure_k
-      );
-
-      cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, measures, score, n_vars);
-
-      cudaDeviceSynchronize();
-      printf("\nround %d total relative score: %.10f, k=%d", prop_round, *score, *rel_measure_k);
-#endif
-
-#ifdef CALC_PROGRESS_ABS
-      *inf_change_found=0;
-      calcRelProgressMeasure<datatype><<< num_blocks_bound_copy, BOUND_COPY_NUM_THREADS >>>
-      (
-          n_vars,
-          reflbs,
-          refubs,
-          lbs,
-          ubs,
-          measures,
-          inf_change_found,
-          abs_measure_k
-      );
-
-      cub::DeviceReduce::Sum(d_temp_storage, temp_storage_bytes, measures, score, n_vars);
-
-      cudaDeviceSynchronize();
-
-      if (*inf_change_found)
-      {
-           *abs_measure_n = *abs_measure_n + 1;
-      }
-
-      updateReferenceBounds<datatype><<< num_blocks_bound_copy, BOUND_COPY_NUM_THREADS >>>(n_vars, reflbs, refubs, lbs, ubs);
-      cudaDeviceSynchronize();
-      printf("\nround %d total absolute score: %.10f, k=%d, n=%d", prop_round, *score, *abs_measure_k, *abs_measure_n);
-#endif
-
       FOLLOW_VAR_CALL(FOLLOW_VAR,
                       printf("bounds after round: %d, varidx: %7d, lb: %9.2e, ub: %9.2e\n", prop_round, FOLLOW_VAR,
                              lbs[FOLLOW_VAR], ubs[FOLLOW_VAR]));
    }
-
-#if defined(CALC_PROGRESS_REL) || defined(CALC_PROGRESS_ABS)
-   free(d_temp_storage);
-#endif
-
-#ifdef CALC_PROGRESS_REL
-   free(measures);
-   free(score);
-   free(inf_change_found);
-   free(rel_measure_k);
-#endif
 
    VERBOSE_CALL(printf("gpu_atomic propagation done. Num rounds: %d\n", prop_round - 1));
 }

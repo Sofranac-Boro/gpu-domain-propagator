@@ -4,7 +4,7 @@ import numpy as np
 from scipy.sparse import csr_matrix
 from typing import List
 
-from GPUDomPropInterface import propagateGPU, propagateGPUAtomic, propagateSequential, propagateFullOMP
+from GPUDomPropInterface import propagateGPU, propagateGPUAtomic, propagateSequential, propagateFullOMP, propagateSequentialWithMeasure, propagateGPUAtomicWithMeasure
 from readerInterface import FileReaderInterface, get_reader
 
 
@@ -44,6 +44,10 @@ def prop_compare_seq_gpu(lp_file_path: str) -> None:
     lbs_dis = lbs_seq = lbs_gpuatomic = lbs_gpu = lbs_omp = lbs
     ubs_dis = ubs_seq = ubs_gpuatomic = ubs_gpu = ubs_omp = ubs
 
+
+    #propagateSequentialWithMeasure(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss,
+    #                                                            lbs_seq, ubs_seq, vartypes)
+
     (seq_new_lbs, seq_new_ubs) = propagateSequential(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss,
                                                      lbs_seq, ubs_seq, vartypes)
 
@@ -55,8 +59,12 @@ def prop_compare_seq_gpu(lp_file_path: str) -> None:
 
     # (dis_new_lbs, dis_new_ubs) = propagateSequentialDisjoint( n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_dis, ubs_dis, vartypes)
 
+   # (seq_new_lbs, seq_new_ubs) = propagateGPUAtomicWithMeasure(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs,
+   #                               lhss, rhss, lbs_gpuatomic, ubs_gpuatomic, vartypes)
+
     (gpuatomic_new_lbs, gpuatomic_new_ubs) = propagateGPUAtomic(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs,
                                                                 lhss, rhss, lbs_gpuatomic, ubs_gpuatomic, vartypes)
+
 
     seq_new_lbs = normalize_infs(seq_new_lbs)
     seq_new_ubs = normalize_infs(seq_new_ubs)
@@ -72,8 +80,8 @@ def prop_compare_seq_gpu(lp_file_path: str) -> None:
     equal_seq_gpu_atomic = arrays_equal(seq_new_lbs, gpuatomic_new_lbs) and arrays_equal(seq_new_ubs, gpuatomic_new_ubs)
     equal_seq_gpu_full = arrays_equal(seq_new_lbs, gpu_new_lbs) and arrays_equal(seq_new_ubs, gpu_new_ubs)
     equal_seq_omp = arrays_equal(seq_new_lbs, omp_new_lbs) and arrays_equal(seq_new_ubs, omp_new_ubs)
-    # equal_seq_dis = arrays_equal(seq_new_lbs, dis_new_lbs) and arrays_equal(seq_new_ubs, dis_new_ubs)
-
+    # # equal_seq_dis = arrays_equal(seq_new_lbs, dis_new_lbs) and arrays_equal(seq_new_ubs, dis_new_ubs)
+    #
     print("\ncpu_seq to cpu_omp results match: ", equal_seq_omp)
     print("cpu_seq to gpu_reduction results match: ", equal_seq_gpu_full)
     print("cpu_seq to gpu_atomic results match: ", equal_seq_gpu_atomic)

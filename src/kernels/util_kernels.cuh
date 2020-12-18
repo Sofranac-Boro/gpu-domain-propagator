@@ -79,17 +79,21 @@ void initArrayAscending
 
 template<class datatype>
 void csr_to_csc(
-        GPUInterface &gpu,
         const int n_cons,
         const int n_vars,
         const int nnz,
-        int *d_col_indices,
-        int *d_row_indices,
+        const int *csr_col_indices,
+        const int *csr_row_indices,
         int *csc_col_ptrs,
         int *csc_row_indices,
         datatype *csc_vals,
-        datatype *d_vals
+        const datatype *csr_vals
 ) {
+   GPUInterface gpu = GPUInterface();
+   int *d_col_indices = gpu.initArrayGPU<int>(csr_col_indices, nnz);
+   int *d_row_ptrs = gpu.initArrayGPU<int>(csr_row_indices, n_cons + 1);
+   double *d_vals = gpu.initArrayGPU<double>(csr_vals, nnz);
+
    // TODO don't need NUMERIC computationa any more
    cusparseHandle_t handle = NULL;
    cudaStream_t stream = NULL;
@@ -118,7 +122,7 @@ void csr_to_csc(
    // the function instead of d_vals_csc, it somehow messes up the d_vals and d_csc_row/col. Look into this.
    cusparseCsr2cscEx2
            (
-                   handle, n_cons, n_vars, nnz, d_vals, d_row_indices, d_col_indices, d_vals_csc_tmp,
+                   handle, n_cons, n_vars, nnz, d_vals, d_row_ptrs, d_col_indices, d_vals_csc_tmp,
                    d_csc_col_ptrs, d_csc_row_indices, CUDA_R_64F,
                    CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO, CUSPARSE_CSR2CSC_ALG2, pBuffer
            );
@@ -253,6 +257,16 @@ __device__ __forceinline__ float atomicMax(float *address, float val) {
 }
 
 template<typename datatype>
+__host__ __device__ __forceinline__ void atomicAdd1(datatype* val)
+{
+#ifdef  __CUDA_ARCH__
+      atomicAdd(val, 1);
+#else
+      __sync_fetch_and_add(val, 1);
+#endif
+}
+
+template<typename datatype>
 __device__ __forceinline__ datatype adjustUpperBound(datatype ub, bool is_var_cont) {
    return is_var_cont ? ub : EPSFLOOR(ub);
 }
@@ -346,77 +360,89 @@ print_acts_csr_stream(int nnz_in_block, int *validx_considx_map, int n_cons, int
    __syncthreads();
 }
 
-
+// returns score value. It is equal to lb score + ub score.
 template<typename datatype>
-__device__ __host__ __forceinline__ datatype calcVarRelProgressMeasure(
-        const datatype oldlb,
-        const datatype oldub,
-        const datatype newlb,
-        const datatype newub,
+__device__ __host__ datatype calcVarRelProgressMeasure(
+        const datatype lb,
+        const datatype ub,
+        const datatype lb_start,
+        const datatype ub_start,
+        const datatype lb_limit,
+        const datatype ub_limit,
+        const datatype lb_prevround,
+        const datatype ub_prevround,
         int *inf_change_found,
         int *rel_measure_k
 ) {
    assert(rel_measure_k >= 0);
-   assert(EPSGE(newlb, oldlb));
-   assert(EPSLE(newub, oldub));
+   //  lb <= lb_limit and  ub_limit <= ub
+   // lb_start <= lb_limit and ub_limit <= ub_start
+   assert(EPSGE(lb_limit, lb));
+   assert(EPSLE(ub_limit, ub));
+   assert(EPSLE(lb_start, lb_limit));
+   assert(EPSGE(ub_start, ub_limit));
+   // lb_start <= ub_initial and lb <= ub and lb_start <= ub_limit
+   assert(EPSLE(lb_start, ub_start));
+   assert(EPSLE(lb, ub));
+   assert(EPSLE(lb_limit, ub_limit));
 
-   // TODO think if tightening which is still > inf will be handled correctly
-   if (EPSEQ(oldub, newub) && EPSEQ(oldlb, newlb)) {
-      return 0.0;
-   } else if ((EPSGE(oldub, GDP_INF) && EPSLT(newub, GDP_INF)) && (EPSLE(oldlb, -GDP_INF) && EPSGT(newlb, -GDP_INF))) {
-#ifdef  __CUDA_ARCH__
-      *inf_change_found = 1;
-      atomicAdd(rel_measure_k, 2);
-#else
-      *inf_change_found = 1;
-      __sync_fetch_and_add(rel_measure_k, 2);
-#endif
-      return 0.0;
-   } else if (EPSGE(oldub, GDP_INF) && EPSLT(newub, GDP_INF)) {
-#ifdef  __CUDA_ARCH__
-      *inf_change_found = 1;
-      atomicAdd(rel_measure_k, 1);
-#else
-      *inf_change_found = 1;
-      __sync_fetch_and_add(rel_measure_k, 1);
-#endif
+   // if limit bound is finite, so should be the starting value.
+   DEBUG_CALL( EPSGT(lb_limit, -GDP_INF)? assert(EPSGT(lb_start, -GDP_INF)) : assert(true) );
+   DEBUG_CALL( EPSLT(ub_limit, GDP_INF) ? assert(EPSLT(ub_start, GDP_INF)) : assert(true) );
 
-      datatype rel_domain = MAX(REALABS(oldlb), 1.0);
-      return MIN(newlb - oldlb / rel_domain, 1.0);
-   } else if (EPSLE(oldlb, -GDP_INF) && EPSGT(newlb, -GDP_INF)) {
-#ifdef  __CUDA_ARCH__
-      *inf_change_found = 1;
-      atomicAdd(rel_measure_k, 1);
-#else
-      *inf_change_found = 1;
-      __sync_fetch_and_add(rel_measure_k, 1);
-#endif
+   // if start bound is inf, it means it should never be possible to get a finite value for this bound
+   DEBUG_CALL( EPSLE(lb_start, -GDP_INF)? assert(EPSLE(lb, -GDP_INF)) : assert(true) );
+   DEBUG_CALL( EPSGE(ub_start, GDP_INF)? assert(EPSGE(ub, GDP_INF)) : assert(true) );
 
-      datatype rel_domain = MAX(REALABS(oldub), 1.0);
-      return MIN(oldub - newub / rel_domain, 1.0);
-   } else {
-      datatype rel_domain = EPSLT(oldub - oldlb, GDP_INF) ? oldub - oldlb : MAX(MIN(REALABS(oldub), REALABS(oldlb)),
-                                                                                1.0);
-
-      // newub < oldub. If oldub < INF => newub < INF. If oldub >= INF => newlb >=INF becuase oldub >= GDP_INF && newub < GDP_INF was handled above explicitly
-      datatype ub_cutoff = EPSLT(oldub, GDP_INF) ? oldub - newub : 0.0;
-
-      // newlb > oldlb. If oldlb > -INF => newlb > -INF. If oldlb <= -INF => newlb <= -INF bacase oldlb <= -GDP_INF && newlb > -GDP_INF was handled above explicitly
-      datatype lb_cutoff = EPSGT(oldlb, -GDP_INF) ? newlb - oldlb : 0.0;
-
-      // Measure of progress: amount of domain that is cut off relative to the original size of the domain if it is finite, or magnitude of the changed bound if domain is infinite.
-      // if one side is infinite and the other's magnitude is <1, the measure can get >1.0. Hence, cap the final measure at 1.0.
-      return MIN((ub_cutoff + lb_cutoff) / rel_domain, 1.0);
+   // if start bound is finite, it should never be possible to get a "worse" finite value of the bound
+   DEBUG_CALL( EPSGT(lb_start, -GDP_INF) && EPSGT(lb, -GDP_INF)? assert(EPSGE(lb, lb_start)) : assert(true) );
+   DEBUG_CALL( EPSLT(ub_start,GDP_INF) && EPSLT(ub, GDP_INF)? assert(EPSLE(ub, ub_start)) : assert(true) );
+   // measure contribution to finite-finite progress
+   datatype score = 0.0;
+   datatype increment;
+   // Checking that current bound is finite prevents numerical issues even though the math works in infinite space.
+   // Do not try to compute case where start value is infinite. This means that limit value is also infinite, see above.
+   // lb >= lb_start is reduntant here because of the assert but added for readibility as it is present in the paper.
+   // if limit == start bound, no progress can be made.
+   if (EPSGT(lb_start, -GDP_INF) && EPSGT(lb, -GDP_INF) && EPSGE(lb, lb_start) && !EPSEQ(lb_limit, lb_start)) {
+      increment = (lb - lb_start) / (lb_limit - lb_start);
+      assert(EPSLE(increment, 1.0));
+      score += increment;
    }
+   // Upper bound
+   if (EPSLT(ub_start, GDP_INF) && EPSLT(ub, GDP_INF) && EPSLE(ub, ub_start) && !(EPSEQ(ub_start, ub_limit))) {
+      increment = (ub_start - ub)/(ub_start - ub_limit);
+      assert(EPSLE(increment, 1.0));
+      score += increment;
+   }
+
+   // measure contribution to infinite-finite progress
+   if (EPSLE(lb_prevround, -GDP_INF) && EPSGT(lb, -GDP_INF))
+   {
+      *inf_change_found = 1;
+      atomicAdd1<int>(rel_measure_k);
+   }
+
+   if (EPSGE(ub_prevround, GDP_INF) && EPSLT(ub, GDP_INF))
+   {
+      *inf_change_found = 1;
+      atomicAdd1<int>(rel_measure_k);
+   }
+
+   return score;
 }
 
 template<typename datatype>
 __global__ void calcRelProgressMeasure(
-        int n_vars,
-        datatype *oldlbs,
-        datatype *oldubs,
-        datatype *newlbs,
-        datatype *newubs,
+        const int n_vars,
+        const datatype *lbs,
+        const datatype *ubs,
+        const datatype *lbs_start,
+        const datatype *ubs_start,
+        const datatype* lbs_limit,
+        const datatype* ubs_limit,
+        const datatype* lbs_prev,
+        const datatype* ubs_prev,
         datatype *measures,
         int *inf_change_found,
         int *abs_measure_k
@@ -424,30 +450,9 @@ __global__ void calcRelProgressMeasure(
    int varidx = blockIdx.x * blockDim.x + threadIdx.x;
 
    if (varidx < n_vars) {
-      measures[varidx] = calcVarRelProgressMeasure(oldlbs[varidx], oldubs[varidx], newlbs[varidx], newubs[varidx],
+      measures[varidx] = calcVarRelProgressMeasure(lbs[varidx], ubs[varidx], lbs_start[varidx], ubs_start[varidx],
+                                                   lbs_limit[varidx], ubs_limit[varidx], lbs_prev[varidx], ubs_prev[varidx],
                                                    inf_change_found, abs_measure_k);
-   }
-}
-
-template<typename datatype>
-__global__ void updateReferenceBounds(
-        const int n_vars,
-        datatype *reflbs,
-        datatype *refubs,
-        const datatype *newlbs,
-        const datatype *newubs
-) {
-   int varidx = blockIdx.x * blockDim.x + threadIdx.x;
-
-   // If a bound was moved from inf to finite, record it as a reference bound.
-   if (varidx < n_vars) {
-      if (reflbs[varidx] <= -GDP_INF && newlbs[varidx] > -GDP_INF) {
-         reflbs[varidx] = newlbs[varidx];
-      }
-
-      if (refubs[varidx] > GDP_INF && newubs[varidx] < GDP_INF) {
-         refubs[varidx] = newubs[varidx];
-      }
    }
 }
 
@@ -456,8 +461,8 @@ __global__ void copy_bounds_kernel(
         const int n_vars,
         datatype *lbs,
         datatype *ubs,
-        datatype *newlbs,
-        datatype *newubs
+        const datatype *newlbs,
+        const datatype *newubs
 ) {
    int varidx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -469,17 +474,14 @@ __global__ void copy_bounds_kernel(
 
 template<typename datatype>
 __device__ __forceinline__ bool is_change_found(
-        datatype oldlb,
-        datatype oldub,
-        datatype newlb,
-        datatype newub
+        const datatype oldlb,
+        const datatype oldub,
+        const datatype newlb,
+        const datatype newub
 ) {
-//   assert( EPSGE(oldub, oldlb) );
-//   assert( EPSGE(newub, newlb) );
-   // if (!EPSGE(oldub, oldlb))
-   // {
-   //    printf("threadidx: %d, blockidx=%d, oldlb: %.10f, oldub: %.10f\n", threadIdx.x, blockIdx.x, oldlb, oldub);
-   // }
+   assert( EPSGE(oldub, oldlb) );
+   assert( EPSGE(newub, newlb) );
+
    return EPSLT(newub, oldub) || EPSGT(newlb, oldlb);
 }
 
