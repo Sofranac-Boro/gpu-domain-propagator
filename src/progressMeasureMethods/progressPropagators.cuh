@@ -233,6 +233,7 @@ void sequentialPropagateWithMeasure
 template<typename datatype>
 __global__ void GPUAtomicPropEntryKernelWithMeasure
         (
+                const int max_num_resident_blocks,
                 const int blocks_count,
                 const int n_cons,
                 const int n_vars,
@@ -290,9 +291,9 @@ __global__ void GPUAtomicPropEntryKernelWithMeasure
       // - max_num_cons_in_block elems of type datatype for maxactivities
       //VERBOSE_CALL_2(printf("Amount of dynamic shared memory requested: %.2f KB\n",
       //                      (2 * max_n_cons_in_block * sizeof(datatype)) / 1024.0));
-      GPUAtomicDomainPropagation<datatype> <<< blocks_count, NNZ_PER_WG, 2 * max_n_cons_in_block * sizeof(datatype) >>>
+      GPUAtomicDomainPropagation<datatype> <<< min(blocks_count, max_num_resident_blocks), NNZ_PER_WG, 2 * max_n_cons_in_block * sizeof(datatype) >>>
       (
-              n_cons, n_vars, max_n_cons_in_block, col_indices, row_ptrs, row_blocks, vals, lbs, ubs, vartypes,
+              max_num_resident_blocks, blocks_count, n_cons, n_vars, max_n_cons_in_block, col_indices, row_ptrs, row_blocks, vals, lbs, ubs, vartypes,
                       lhss, rhss, change_found, prop_round
       );
       cudaDeviceSynchronize();
@@ -387,61 +388,68 @@ void propagateConstraintsGPUAtomicWithMeasure(
 
    const datatype max_score = calcMaxMeasureValue(n_vars, lbs, ubs, lbs_start, ubs_start, lbs_limit, ubs_limit);
 
-#ifdef VERBOSE
-   auto start = std::chrono::steady_clock::now();
-#endif
-   VERBOSE_CALL(printf("\n====   Running the gpu_atomic with measure  ====\n"));
-
-   GPUAtomicPropEntryKernelWithMeasure<datatype> <<<1, 1>>>
-           (
-                   blocks_count, n_cons, n_vars, max_num_cons_in_block, d_col_indices, d_row_ptrs,
-                   d_row_blocks, d_vals, d_lbs, d_ubs, d_lbs_start, d_ubs_start, d_lbs_limit, d_ubs_limit, max_score,
-                   d_vartypes, d_lhss, d_rhss, d_change_found
-           );
-   CUDA_CALL(cudaPeekAtLastError());
-   CUDA_CALL(cudaDeviceSynchronize());
-
-   VERBOSE_CALL(measureTime("gpu_atomic", start, std::chrono::steady_clock::now()));
-   VERBOSE_CALL(printf("====   end gpu_atomic with measure  ====\n"));
+//#ifdef VERBOSE
+//   auto start = std::chrono::steady_clock::now();
+//#endif
+//   VERBOSE_CALL(printf("\n====   Running the gpu_atomic with measure  ====\n"));
+//
+//   cudaDeviceProp prop;
+//   cudaGetDeviceProperties(&prop, 0); // device 0. TODO make sure this is the one that will execute
+//   int max_num_resident_blocks = prop.multiProcessorCount * CUDAgetMaxNumResidentBlocksPerSM(prop.major, prop.minor);
+//
+//   GPUAtomicPropEntryKernelWithMeasure<datatype> <<<1, 1>>>
+//           (
+//                   max_num_resident_blocks, blocks_count, n_cons, n_vars, max_num_cons_in_block, d_col_indices, d_row_ptrs,
+//                   d_row_blocks, d_vals, d_lbs, d_ubs, d_lbs_start, d_ubs_start, d_lbs_limit, d_ubs_limit, max_score,
+//                   d_vartypes, d_lhss, d_rhss, d_change_found
+//           );
+//   CUDA_CALL(cudaPeekAtLastError());
+//   CUDA_CALL(cudaDeviceSynchronize());
+//
+//   VERBOSE_CALL(measureTime("gpu_atomic", start, std::chrono::steady_clock::now()));
+//   VERBOSE_CALL(printf("====   end gpu_atomic with measure  ====\n"));
    //gpu.getMemFromGPU<datatype>(d_ubs, ubs, n_vars);
    //gpu.getMemFromGPU<datatype>(d_lbs, lbs, n_vars);
 
-   VERBOSE_CALL(printf("\n====   Running the gpu_atomic without measure  ====\n"));
-
-   //reset lbs and ubs on the gpu
-   gpu.sendMemToGPU<datatype>(lbs, d_lbs, n_vars);
-   gpu.sendMemToGPU<datatype>(ubs, d_ubs, n_vars);
-
-   int prop_round;
-   bool change_found = true;
-#ifdef VERBOSE
-   start = std::chrono::steady_clock::now();
-#endif
-
-   for (prop_round = 1; prop_round <= MAX_NUM_ROUNDS && change_found; prop_round++) {
-      VERBOSE_CALL_2(printf("\nPropagation round: %d, ", prop_round));
-      //*change_found = false;
-      gpu.setMemGPU<bool>(d_change_found, false);
-
-
-      // shared memory layout:
-      // - max_num_cons_in_block elems of type datatype for minactivities
-      // - max_num_cons_in_block elems of type datatype for maxactivities
-      //   VERBOSE_CALL_2(printf("Amount of dynamic shared memory requested: %.2f KB\n",
-      //                         (2 * max_n_cons_in_block * sizeof(datatype)) / 1024.0));
-      GPUAtomicDomainPropagation<datatype> <<< blocks_count, NNZ_PER_WG, 2 * max_num_cons_in_block * sizeof(datatype) >>>
-              (
-                      n_cons, n_vars, max_num_cons_in_block, d_col_indices, d_row_ptrs, d_row_blocks, d_vals, d_lbs, d_ubs, d_vartypes,
-                      d_lhss, d_rhss, d_change_found, prop_round
-              );
-      cudaDeviceSynchronize();
-      gpu.getMemFromGPU<bool>(d_change_found, &change_found);
-   }
-   VERBOSE_CALL(measureTime("gpu_atomic", start, std::chrono::steady_clock::now()));
-
-   gpu.getMemFromGPU<datatype>(d_ubs, ubs, n_vars);
-   gpu.getMemFromGPU<datatype>(d_lbs, lbs, n_vars);
-   VERBOSE_CALL(printf("====   end gpu_atomic without measure  ====\n"));
+//   VERBOSE_CALL(printf("\n====   Running the gpu_atomic without measure  ====\n"));
+//
+//   //reset lbs and ubs on the gpu
+//   gpu.sendMemToGPU<datatype>(lbs, d_lbs, n_vars);
+//   gpu.sendMemToGPU<datatype>(ubs, d_ubs, n_vars);
+//
+//   int prop_round;
+//   bool change_found = true;
+//#ifdef VERBOSE
+//   start = std::chrono::steady_clock::now();
+//#endif
+//
+//   for (prop_round = 1; prop_round <= MAX_NUM_ROUNDS && change_found; prop_round++) {
+//      VERBOSE_CALL_2(printf("\nPropagation round: %d, ", prop_round));
+//      //*change_found = false;
+//      gpu.setMemGPU<bool>(d_change_found, false);
+//
+//      cudaDeviceProp prop;
+//      cudaGetDeviceProperties(&prop, 0); // device 0. TODO make sure this is the one that will execute
+//      int max_num_resident_blocks = prop.multiProcessorCount * CUDAgetMaxNumResidentBlocksPerSM(prop.major, prop.minor);
+//
+//      // shared memory layout:
+//      // - max_num_cons_in_block elems of type datatype for minactivities
+//      // - max_num_cons_in_block elems of type datatype for maxactivities
+//      //   VERBOSE_CALL_2(printf("Amount of dynamic shared memory requested: %.2f KB\n",
+//      //                         (2 * max_n_cons_in_block * sizeof(datatype)) / 1024.0));
+//      GPUAtomicDomainPropagation<datatype> <<< min(blocks_count, max_num_resident_blocks), NNZ_PER_WG, 2 * max_num_cons_in_block * sizeof(datatype) >>>
+//              (
+//                      max_num_resident_blocks, blocks_count, n_cons, n_vars, max_num_cons_in_block, d_col_indices, d_row_ptrs, d_row_blocks, d_vals, d_lbs, d_ubs, d_vartypes,
+//                      d_lhss, d_rhss, d_change_found, prop_round
+//              );
+//      cudaDeviceSynchronize();
+//      gpu.getMemFromGPU<bool>(d_change_found, &change_found);
+//   }
+//   VERBOSE_CALL(measureTime("gpu_atomic", start, std::chrono::steady_clock::now()));
+//
+//   gpu.getMemFromGPU<datatype>(d_ubs, ubs, n_vars);
+//   gpu.getMemFromGPU<datatype>(d_lbs, lbs, n_vars);
+//   VERBOSE_CALL(printf("====   end gpu_atomic without measure  ====\n"));
 
    // CUDA_CALL( cudaProfilerStop() );
    free( lbs_start );

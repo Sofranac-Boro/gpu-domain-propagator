@@ -14,6 +14,7 @@
 // #define FOLLOW_CONS 581830
 
 
+int CUDAgetMaxNumResidentBlocksPerSM(int major, int minor);
 
 void measureTime(const char alg_name[30], std::chrono::_V2::steady_clock::time_point start,
                  std::chrono::_V2::steady_clock::time_point end);
