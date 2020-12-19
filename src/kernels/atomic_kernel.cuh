@@ -208,10 +208,7 @@ __global__ void GPUAtomicDomainPropagation
          // on the old bound.
          double oldlb = EPSGT(newlb, lb) ? atomicMax(&lbs[varidx], newlb) : lb;
          double oldub = EPSLT(newub, ub) ? atomicMin(&ubs[varidx], newub) : ub;
-         if(!EPSGE(oldub, oldlb) || !EPSGE(newub, newlb))
-         {
-            printf("oldlb: %.5f, oldub: %5f, newlb: %.5f, newub: %.5f, varidx: %d\n", oldlb, oldub, newlb, newub, varidx);
-         }
+
          if (is_change_found(oldlb, oldub, newlb, newub)) {
             *change_found = true;
             FOLLOW_VAR_CALL(varidx,
@@ -319,9 +316,7 @@ __global__ void GPUAtomicDomainPropagation
             datatype newub;
             lb = lbs[varidx];
             ub = ubs[varidx];
-
-            //DEBUG_CALL( print_acts_csr_vector(block_row_begin, minacts[0], maxacts[0]) );
-
+            
             getNewBoundCandidates(
                     lhss[block_row_begin],
                     rhss[block_row_begin],
@@ -350,12 +345,6 @@ __global__ void GPUAtomicDomainPropagation
             // on the old bound.
             double oldlb = EPSGT(newlb, lb) ? atomicMax(&lbs[varidx], newlb) : lb;
             double oldub = EPSLT(newub, ub) ? atomicMin(&ubs[varidx], newub) : ub;
-
-//           if (!EPSGE(oldub, oldlb))
-//           {
-//              printf("threadidx: %d, blockidx=%d, oldlb: %.10f, oldub: %.10f, lb: %.10f, ub: %.10f, newlb: %.10f, newub: %.10f, is_var_cont: %d, varidx: %d\n",
-//                     threadIdx.x, blockIdx.x, oldlb, oldub, lb, ub, newlb, newub, is_var_cont, varidx);
-//           }
 
             if (is_change_found(oldlb, oldub, newlb, newub)) {
                *change_found = true;
