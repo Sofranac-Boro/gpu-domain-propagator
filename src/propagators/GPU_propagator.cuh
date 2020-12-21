@@ -148,7 +148,8 @@ void propagateConstraintsGPUAtomic(
 
    cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocksPerSm, GPUAtomicDomainPropagation<datatype>, NNZ_PER_WG, 0);
    int max_num_resident_blocks = deviceProp.multiProcessorCount * numBlocksPerSm;
-   printf("max num resident blocks: %d, blocks_count: %d\n", max_num_resident_blocks, blocks_count);
+ //  printf("SMs: %d\n", deviceProp.multiProcessorCount);
+ //  printf("max num resident blocks: %d, blocks_count: %d\n", max_num_resident_blocks, blocks_count);
    // launch
    int round = 1;
    void *kernelArgs[16] = {
@@ -182,7 +183,7 @@ void propagateConstraintsGPUAtomic(
   //         );
    CUDA_CALL(cudaPeekAtLastError());
    CUDA_CALL(cudaDeviceSynchronize());
-
+   VERBOSE_CALL(printf("gpu_atomic propagation done. Num rounds: %d\n", 0)); // todo rounds printing
    VERBOSE_CALL(measureTime("gpu_atomic", start, std::chrono::steady_clock::now()));
    gpu.getMemFromGPU<datatype>(d_ubs, ubs, n_vars);
    gpu.getMemFromGPU<datatype>(d_lbs, lbs, n_vars);

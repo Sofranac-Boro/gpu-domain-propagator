@@ -291,7 +291,7 @@ __device__ __forceinline__ void getNewBoundCandidates
         ) {
    assert(!EPSEQ(coeff, 0.0));
    assert(EPSGE(ub, lb));
-
+/*
    datatype coeff_sign = EPSLT(coeff, 0) ? -1 : 1;
 
    datatype min_residual = EPSGT(coeff, 0) ? minact - coeff * lb : minact - coeff * ub;
@@ -308,7 +308,11 @@ __device__ __forceinline__ void getNewBoundCandidates
 
    *newlb = EPSGT(coeff, 0.0) ? neg_newb : pos_newb;
    *newub = EPSGT(coeff, 0.0) ? pos_newb : neg_newb;
-
+*/
+   *newlb = EPSGT(coeff, 0)? (lhs - maxact) / coeff : (rhs - minact) / coeff;
+   *newub = EPSGT(coeff, 0)? (rhs - minact) / coeff : (lhs - maxact) / coeff;
+   *newlb = *newlb + ub;
+   *newub = *newub + lb;
    // do not attempt to use the above formulas if activities or cons sides are inf. It could lead to numerical difficulties and no bound change is possibly valid.
    bool can_tighten_lower =
            EPSGT(coeff, 0.0) && EPSGT(lhs, -GDP_INF) && EPSLT(maxact, GDP_INF) ||

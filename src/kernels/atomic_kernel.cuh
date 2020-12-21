@@ -9,9 +9,12 @@
 #include <cooperative_groups.h>
 
 using namespace cooperative_groups;
+//__launch_bounds__(NNZ_PER_WG, 8)
 
 template<typename datatype>
-__global__ void GPUAtomicDomainPropagation
+__global__ void
+       // __launch_bounds__(NNZ_PER_WG, 4)
+GPUAtomicDomainPropagation
         (
                 const int max_num_resident_blocks,
                 const int blocks_count,
@@ -96,14 +99,11 @@ __global__ void GPUAtomicDomainPropagation
                datatype dot_maxact = 0.0;
 
                if (local_row < block_row_end) {
-                  // first element in the row this thread is reducing
-                  const int local_first_element = row_ptrs[local_row] - block_data_begin;
-                  // last element in the row this thread is reducing
-                  const int local_last_element = row_ptrs[local_row + 1] - block_data_begin;
-
+                  // first element in the row this thread is reducing: row_ptrs[local_row] - block_data_begin
+                  // last element in the row this thread is reducing: row_ptrs[local_row + 1] - block_data_begin
                   //#pragma unroll
-                  for (int local_element = local_first_element + thread_in_block;
-                       local_element < local_last_element;
+                  for (int local_element = row_ptrs[local_row] - block_data_begin + thread_in_block;
+                       local_element < row_ptrs[local_row + 1] - block_data_begin;
                        local_element += threads_for_reduction) {
                      // The following line saves the map between the index i of the vals array and the constraint j the
                      // element at index i belongs to. We need this to easily access data saved per row, such as lhs and rhs.
@@ -152,15 +152,15 @@ __global__ void GPUAtomicDomainPropagation
             } else {
                /// Reduce all non zeroes of row by single thread
                int local_row = block_row_begin + threadIdx.x;
-               const int local_first_element = row_ptrs[local_row] - block_data_begin;
-               const int local_last_element = row_ptrs[local_row + 1] - block_data_begin;
 
                while (local_row < block_row_end) {
                   datatype dot_minact = 0.0;
                   datatype dot_maxact = 0.0;
 
                   //#pragma unroll
-                  for (int local_element = local_first_element; local_element < local_last_element; local_element++) {
+                  for (int local_element = row_ptrs[local_row] - block_data_begin;
+                       local_element < row_ptrs[local_row + 1] - block_data_begin;
+                       local_element++) {
                      // The following line saves the map between the index i of the vals array and the constraint j the
                      // element at index i belongs to. We need this to easily access data saved per row, such as lhs and rhs.
                      validx_considx_map[local_element] = local_row;
@@ -338,6 +338,7 @@ __global__ void GPUAtomicDomainPropagation
                   datatype newub;
                   lb = lbs[varidx];
                   ub = ubs[varidx];
+
 
                   getNewBoundCandidates(
                           lhs,

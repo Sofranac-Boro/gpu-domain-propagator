@@ -1,7 +1,7 @@
 {
-  "base_case": "08_12_master",
+  "base_case": "20_12_grid_stride.log",
   "log_files": {
-    "08_12_master": {
+    "20_12_grid_stride.log": {
       "cpu_omp": "xeon",
       "gpu_reduction": "V100",
       "gpu_atomic": "V100"
