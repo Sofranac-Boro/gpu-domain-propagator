@@ -99,7 +99,8 @@ void propagateConstraintsGPUAtomic(
         const datatype *rhss,
         datatype *lbs,
         datatype *ubs,
-        const GDP_VARTYPE *vartypes
+        const GDP_VARTYPE *vartypes,
+        bool fullAsync = true
 ) {
    DEBUG_CALL(checkInput(n_cons, n_vars, nnz, csr_vals, lhss, rhss, lbs, ubs, vartypes));
 
@@ -124,18 +125,45 @@ void propagateConstraintsGPUAtomic(
    bool *d_change_found = gpu.allocArrayGPU<bool>(1);
    gpu.setMemGPU<bool>(d_change_found, true);
 
+   VERBOSE_CALL(printf("\ngpu_atomic execution start... Params: MAXNUMROUNDS: %d\n", MAX_NUM_ROUNDS));
 #ifdef VERBOSE
    auto start = std::chrono::steady_clock::now();
 #endif
-   VERBOSE_CALL(printf("\ngpu_atomic execution start... Params: MAXNUMROUNDS: %d\n", MAX_NUM_ROUNDS));
 
-   GPUAtomicPropEntryKernel<datatype> <<<1, 1>>>
-           (
-                   blocks_count, n_cons, n_vars, max_num_cons_in_block, d_col_indices, d_row_ptrs, d_row_blocks, d_vals,
-                   d_lbs, d_ubs, d_vartypes, d_lhss, d_rhss, d_change_found
-           );
-   CUDA_CALL(cudaPeekAtLastError());
-   CUDA_CALL(cudaDeviceSynchronize());
+   if (fullAsync)
+   {
+      GPUAtomicPropEntryKernel<datatype> <<<1, 1>>>
+              (
+                      blocks_count, n_cons, n_vars, max_num_cons_in_block, d_col_indices, d_row_ptrs, d_row_blocks, d_vals,
+                      d_lbs, d_ubs, d_vartypes, d_lhss, d_rhss, d_change_found
+              );
+      CUDA_CALL(cudaPeekAtLastError());
+      CUDA_CALL(cudaDeviceSynchronize());
+   }
+   else
+   {
+      int prop_round;
+      bool change_found = true;
+      for (prop_round = 1; prop_round <= MAX_NUM_ROUNDS && change_found; prop_round++) {
+         VERBOSE_CALL_2(printf("\nPropagation round: %d, ", prop_round));
+
+         gpu.setMemGPU<bool>(d_change_found, false);
+
+         // shared memory layout:
+         // - max_num_cons_in_block elems of type datatype for minactivities
+         // - max_num_cons_in_block elems of type datatype for maxactivities
+         //   VERBOSE_CALL_2(printf("Amount of dynamic shared memory requested: %.2f KB\n",
+         //                         (2 * max_n_cons_in_block * sizeof(datatype)) / 1024.0));
+         GPUAtomicDomainPropagation<datatype> <<< blocks_count, NNZ_PER_WG, 2 * max_num_cons_in_block * sizeof(datatype) >>>
+                 (
+                         n_cons, n_vars, max_num_cons_in_block, d_col_indices, d_row_ptrs, d_row_blocks, d_vals, d_lbs, d_ubs, d_vartypes,
+                         d_lhss, d_rhss, d_change_found, prop_round
+                 );
+         cudaDeviceSynchronize();
+         gpu.getMemFromGPU<bool>(d_change_found, &change_found);
+      }
+      VERBOSE_CALL(printf("gpu_atomic propagation done. Num rounds: %d\n", prop_round - 1));
+   }
 
    VERBOSE_CALL(measureTime("gpu_atomic", start, std::chrono::steady_clock::now()));
    gpu.getMemFromGPU<datatype>(d_ubs, ubs, n_vars);

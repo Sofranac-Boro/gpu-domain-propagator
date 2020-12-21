@@ -57,7 +57,8 @@ GDP_RETCODE propagateConstraintsGPUAtomicDouble(
         double *rhss,
         double *lbs,
         double *ubs,
-        int *vartypes
+        int *vartypes,
+        bool fullAsync
 ) {
    if (n_cons == 0 || n_vars == 0 || nnz == 0) {
       printf("propagation of 0 size problem. Nothing to propagate.\n");
@@ -77,7 +78,8 @@ GDP_RETCODE propagateConstraintsGPUAtomicDouble(
                       rhss,
                       lbs,
                       ubs,
-                      (GDP_VARTYPE *) vartypes
+                      (GDP_VARTYPE *) vartypes,
+                      fullAsync
               );
    }
    catch (const std::exception &exc) {

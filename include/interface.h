@@ -40,7 +40,8 @@ GDP_RETCODE propagateConstraintsGPUAtomicDouble(
         double *rhss,
         double *lbs,
         double *ubs,
-        int *vartypes
+        int *vartypes,
+        bool fullAsync = true
 );
 
 #ifdef __cplusplus

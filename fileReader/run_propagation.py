@@ -63,7 +63,7 @@ def prop_compare_seq_gpu(lp_file_path: str) -> None:
    #                               lhss, rhss, lbs_gpuatomic, ubs_gpuatomic, vartypes)
 
     (gpuatomic_new_lbs, gpuatomic_new_ubs) = propagateGPUAtomic(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs,
-                                                                lhss, rhss, lbs_gpuatomic, ubs_gpuatomic, vartypes)
+                                                                lhss, rhss, lbs_gpuatomic, ubs_gpuatomic, vartypes, fullAsync=False)
 
 
     seq_new_lbs = normalize_infs(seq_new_lbs)

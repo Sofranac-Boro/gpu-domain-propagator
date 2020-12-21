@@ -212,7 +212,7 @@ public:
        datatype tmp_lbs[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // dim n
        datatype tmp_ubs[] = {1, 1, 1, 1, 1, 1, 1, 100, 100, 100, 100, 100}; // dim n
        int tmp_vartypes[] = {0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1}; // dim n
-       int tmp_consmarked[] = {1};
+       int tmp_consmarked[m] = {1};
 
        memcpy(this->csr_vals, tmp_vals, nnz * sizeof(datatype));
        memcpy(this->csr_col_indices, tmp_col_indices, nnz * sizeof(int));
