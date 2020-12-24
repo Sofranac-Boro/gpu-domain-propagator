@@ -6,6 +6,8 @@
 #include "preprocessor.h"
 #include "../kernels/atomic_kernel.cuh"
 #include <memory>
+
+
 template<typename datatype>
 datatype calcMaxMeasureValue
         (
@@ -43,6 +45,7 @@ datatype calcMaxMeasureValue
          max_k += 1;
       }
    }
+   VERBOSE_CALL_2(printf("\nMaximum measure: score=%.2f, k=%d\n", max_score, max_k));
    return max_score;
 }
 
@@ -89,7 +92,8 @@ __device__ __host__ __forceinline__ datatype normalizeScore(
         const datatype score
         )
 {
-   return (100.0 * score) / max_score;
+   return EPSGT(max_score, 0.0)? (100.0 * score) / max_score : 0.0;
+
 }
 
 template<typename datatype>
@@ -147,7 +151,13 @@ void sequentialPropagateWithMeasure
                 datatype *ubs,
                 const GDP_VARTYPE *vartypes
         ) {
-   printf("\nRunning cpu_seq with measure...\n");
+   // keep a reference to original bounds. Will need this later.
+   datatype* lbs_orig = (datatype*)SAFEMALLOC(n_vars*sizeof(datatype));
+   datatype* ubs_orig = (datatype*)SAFEMALLOC(n_vars*sizeof(datatype));
+   memcpy(lbs_orig, lbs, n_vars * sizeof(datatype));
+   memcpy(ubs_orig, ubs, n_vars * sizeof(datatype));
+
+   printf("\n=== cpu_seq execution with measure of progress ===\n");
    DEBUG_CALL(checkInput(n_cons, n_vars, row_indices[n_cons], vals, lhss, rhss, lbs, ubs, vartypes));
 
    datatype* lbs_start = (datatype*)SAFEMALLOC(n_vars*sizeof(datatype));
@@ -177,6 +187,7 @@ void sequentialPropagateWithMeasure
 
    *abs_measure_k = 0;
    *abs_measure_n = 0;
+
    const datatype max_score = calcMaxMeasureValue(n_vars, lbs, ubs, lbs_start, ubs_start, lbs_limit, ubs_limit);
 
 #ifdef VERBOSE
@@ -215,6 +226,10 @@ void sequentialPropagateWithMeasure
    VERBOSE_CALL(measureTime("cpu_seq", start, std::chrono::steady_clock::now()));
    VERBOSE_CALL(printf("====   end cpu_seq with measure  ====\n"));
 
+   VERBOSE_CALL(printf("\n====   Running the cpu_seq without measure  ====\n"));
+   sequentialPropagate<datatype>(n_cons, n_vars, col_indices, row_indices, csc_col_ptrs, csc_row_indices, vals, lhss, rhss, lbs_orig, ubs_orig, vartypes);
+   VERBOSE_CALL(printf("====   end cpu_seq without measure  ====\n"));
+
    free(minacts);
    free(maxacts);
    free(maxactdeltas);
@@ -228,6 +243,8 @@ void sequentialPropagateWithMeasure
    free(abs_measure_n);
    free(lbs_prev);
    free(ubs_prev);
+   free(lbs_orig);
+   free(ubs_orig);
 }
 
 template<typename datatype>
@@ -328,7 +345,7 @@ __global__ void GPUAtomicPropEntryKernelWithMeasure
    free(lbs_prev);
    free(ubs_prev);
 
-   VERBOSE_CALL(printf("gpu_atomic propagation with measure done. Num rounds: %d\n", prop_round - 1));
+   VERBOSE_CALL(printf("gpu_atomic propagation done. Num rounds: %d\n", prop_round - 1));
 }
 
 template<typename datatype>
@@ -347,7 +364,13 @@ void propagateConstraintsGPUAtomicWithMeasure(
         datatype *ubs,
         const GDP_VARTYPE *vartypes
 ) {
+   // keep a reference to original bounds. Will need this later.
+   datatype* lbs_orig = (datatype*)SAFEMALLOC(n_vars*sizeof(datatype));
+   datatype* ubs_orig = (datatype*)SAFEMALLOC(n_vars*sizeof(datatype));
+   memcpy(lbs_orig, lbs, n_vars * sizeof(datatype));
+   memcpy(ubs_orig, ubs, n_vars * sizeof(datatype));
 
+   printf("\n=== gpu_atomic execution with measure of progress ===\n");
    DEBUG_CALL(checkInput(n_cons, n_vars, nnz, csr_vals, lhss, rhss, lbs, ubs, vartypes));
 
    datatype* lbs_start = (datatype*)SAFEMALLOC(n_vars*sizeof(datatype));
@@ -403,44 +426,12 @@ void propagateConstraintsGPUAtomicWithMeasure(
 
    VERBOSE_CALL(measureTime("gpu_atomic", start, std::chrono::steady_clock::now()));
    VERBOSE_CALL(printf("====   end gpu_atomic with measure  ====\n"));
-   //gpu.getMemFromGPU<datatype>(d_ubs, ubs, n_vars);
-   //gpu.getMemFromGPU<datatype>(d_lbs, lbs, n_vars);
-
-   VERBOSE_CALL(printf("\n====   Running the gpu_atomic without measure  ====\n"));
-
-   //reset lbs and ubs on the gpu
-   gpu.sendMemToGPU<datatype>(lbs, d_lbs, n_vars);
-   gpu.sendMemToGPU<datatype>(ubs, d_ubs, n_vars);
-
-   int prop_round;
-   bool change_found = true;
-#ifdef VERBOSE
-   start = std::chrono::steady_clock::now();
-#endif
-
-   for (prop_round = 1; prop_round <= MAX_NUM_ROUNDS && change_found; prop_round++) {
-      VERBOSE_CALL_2(printf("\nPropagation round: %d, ", prop_round));
-      //*change_found = false;
-      gpu.setMemGPU<bool>(d_change_found, false);
-
-
-      // shared memory layout:
-      // - max_num_cons_in_block elems of type datatype for minactivities
-      // - max_num_cons_in_block elems of type datatype for maxactivities
-      //   VERBOSE_CALL_2(printf("Amount of dynamic shared memory requested: %.2f KB\n",
-      //                         (2 * max_n_cons_in_block * sizeof(datatype)) / 1024.0));
-      GPUAtomicDomainPropagation<datatype> <<< blocks_count, NNZ_PER_WG, 2 * max_num_cons_in_block * sizeof(datatype) >>>
-              (
-                      n_cons, n_vars, max_num_cons_in_block, d_col_indices, d_row_ptrs, d_row_blocks, d_vals, d_lbs, d_ubs, d_vartypes,
-                      d_lhss, d_rhss, d_change_found, prop_round
-              );
-      cudaDeviceSynchronize();
-      gpu.getMemFromGPU<bool>(d_change_found, &change_found);
-   }
-   VERBOSE_CALL(measureTime("gpu_atomic", start, std::chrono::steady_clock::now()));
 
    gpu.getMemFromGPU<datatype>(d_ubs, ubs, n_vars);
    gpu.getMemFromGPU<datatype>(d_lbs, lbs, n_vars);
+
+   VERBOSE_CALL(printf("\n====   Running the gpu_atomic without measure  ====\n"));
+   propagateConstraintsGPUAtomic<datatype>(n_cons, n_vars, nnz, csr_col_indices, csr_row_ptrs, csr_vals, lhss, rhss, lbs_orig, ubs_orig, vartypes, false);
    VERBOSE_CALL(printf("====   end gpu_atomic without measure  ====\n"));
 
    // CUDA_CALL( cudaProfilerStop() );
@@ -448,5 +439,7 @@ void propagateConstraintsGPUAtomicWithMeasure(
    free( ubs_start );
    free( lbs_limit );
    free( ubs_limit );
+   free( lbs_orig );
+   free( ubs_orig );
 }
 #endif

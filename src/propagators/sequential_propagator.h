@@ -233,11 +233,6 @@ void sequentialPropagate
    int prop_round;
    for (prop_round = 1; prop_round <= MAX_NUM_ROUNDS && change_found; prop_round++)  // maxnumrounds = 100
    {
-#if VERBOSE >= 2
-      auto start_round = std::chrono::steady_clock::now();
-#endif
-      VERBOSE_CALL_2(printf("Propagation round: %d, ", prop_round));
-
       FOLLOW_VAR_CALL(FOLLOW_VAR,
                       printf("cpu_seq varidx: %7d bounds beofre round: %7d: lb: %9.2e, ub: %9.2e\n", FOLLOW_VAR, prop_round, lbs[FOLLOW_VAR],
                              ubs[FOLLOW_VAR]));
@@ -250,6 +245,8 @@ void sequentialPropagate
 
       FOLLOW_VAR_CALL(FOLLOW_VAR,
                       printf("cpu_seq varidx %7d bounds after round %7d: lb: %9.2e, ub: %9.2e\n", FOLLOW_VAR, prop_round, lbs[FOLLOW_VAR], ubs[FOLLOW_VAR]));
+
+      VERBOSE_CALL_2(printf("Propagation round: %d, ", prop_round));
       VERBOSE_CALL_2( measureTime("cpu_seq", start, std::chrono::steady_clock::now()) );
    }
 

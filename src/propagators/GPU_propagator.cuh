@@ -145,7 +145,6 @@ void propagateConstraintsGPUAtomic(
       int prop_round;
       bool change_found = true;
       for (prop_round = 1; prop_round <= MAX_NUM_ROUNDS && change_found; prop_round++) {
-         VERBOSE_CALL_2(printf("\nPropagation round: %d, ", prop_round));
 
          gpu.setMemGPU<bool>(d_change_found, false);
 
@@ -161,6 +160,9 @@ void propagateConstraintsGPUAtomic(
                  );
          cudaDeviceSynchronize();
          gpu.getMemFromGPU<bool>(d_change_found, &change_found);
+
+         VERBOSE_CALL_2(printf("Propagation round: %d, ", prop_round));
+         VERBOSE_CALL_2( measureTime("gpu_atomic", start, std::chrono::steady_clock::now()) );
       }
       VERBOSE_CALL(printf("gpu_atomic propagation done. Num rounds: %d\n", prop_round - 1));
    }

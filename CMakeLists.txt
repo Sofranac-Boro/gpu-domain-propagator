@@ -43,7 +43,7 @@ if("${VERBOSITY}" STREQUAL 1)
 endif()
 
 if("${VERBOSITY}" STREQUAL 2)
-     add_definitions(-DVERBOSE=2 -DDEBUG)
+     add_definitions(-DVERBOSE=2)
 endif()
 
 if (FOLLOW_VAR)
