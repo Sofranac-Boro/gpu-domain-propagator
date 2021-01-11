@@ -1,0 +1,10 @@
+{
+  "base_case": "08_12_master",
+  "log_files": {
+    "08_12_master": {
+      "cpu_omp": "xeon",
+      "gpu_reduction": "V100",
+      "gpu_atomic": "V100"
+    }
+  }
+}

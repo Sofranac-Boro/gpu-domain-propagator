@@ -11,3 +11,10 @@
 #define MAX_NUM_ROUNDS 100
 
 #define SHARED_MEM_THREADS 8
+
+#define BOUND_COPY_NUM_THREADS 256
+
+#define GDP_INF 1e20
+
+#define GDP_EPS 1e-9
+

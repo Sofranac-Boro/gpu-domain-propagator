@@ -39,5 +39,5 @@ done
 
 for filename in $FILES*; do
     printf "\n\n === $filename ===\n"
-    python3 -u run_propagtion.py -f $filename 2>&1 | tee -a $LOGFILE
+    python3 -u run_propagation.py -f $filename 2>&1 | tee -a $LOGFILE
 done
