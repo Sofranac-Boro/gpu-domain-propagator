@@ -4,7 +4,7 @@ import numpy as np
 from scipy.sparse import csr_matrix
 from typing import List
 
-import papiloInterface
+from papiloInterface import PapiloInterface
 
 from GPUDomPropInterface import propagateGPU, propagateGPUAtomic, propagateSequential, propagateFullOMP, \
     propagateSequentialWithMeasure, propagateGPUAtomicWithMeasure, propagateSequentialDisjoint
@@ -40,6 +40,8 @@ def prop_compare_seq_gpu(lp_file_path: str) -> None:
     lhss, rhss = reader.get_lrhss()
     coeffs, row_ptrs, col_indices = reader.get_cons_matrix()
     vartypes = reader.get_SCIP_vartypes()
+
+   # print("input lbs: ", ubs)
 
     # print sparsity and input data size
     print("num vars: ", n_vars)
@@ -86,6 +88,17 @@ def prop_compare_seq_gpu(lp_file_path: str) -> None:
     # print("cpu_seq to cpu_seq_dis results match: ", equal_seq_dis)
     print("all results match: ", equal_seq_gpu_atomic and equal_seq_gpu_full and equal_seq_omp)
 
+    papilo = PapiloInterface("/home/bzfsofra/papilo", args.file)
+    papilo.run_papilo()
+    lbs_papilo, ubs_papilo = papilo.get_presolved_bounds()
+    print("papilo rounds: ", papilo.num_rounds, " time (s): ", papilo.exec_time)
+    #print(lbs)
+    #print(ubs)
+
+    equal_seq_papilo = arrays_equal(seq_new_lbs, lbs_papilo) and arrays_equal(seq_new_ubs, ubs_papilo)
+    print("cpu_seq to pailo results match: ", equal_seq_papilo)
+   # print("papilo lbs: ", ubs_papilo)
+   # print("cpu_seq lbs: ", seq_new_ubs)
 
 # compare_arrays_diff_idx(gpu_new_lbs, gpuatomic_new_lbs, "lbs")
 # compare_arrays_diff_idx(gpu_new_ubs, gpuatomic_new_ubs, "ubs")
@@ -139,11 +152,9 @@ if __name__ == "__main__":
     parser.add_argument("-f", "--file", type=str, required=True)
     args = parser.parse_args()
 
-    # try:
-    #     prop_compare_seq_gpu(args.file)
-    #    # propagation_measure_run(args.file)
-    # except Exception as e:
-    #     print("\nexecution of ", args.file, " failed. Exception: ")
-    #     print(e)
-    papilo = PapiloInterface("/home/bzfsofra/papilo")
-    papilo.run_papilo(args.file, "/home/bzfsofra/reduced.mps")
+    try:
+        prop_compare_seq_gpu(args.file)
+       # propagation_measure_run(args.file)
+    except Exception as e:
+        print("\nexecution of ", args.file, " failed. Exception: ")
+        print(e)

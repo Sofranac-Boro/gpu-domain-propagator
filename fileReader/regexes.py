@@ -21,6 +21,11 @@ def round_measures_pattern(prop_round): return "round {} total score: (?P<score>
 def round_timestamp_pattern(prop_round, alg): return "Propagation round: {}, {} execution time : (?P<timestamp>\d+) nanoseconds".format(prop_round, alg)
 
 
+# PaPILO
+papilo_results_pattern = r"propagation            (?P<rounds>\d+)               (?P<b>\d+.\d+)             (?P<c>\d+)              (?P<d>\d+.\d+)              (?P<time>\d+.\d+)"
+papilo_success_pattern = r"presolving finished after (?P<time>\d+.\d+) seconds"
+
+
 def get_regex_result(regex_string: str, search_string: str, group_name: str = None):
     m = re.compile(regex_string).search(search_string)
 
