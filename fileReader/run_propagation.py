@@ -50,9 +50,9 @@ def prop_compare_seq_gpu(lp_file_path: str, datatype: _SimpleCData = c_double) -
     ubs_dis = ubs_seq = ubs_gpuatomic = ubs_gpu = ubs_omp = ubs
 
     (seq_new_lbs, seq_new_ubs) = propagateSequential(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss,
-                                                     lbs_seq, ubs_seq, vartypes, datatype=datatype)
+                                                     lbs_seq, ubs_seq, vartypes, datatype=c_double)
 
-    (omp_new_lbs, omp_new_ubs) = propagateFullOMP(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_omp, ubs_omp, vartypes, datatype=datatype)
+    (omp_new_lbs, omp_new_ubs) = propagateFullOMP(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_omp, ubs_omp, vartypes, datatype=c_double)
 
     (gpu_new_lbs, gpu_new_ubs) = propagateGPUReduction(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_gpu, ubs_gpu, vartypes, datatype=datatype)
 

@@ -138,8 +138,8 @@ GDP_Retcode propagateConstraintsGPUAtomic(
    gpu.setMemGPU<bool>(d_change_found, true);
 
    VERBOSE_CALL(printf(
-           "\ngpu_atomic execution start... Datatype: %s, MAXNUMROUNDS: %d\n",
-                       getDatatypeName<datatype>(), MAX_NUM_ROUNDS
+           "\ngpu_atomic execution start... Datatype: %s, MAXNUMROUNDS: %d, fullAsync: %s\n",
+                       getDatatypeName<datatype>(), MAX_NUM_ROUNDS, fullAsync? "true" : "false"
                        ));
 #ifdef VERBOSE
    auto start = std::chrono::steady_clock::now();
