@@ -107,4 +107,21 @@ datatype maxConsecutiveElemDiff(const datatype *array, const int size) {
    }
    return ret;
 }
+
+template<typename datatype>
+const char* getDatatypeName()
+{
+   if (std::is_same<datatype, double>::value)
+   {
+      return "double";
+   }
+   else if (std::is_same<datatype, float>::value)
+   {
+      return "float";
+   }
+   else
+   {
+      throw std::runtime_error(std::string("Unsupported datatype. Cannot get datatype name\n"));
+   }
+}
 #endif

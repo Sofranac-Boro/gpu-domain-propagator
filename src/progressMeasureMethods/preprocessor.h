@@ -137,7 +137,7 @@ void executePreprocessor
                 const GDP_VARTYPE *vartypes
         ) {
 
-   DEBUG_CALL(checkInput(n_cons, n_vars, row_indices[n_cons], vals, lhss, rhss, lbs, ubs, vartypes));
+   DEBUG_CALL(checkInput<datatype>(n_cons, n_vars, row_indices[n_cons], vals, lhss, rhss, lbs, ubs, vartypes));
 
    datatype *minacts = (datatype *) calloc(n_cons, sizeof(datatype));
    datatype *maxacts = (datatype *) calloc(n_cons, sizeof(datatype));
