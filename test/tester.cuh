@@ -13,26 +13,17 @@ template<typename datatype>
 class Tester {
 public:
     void executeSequentialPropagator(TestSetup<datatype> &ts) {
-       csr_to_csc(ts.n_cons, ts.n_vars, ts.nnz, ts.csr_col_indices, ts.csr_row_ptrs, ts.csc_col_ptrs, ts.csc_row_indices,
-                  ts.csc_vals, ts.csr_vals);
-
        sequentialPropagate<datatype>
                (
-                       ts.n_cons, ts.n_vars, ts.csr_col_indices, ts.csr_row_ptrs, ts.csc_col_ptrs, ts.csc_row_indices,
-                       ts.csr_vals,
+                       ts.n_cons, ts.n_vars, ts.nnz, ts.csr_col_indices, ts.csr_row_ptrs, ts.csr_vals,
                        ts.lhss, ts.rhss, ts.lbs, ts.ubs, ts.vartypes
                );
     }
 
     void executeFullOMPPropagator(TestSetup<datatype> &ts) {
-
-       csr_to_csc(ts.n_cons, ts.n_vars, ts.nnz, ts.csr_col_indices, ts.csr_row_ptrs, ts.csc_col_ptrs, ts.csc_row_indices,
-                  ts.csc_vals, ts.csr_vals);
-
        fullOMPPropagate<datatype>
                (
-                       ts.n_cons, ts.n_vars, ts.csr_col_indices, ts.csr_row_ptrs, ts.csc_col_ptrs, ts.csc_row_indices,
-                       ts.csr_vals,
+                       ts.n_cons, ts.n_vars, ts.nnz, ts.csr_col_indices, ts.csr_row_ptrs, ts.csr_vals,
                        ts.lhss, ts.rhss, ts.lbs, ts.ubs, ts.vartypes
                );
     }
@@ -52,7 +43,7 @@ public:
     }
 
     void executeGPUReduction(TestSetup<datatype> &ts) {
-       propagateConstraintsFullGPU<datatype>
+       propagateConstraintsGPUReduction<datatype>
                (
                        ts.n_cons, ts.n_vars, ts.nnz, ts.csr_col_indices, ts.csr_row_ptrs, ts.csr_vals, ts.lhss, ts.rhss,
                        ts.lbs, ts.ubs, ts.vartypes

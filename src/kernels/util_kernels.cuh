@@ -8,6 +8,7 @@
 #include<iostream>
 #include "../params.h"
 #include "../misc.h"
+#include <type_traits>
 
 #define THREADS_PER_BLOCK 256
 
@@ -76,6 +77,23 @@ void initArrayAscending
    CUDA_CALL(cudaDeviceSynchronize());
 }
 
+template<typename datatype>
+cudaDataType_t CtoCudaDatatype()
+{
+   if (std::is_same<datatype, double>::value)
+   {
+      return CUDA_R_64F;
+   }
+   else if (std::is_same<datatype, float>::value)
+   {
+      return CUDA_R_32F;
+   }
+   else
+   {
+      throw std::runtime_error(std::string("Unsupported datatype. Cannot convert to cuda type\n"));
+   }
+}
+
 
 template<class datatype>
 void csr_to_csc(
@@ -92,9 +110,12 @@ void csr_to_csc(
    GPUInterface gpu = GPUInterface();
    int *d_col_indices = gpu.initArrayGPU<int>(csr_col_indices, nnz);
    int *d_row_ptrs = gpu.initArrayGPU<int>(csr_row_indices, n_cons + 1);
-   double *d_vals = gpu.initArrayGPU<double>(csr_vals, nnz);
+   datatype *d_vals = gpu.initArrayGPU<datatype>(csr_vals, nnz);
+   int *d_csc_col_ptrs = gpu.allocArrayGPU<int>(n_vars + 1);
+   int *d_csc_row_indices = gpu.allocArrayGPU<int>(nnz);
+   datatype *d_vals_csc_tmp = gpu.allocArrayGPU<datatype>(nnz);
 
-   // TODO don't need NUMERIC computationa any more
+   // TODO don't need NUMERIC computation any more
    cusparseHandle_t handle = NULL;
    cudaStream_t stream = NULL;
    size_t pBufferSizeInBytes = 0;
@@ -105,27 +126,23 @@ void csr_to_csc(
    CUSPARSE_CALL(cusparseCreate(&handle));
    CUSPARSE_CALL(cusparseSetStream(handle, stream));
 
-   cusparseCsr2cscEx2_bufferSize
+   CUSPARSE_CALL( cusparseCsr2cscEx2_bufferSize
            (
-                   handle, n_cons, n_vars, nnz, NULL, NULL, NULL, NULL, NULL, NULL, CUDA_R_64F,
+                   handle, n_cons, n_vars, nnz, d_vals, d_row_ptrs, d_col_indices, d_vals_csc_tmp,
+                   d_csc_col_ptrs, d_csc_row_indices, CtoCudaDatatype<datatype>(),
                    CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO, CUSPARSE_CSR2CSC_ALG2, &pBufferSizeInBytes
-           );
+           ) );
 
-   CUDA_CALL(cudaMalloc(&pBuffer, sizeof(char) * pBufferSizeInBytes));
-
-   // TODO convert datatype to cudaDataType
-   int *d_csc_col_ptrs = gpu.allocArrayGPU<int>(n_vars + 1);
-   int *d_csc_row_indices = gpu.allocArrayGPU<int>(nnz);
-   datatype *d_vals_csc_tmp = gpu.allocArrayGPU<datatype>(nnz);
+   CUDA_CALL(cudaMalloc(&pBuffer, pBufferSizeInBytes));
 
    // TODO when CUSPARSE_ACTION_SYMBOLIC is used, the algorithm only works on indices. However, if I pass NULL or d_vals to
    // the function instead of d_vals_csc, it somehow messes up the d_vals and d_csc_row/col. Look into this.
-   cusparseCsr2cscEx2
+   CUSPARSE_CALL( cusparseCsr2cscEx2
            (
                    handle, n_cons, n_vars, nnz, d_vals, d_row_ptrs, d_col_indices, d_vals_csc_tmp,
-                   d_csc_col_ptrs, d_csc_row_indices, CUDA_R_64F,
+                   d_csc_col_ptrs, d_csc_row_indices, CtoCudaDatatype<datatype>(),
                    CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO, CUSPARSE_CSR2CSC_ALG2, pBuffer
-           );
+           ) );
 
    CUDA_CALL(cudaDeviceSynchronize());
 
@@ -178,9 +195,9 @@ void csr_to_csc_device_only
                    CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO, CUSPARSE_CSR2CSC_ALG2, &pBufferSizeInBytes
            );
 
-   CUDA_CALL(cudaMalloc(&pBuffer, sizeof(char) * pBufferSizeInBytes));
-   datatype *d_csr_indexes = gpu.allocArrayGPU<datatype>(nnz);
-   initArrayAscending<datatype>(nnz, d_csr_indexes);
+   CUDA_CALL(cudaMalloc(&pBuffer, pBufferSizeInBytes));
+   double *d_csr_indexes = gpu.allocArrayGPU<double>(nnz);
+   initArrayAscending<double>(nnz, d_csr_indexes);
 
    status2 = cusparseCsr2cscEx2
            (

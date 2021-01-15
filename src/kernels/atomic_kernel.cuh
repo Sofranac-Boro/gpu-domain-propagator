@@ -36,11 +36,11 @@ __global__ void GPUAtomicDomainPropagation
    __shared__ datatype cache_maxacts[NNZ_PER_WG];
    __shared__ int validx_considx_map[NNZ_PER_WG];
 
-   extern __shared__ datatype shared_mem[]; // constains one array for minacts and another for maxacts
+//   extern __shared__ datatype shared_mem[]; // constains one array for minacts and another for maxacts
 
    // for usage with types different than double
-   // extern __shared__ unsigned char my_shared_mem[];
-   // datatype *shared_mem = reinterpret_cast<datatype *>(my_shared_mem);
+   extern __shared__ unsigned char my_shared_mem[];
+   datatype *shared_mem = reinterpret_cast<datatype *>(my_shared_mem);
 
    datatype *minacts = shared_mem;
    datatype *maxacts = &shared_mem[max_n_cons_in_block];
@@ -206,8 +206,8 @@ __global__ void GPUAtomicDomainPropagation
          // Candidates that do not improve old bound here don't have to be atomically checked against this rounds's new bounds. This reduces the number of atomic operations
          // This is possible because we never update a bound that is worse, i.e. if new one is not better that then old one, it's certainly not gonna be better then improvement
          // on the old bound.
-         double oldlb = EPSGT(newlb, lb) ? atomicMax(&lbs[varidx], newlb) : lb;
-         double oldub = EPSLT(newub, ub) ? atomicMin(&ubs[varidx], newub) : ub;
+         datatype oldlb = EPSGT(newlb, lb) ? atomicMax(&lbs[varidx], newlb) : lb;
+         datatype oldub = EPSLT(newub, ub) ? atomicMin(&ubs[varidx], newub) : ub;
 
          if (is_change_found(oldlb, oldub, newlb, newub)) {
             *change_found = true;
@@ -343,8 +343,8 @@ __global__ void GPUAtomicDomainPropagation
             // Candidates that do not improve old bound here don't have to be atomically checked against this rounds's new bounds. This reduces the number of atomic operations
             // This is possible because we never update a bound that is worse, i.e. if new one is not better that then old one, it's certainly not gonna be better than improvement
             // on the old bound.
-            double oldlb = EPSGT(newlb, lb) ? atomicMax(&lbs[varidx], newlb) : lb;
-            double oldub = EPSLT(newub, ub) ? atomicMin(&ubs[varidx], newub) : ub;
+            datatype oldlb = EPSGT(newlb, lb) ? atomicMax(&lbs[varidx], newlb) : lb;
+            datatype oldub = EPSLT(newub, ub) ? atomicMin(&ubs[varidx], newub) : ub;
 
             if (is_change_found(oldlb, oldub, newlb, newub)) {
                *change_found = true;

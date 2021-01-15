@@ -130,20 +130,18 @@ void initMeasureData
    memcpy(ubs_limit, ubs, n_vars*sizeof(datatype));
 
    printf("\n\n==== propagator run for limit poitns ====");
-   sequentialPropagate<datatype>(n_cons, n_vars, csr_col_indices, csr_row_ptrs, csc_col_ptrs, csc_row_indices, csr_vals, lhss, rhss, lbs_limit, ubs_limit, vartypes);
+   sequentialPropagate<datatype>(n_cons, n_vars, nnz, csr_col_indices, csr_row_ptrs, csr_vals, lhss, rhss, lbs_limit, ubs_limit, vartypes);
    printf("==== end limit points ====\n");
 }
 
 template<class datatype>
-void sequentialPropagateWithMeasure
+GDP_Retcode sequentialPropagateWithMeasure
         (
                 const int n_cons,
                 const int n_vars,
                 const int nnz,
                 const int *col_indices,
                 const int *row_indices,
-                const int *csc_col_ptrs,
-                const int *csc_row_indices,
                 const datatype *vals,
                 const datatype *lhss,
                 const datatype *rhss,
@@ -151,14 +149,26 @@ void sequentialPropagateWithMeasure
                 datatype *ubs,
                 const GDP_VARTYPE *vartypes
         ) {
+   if (n_cons == 0 || n_vars == 0 || nnz == 0) {
+      printf("propagation of 0 size problem. Nothing to propagate.\n");
+      return GDP_OKAY;
+   }
+
    // keep a reference to original bounds. Will need this later.
    datatype* lbs_orig = (datatype*)SAFEMALLOC(n_vars*sizeof(datatype));
    datatype* ubs_orig = (datatype*)SAFEMALLOC(n_vars*sizeof(datatype));
    memcpy(lbs_orig, lbs, n_vars * sizeof(datatype));
    memcpy(ubs_orig, ubs, n_vars * sizeof(datatype));
 
+   // need csc format of A.
+   datatype *csc_vals = (datatype *) SAFEMALLOC(nnz * sizeof(datatype));
+   int *csc_row_indices = (int *) SAFEMALLOC(nnz * sizeof(int));
+   int *csc_col_ptrs = (int *) SAFEMALLOC((n_vars + 1) * sizeof(int));
+
+   csr_to_csc(n_cons, n_vars, nnz, col_indices, row_indices, csc_col_ptrs, csc_row_indices, csc_vals, vals);
+
    printf("\n=== cpu_seq execution with measure of progress ===\n");
-   DEBUG_CALL(checkInput(n_cons, n_vars, row_indices[n_cons], vals, lhss, rhss, lbs, ubs, vartypes));
+   DEBUG_CALL(checkInput<datatype>(n_cons, n_vars, row_indices[n_cons], vals, lhss, rhss, lbs, ubs, vartypes));
 
    datatype* lbs_start = (datatype*)SAFEMALLOC(n_vars*sizeof(datatype));
    datatype* ubs_start = (datatype*)SAFEMALLOC(n_vars*sizeof(datatype));
@@ -227,7 +237,7 @@ void sequentialPropagateWithMeasure
    VERBOSE_CALL(printf("====   end cpu_seq with measure  ====\n"));
 
    VERBOSE_CALL(printf("\n====   Running the cpu_seq without measure  ====\n"));
-   sequentialPropagate<datatype>(n_cons, n_vars, col_indices, row_indices, csc_col_ptrs, csc_row_indices, vals, lhss, rhss, lbs_orig, ubs_orig, vartypes);
+   sequentialPropagate<datatype>(n_cons, n_vars, nnz, col_indices, row_indices, vals, lhss, rhss, lbs_orig, ubs_orig, vartypes);
    VERBOSE_CALL(printf("====   end cpu_seq without measure  ====\n"));
 
    free(minacts);
@@ -245,6 +255,11 @@ void sequentialPropagateWithMeasure
    free(ubs_prev);
    free(lbs_orig);
    free(ubs_orig);
+   free(csc_vals);
+   free(csc_col_ptrs);
+   free(csc_row_indices);
+
+   return GDP_OKAY;
 }
 
 template<typename datatype>
@@ -349,14 +364,12 @@ __global__ void GPUAtomicPropEntryKernelWithMeasure
 }
 
 template<typename datatype>
-void propagateConstraintsGPUAtomicWithMeasure(
+GDP_Retcode propagateConstraintsGPUAtomicWithMeasure(
         const int n_cons,
         const int n_vars,
         const int nnz,
         const int *csr_col_indices,
         const int *csr_row_ptrs,
-        const int *csc_row_indices,
-        const int* csc_col_ptrs,
         const datatype *csr_vals,
         const datatype *lhss,
         const datatype *rhss,
@@ -364,6 +377,18 @@ void propagateConstraintsGPUAtomicWithMeasure(
         datatype *ubs,
         const GDP_VARTYPE *vartypes
 ) {
+   if (n_cons == 0 || n_vars == 0 || nnz == 0) {
+      printf("propagation of 0 size problem. Nothing to propagate.\n");
+      return GDP_OKAY;
+   }
+
+   // need csc format of A.
+   datatype *csc_vals = (datatype *) SAFEMALLOC(nnz * sizeof(datatype));
+   int *csc_row_indices = (int *) SAFEMALLOC(nnz * sizeof(int));
+   int *csc_col_ptrs = (int *) SAFEMALLOC((n_vars + 1) * sizeof(int));
+
+   csr_to_csc(n_cons, n_vars, nnz, csr_col_indices, csr_row_ptrs, csc_col_ptrs, csc_row_indices, csc_vals, csr_vals);
+
    // keep a reference to original bounds. Will need this later.
    datatype* lbs_orig = (datatype*)SAFEMALLOC(n_vars*sizeof(datatype));
    datatype* ubs_orig = (datatype*)SAFEMALLOC(n_vars*sizeof(datatype));
@@ -371,7 +396,7 @@ void propagateConstraintsGPUAtomicWithMeasure(
    memcpy(ubs_orig, ubs, n_vars * sizeof(datatype));
 
    printf("\n=== gpu_atomic execution with measure of progress ===\n");
-   DEBUG_CALL(checkInput(n_cons, n_vars, nnz, csr_vals, lhss, rhss, lbs, ubs, vartypes));
+   DEBUG_CALL(checkInput<datatype>(n_cons, n_vars, nnz, csr_vals, lhss, rhss, lbs, ubs, vartypes));
 
    datatype* lbs_start = (datatype*)SAFEMALLOC(n_vars*sizeof(datatype));
    datatype* ubs_start = (datatype*)SAFEMALLOC(n_vars*sizeof(datatype));
@@ -441,5 +466,10 @@ void propagateConstraintsGPUAtomicWithMeasure(
    free( ubs_limit );
    free( lbs_orig );
    free( ubs_orig );
+   free(csc_vals);
+   free(csc_col_ptrs);
+   free(csc_row_indices);
+
+   return GDP_OKAY;
 }
 #endif

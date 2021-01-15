@@ -1,13 +1,15 @@
 import argparse
+from ctypes import c_float, c_double, _SimpleCData
+
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.sparse import csr_matrix
 from typing import List
 
-from papiloInterface import PapiloInterface
 
-from GPUDomPropInterface import propagateGPU, propagateGPUAtomic, propagateSequential, propagateFullOMP, \
-    propagateSequentialWithMeasure, propagateGPUAtomicWithMeasure, propagateSequentialDisjoint
+from papiloInterface import PapiloInterface
+from GPUDomPropInterface import propagateGPUReduction, propagateGPUAtomic, propagateSequential, propagateFullOMP, \
+propagateSequentialWithMeasure, propagateGPUAtomicWithMeasure, propagateSequentialDisjoint
 from readerInterface import FileReaderInterface, get_reader
 from regexes import OutputGrabber
 from utils import plot_progress_save_pdf
@@ -30,7 +32,7 @@ def arrays_equal(bds1: List[float], bds2: List[float]) -> bool:
     return np.isclose(bds1, bds2).all()
 
 
-def prop_compare_seq_gpu(lp_file_path: str) -> None:
+def prop_compare_seq_gpu(lp_file_path: str, datatype: _SimpleCData = c_double) -> None:
     reader: FileReaderInterface = get_reader(lp_file_path)
 
     n_cons = reader.get_n_cons()
@@ -52,19 +54,16 @@ def prop_compare_seq_gpu(lp_file_path: str) -> None:
     ubs_dis = ubs_seq = ubs_gpuatomic = ubs_gpu = ubs_omp = ubs
 
     (seq_new_lbs, seq_new_ubs) = propagateSequential(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss,
-                                                     lbs_seq, ubs_seq, vartypes)
+                                                     lbs_seq, ubs_seq, vartypes, datatype=c_double)
 
-    (omp_new_lbs, omp_new_ubs) = propagateFullOMP(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss,
-                                                 lbs_omp, ubs_omp, vartypes)
+    (omp_new_lbs, omp_new_ubs) = propagateFullOMP(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_omp, ubs_omp, vartypes, datatype=c_double)
 
-    (gpu_new_lbs, gpu_new_ubs) = propagateGPU(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_gpu,
-                                             ubs_gpu, vartypes)
+    (gpu_new_lbs, gpu_new_ubs) = propagateGPUReduction(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_gpu, ubs_gpu, vartypes, datatype=datatype)
 
    # (dis_new_lbs, dis_new_ubs) = propagateSequentialDisjoint( n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_dis, ubs_dis, vartypes)
 
     (gpuatomic_new_lbs, gpuatomic_new_ubs) = propagateGPUAtomic(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs,
-                                                                lhss, rhss, lbs_gpuatomic, ubs_gpuatomic, vartypes, fullAsync=False)
-
+                                                                lhss, rhss, lbs_gpuatomic, ubs_gpuatomic, vartypes, fullAsync=False, datatype=datatype)
 
     seq_new_lbs = normalize_infs(seq_new_lbs)
     seq_new_ubs = normalize_infs(seq_new_ubs)
@@ -150,10 +149,18 @@ def propagation_measure_run(input_file: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Propagate MIP or LP file')
     parser.add_argument("-f", "--file", type=str, required=True)
+    parser.add_argument("-d", "--datatype", type=str, required=False, default="double")
     args = parser.parse_args()
 
+    if args.datatype == "" or args.datatype == "double":
+        datatype = c_double
+    elif args.datatype == "float":
+        datatype = c_float
+    else:
+        raise Exception("Unsupported datatype: ", args.datatype)
+
     try:
-        prop_compare_seq_gpu(args.file)
+        prop_compare_seq_gpu(args.file, datatype)
        # propagation_measure_run(args.file)
     except Exception as e:
         print("\nexecution of ", args.file, " failed. Exception: ")

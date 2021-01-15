@@ -30,10 +30,10 @@ bool OMPPropagationRound
                 const int round
         ) {
 
-   double coeff;
+   datatype coeff;
    bool isVarCont;
-   double slack;
-   double surplus;
+   datatype slack;
+   datatype surplus;
 
    bool change_found = false;
    int val_idx;
@@ -112,14 +112,13 @@ bool OMPPropagationRound
 }
 
 template<class datatype>
-void fullOMPPropagate
+GDP_Retcode fullOMPPropagate
         (
                 const int n_cons,
                 const int n_vars,
+                const int nnz,
                 const int *col_indices,
                 const int *row_indices,
-                const int *csc_col_ptrs,
-                const int *csc_row_indices,
                 const datatype *vals,
                 const datatype *lhss,
                 const datatype *rhss,
@@ -127,8 +126,19 @@ void fullOMPPropagate
                 datatype *ubs,
                 const GDP_VARTYPE *vartypes
         ) {
+   if (n_cons == 0 || n_vars == 0 || nnz == 0) {
+      printf("propagation of 0 size problem. Nothing to propagate.\n");
+      return GDP_OKAY;
+   }
 
-   DEBUG_CALL(checkInput(n_cons, n_vars, row_indices[n_cons], vals, lhss, rhss, lbs, ubs, vartypes));
+   DEBUG_CALL(checkInput<datatype>(n_cons, n_vars, row_indices[n_cons], vals, lhss, rhss, lbs, ubs, vartypes));
+
+   // get csc format computed
+   datatype *csc_vals = (datatype *) SAFEMALLOC(nnz * sizeof(datatype));
+   int *csc_row_indices = (int *) SAFEMALLOC(nnz * sizeof(int));
+   int *csc_col_ptrs = (int *) SAFEMALLOC((n_vars + 1) * sizeof(int));
+
+   csr_to_csc(n_cons, n_vars, nnz, col_indices, row_indices, csc_col_ptrs, csc_row_indices, csc_vals, vals);
 
    datatype *minacts = (datatype *) calloc(n_cons, sizeof(datatype));
    datatype *maxacts = (datatype *) calloc(n_cons, sizeof(datatype));
@@ -143,8 +153,8 @@ void fullOMPPropagate
    auto start = std::chrono::steady_clock::now();
 #endif
 
-   VERBOSE_CALL(printf("\ncpu_omp execution start with OMP num threads: %d, MAXNUMROUNDS: %d\n", SHARED_MEM_THREADS,
-                       MAX_NUM_ROUNDS));
+   VERBOSE_CALL(printf("\ncpu_omp execution start... OMP num threads: %d, Datatype: %s, MAXNUMROUNDS: %d\n",
+                       SHARED_MEM_THREADS, getDatatypeName<datatype>(), MAX_NUM_ROUNDS));
 
    //initialize omp locks used in propagation rounds:
    omp_lock_t locks[n_vars];
@@ -171,6 +181,11 @@ void fullOMPPropagate
    free(maxacts);
    free(maxactdeltas);
    free(consmarked);
+   free(csc_vals);
+   free(csc_col_ptrs);
+   free(csc_row_indices);
+
+   return GDP_OKAY;
 }
 
 #endif

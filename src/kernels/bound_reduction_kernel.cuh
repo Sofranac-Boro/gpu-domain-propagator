@@ -38,7 +38,10 @@ __global__ void compActsAndBoundsAdaptiveKernel
    __shared__ datatype cache_maxacts[NNZ_PER_WG];
    __shared__ datatype validx_considx_map[NNZ_PER_WG];
 
-   extern __shared__ datatype shared_mem[]; // contains one array for minacts and another for maxacts
+//   extern __shared__ datatype shared_mem[]; // contains one array for minacts and another for maxacts
+   extern __shared__ unsigned char my_shared_mem[];
+   datatype *shared_mem = reinterpret_cast<datatype *>(my_shared_mem);
+
    datatype *minacts = shared_mem;
    datatype *maxacts = &shared_mem[max_n_cons_in_block];
 

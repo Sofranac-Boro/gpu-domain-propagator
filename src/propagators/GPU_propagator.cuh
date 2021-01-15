@@ -16,20 +16,25 @@
 
 
 template<typename datatype>
-void propagateConstraintsFullGPU(
+GDP_Retcode propagateConstraintsGPUReduction(
         const int n_cons,
         const int n_vars,
         const int nnz,
-        int *csr_col_indices,
-        int *csr_row_ptrs,
-        datatype *csr_vals,
-        datatype *lhss,
-        datatype *rhss,
+        const int *csr_col_indices,
+        const int *csr_row_ptrs,
+        const datatype *csr_vals,
+        const datatype *lhss,
+        const datatype *rhss,
         datatype *lbs,
         datatype *ubs,
-        GDP_VARTYPE *vartypes
+        const GDP_VARTYPE *vartypes
 ) {
-   DEBUG_CALL(checkInput(n_cons, n_vars, nnz, csr_vals, lhss, rhss, lbs, ubs, vartypes));
+   if (n_cons == 0 || n_vars == 0 || nnz == 0) {
+      printf("propagation of 0 size problem. Nothing to propagate.\n");
+      return GDP_OKAY;
+   }
+
+   DEBUG_CALL(checkInput<datatype>(n_cons, n_vars, nnz, csr_vals, lhss, rhss, lbs, ubs, vartypes));
 
    // CUDA_CALL( cudaProfilerStart() );
    GPUInterface gpu = GPUInterface();
@@ -69,7 +74,8 @@ void propagateConstraintsFullGPU(
 #ifdef VERBOSE
    auto start = std::chrono::steady_clock::now();
 #endif
-   VERBOSE_CALL(printf("\ngpu_reduction execution start... Params: MAXNUMROUNDS: %d\n", MAX_NUM_ROUNDS));
+   VERBOSE_CALL(printf("\ngpu_reduction execution start... Datatype: %s, MAXNUMROUNDS: %d\n",
+                       getDatatypeName<datatype>(), MAX_NUM_ROUNDS));
 
    GPUPropEntryKernel<datatype> <<<1, 1>>>
            (
@@ -85,10 +91,11 @@ void propagateConstraintsFullGPU(
    gpu.getMemFromGPU<datatype>(d_lbs, lbs, n_vars);
 
    // CUDA_CALL( cudaProfilerStop() );
+   return GDP_OKAY;
 }
 
 template<typename datatype>
-void propagateConstraintsGPUAtomic(
+GDP_Retcode propagateConstraintsGPUAtomic(
         const int n_cons,
         const int n_vars,
         const int nnz,
@@ -102,7 +109,12 @@ void propagateConstraintsGPUAtomic(
         const GDP_VARTYPE *vartypes,
         bool fullAsync = true
 ) {
-   DEBUG_CALL(checkInput(n_cons, n_vars, nnz, csr_vals, lhss, rhss, lbs, ubs, vartypes));
+   if (n_cons == 0 || n_vars == 0 || nnz == 0) {
+      printf("propagation of 0 size problem. Nothing to propagate.\n");
+      return GDP_OKAY;
+   }
+
+   DEBUG_CALL(checkInput<datatype>(n_cons, n_vars, nnz, csr_vals, lhss, rhss, lbs, ubs, vartypes));
 
    // CUDA_CALL( cudaProfilerStart() );
    GPUInterface gpu = GPUInterface();
@@ -125,7 +137,10 @@ void propagateConstraintsGPUAtomic(
    bool *d_change_found = gpu.allocArrayGPU<bool>(1);
    gpu.setMemGPU<bool>(d_change_found, true);
 
-   VERBOSE_CALL(printf("\ngpu_atomic execution start... Params: MAXNUMROUNDS: %d\n", MAX_NUM_ROUNDS));
+   VERBOSE_CALL(printf(
+           "\ngpu_atomic execution start... Datatype: %s, MAXNUMROUNDS: %d, fullAsync: %s\n",
+                       getDatatypeName<datatype>(), MAX_NUM_ROUNDS, fullAsync? "true" : "false"
+                       ));
 #ifdef VERBOSE
    auto start = std::chrono::steady_clock::now();
 #endif
@@ -172,6 +187,7 @@ void propagateConstraintsGPUAtomic(
    gpu.getMemFromGPU<datatype>(d_lbs, lbs, n_vars);
 
    // CUDA_CALL( cudaProfilerStop() );
+   return GDP_OKAY;
 }
 
 #endif
