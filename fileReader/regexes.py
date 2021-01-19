@@ -22,7 +22,7 @@ def round_timestamp_pattern(prop_round, alg): return "Propagation round: {}, {} 
 
 
 # PaPILO
-papilo_results_pattern = r"propagation            (?P<rounds>\d+)               (?P<b>\d+.\d+)             (?P<c>\d+)              (?P<d>\d+.\d+)              (?P<time>\d+.\d+)"
+papilo_results_pattern = r"        propagation            (?P<rounds>\d+)               (?P<b>\d+.\d+)               (?P<c>\d+)              (?P<d>\d+.\d+)              (?P<time>\d+.\d+)"
 papilo_success_pattern = r"presolving finished after (?P<time>\d+.\d+) seconds"
 
 

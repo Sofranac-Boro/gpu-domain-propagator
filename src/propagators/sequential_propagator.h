@@ -74,6 +74,11 @@ bool sequentialPropagationRound
             minacts[considx] = activities.minact;
             maxacts[considx] = activities.maxact;
             maxactdeltas[considx] = activities.maxactdelta;
+            if (considx == 7)
+            {
+               printf("acts of cons 7: minact: %9.2e, maxact: %9.2e\n", minacts[considx], maxacts[considx]);
+            }
+
          }
 
          //DEBUG_CALL( printf("cons %d: minact: %.5f, maxact: %.5f\n", considx, minacts[considx], maxacts[considx]) );

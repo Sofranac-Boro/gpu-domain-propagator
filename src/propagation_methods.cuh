@@ -150,9 +150,11 @@ ActivitiesTuple computeActivities
 
       if (EPSGT(maxactdelta, actsTuple.maxactdelta))
          actsTuple.maxactdelta = maxactdelta;
+      if (considx == 7)
+         printf("considx: %d, varidx: %d, coeff: %9.2e, lb: %9.2e, ub: %9.2e\n", considx, var_idx, coeff, lb, ub);
 
-      minactivity += EPSGT(coeff, 0) ? coeff * lb : coeff * ub;
-      maxactivity += EPSGT(coeff, 0) ? coeff * ub : coeff * lb;
+      minactivity += EPSGT(coeff, 0.0) ? coeff * lb : coeff * ub;
+      maxactivity += EPSGT(coeff, 0.0) ? coeff * ub : coeff * lb;
 
    }
    actsTuple.minact = minactivity;

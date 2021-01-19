@@ -2,8 +2,8 @@ import os
 import subprocess
 import tempfile
 import shutil
+import pathlib
 from typing import List, Tuple, Union
-
 from regexes import *
 from readerInterface import FileReaderInterface, get_reader
 
@@ -17,6 +17,8 @@ class PapiloInterface():
 
         self.output_file = os.path.join(self.tmp_papilo_dir, "presolved" + self.instance_name)
         self.papilo_binary = os.path.join(papilo_path, "build/bin/papilo")
+        self.parameters_file = os.path.join(pathlib.Path(__file__).parent.absolute(), "papilo_params.txt")
+
         self.num_rounds = None
         self.exec_time = None
         self.run_successful = False
@@ -25,7 +27,8 @@ class PapiloInterface():
         shutil.rmtree(self.tmp_papilo_dir)
 
     def run_papilo(self) -> None:
-        args = f"{self.papilo_binary} presolve -f {self.input_file} -r {self.output_file} -p /home/bzfsofra/papilo/build/bin/params.txt"
+        args = f"{self.papilo_binary} presolve -f {self.input_file} -r {self.output_file} -p {self.parameters_file}"
+        print("command: " , args)
         p = subprocess.run(args.split(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
 
         if get_regex_result(papilo_success_pattern, p.stdout, "time"):
