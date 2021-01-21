@@ -296,11 +296,9 @@ __device__ __forceinline__ datatype adjustLowerBound(datatype lb, bool is_var_co
 template<typename datatype>
 __device__ __forceinline__ void getNewBoundCandidates
         (
-                const datatype lhs,
-                const datatype rhs,
+                const datatype slack,
+                const datatype surplus,
                 const datatype coeff,
-                const datatype minact,
-                const datatype maxact,
                 const datatype lb,
                 const datatype ub,
                 datatype *newlb,
@@ -309,26 +307,18 @@ __device__ __forceinline__ void getNewBoundCandidates
    assert(!EPSEQ(coeff, 0.0));
    assert(EPSGE(ub, lb));
 
-   *newlb = EPSGT(coeff, 0)? (lhs - maxact) / coeff : (rhs - minact) / coeff;
-   *newub = EPSGT(coeff, 0)? (rhs - minact) / coeff : (lhs - maxact) / coeff;
+   *newlb = EPSGT(coeff, 0)? surplus / coeff : slack / coeff;
+   *newub = EPSGT(coeff, 0)? slack / coeff : surplus / coeff;
    *newlb = *newlb + ub;
    *newub = *newub + lb;
 
    // do not attempt to use the above formulas if activities or cons sides are inf. It could lead to numerical difficulties and no bound change is possibly valid.
-   bool can_tighten_lower =
-           EPSGT(coeff, 0.0) && EPSGT(lhs, -GDP_INF) && EPSLT(maxact, GDP_INF) ||
-           EPSLT(coeff, 0.0) && EPSLT(rhs, GDP_INF) && EPSGT(minact, -GDP_INF);
-
-   bool can_tighten_upper =
-           EPSGT(coeff, 0.0) && EPSLT(rhs, GDP_INF) && EPSGT(minact, -GDP_INF) ||
-           EPSLT(coeff, 0.0) && EPSGT(lhs, -GDP_INF) && EPSLT(maxact, GDP_INF);
-
-   // do not update values numerically larger than inf.
-   can_tighten_upper &= EPSLT(*newub, GDP_INF);
-   can_tighten_lower &= EPSGT(*newlb, -GDP_INF);
-
-   *newlb = can_tighten_lower ? *newlb : lb;
-   *newub = can_tighten_upper ? *newub : ub;
+   //lower
+   bool can_tighten = ( EPSGT(coeff, 0.0) && EPSGT(surplus, -GDP_INF) || EPSLT(coeff, 0.0) && EPSLT(slack, GDP_INF) ) && EPSGT(*newlb, -GDP_INF);
+   *newlb = can_tighten ? *newlb : lb;
+   // upper
+   can_tighten = ( EPSGT(coeff, 0.0) && EPSLT(slack, GDP_INF) || EPSLT(coeff, 0.0) && EPSGT(surplus, -GDP_INF) ) && EPSLT(*newub, GDP_INF);
+   *newub = can_tighten ? *newub : ub;
 
    assert(EPSGE(*newub, *newlb));
 

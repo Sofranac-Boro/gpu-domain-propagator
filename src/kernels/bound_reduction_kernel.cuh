@@ -174,13 +174,9 @@ __global__ void compActsAndBoundsAdaptiveKernel
          datatype newub;
 
          getNewBoundCandidates(
-                 lhss[considx],
-                 rhss[considx],
+                 rhss[considx] - minacts[considx - block_row_begin], // slack = rhs - minact. minacts:  this is in shared memory - each block's indexing strats from 0, hence the need for - block row begin
+                 lhss[considx] - maxacts[considx - block_row_begin], // surplus = lhs - maxact: maxacts: this is in shared memory - each block's indexing strats from 0, hence the need for - block row begin
                  coeff,
-                 minacts[considx -
-                         block_row_begin], // this is in shared memory - each block's indexing strats from 0, hence the need for - block row begin
-                 maxacts[considx -
-                         block_row_begin], // this is in shared memory - each block's indexing strats from 0, hence the need for - block row begin
                  lb,
                  ub,
                  &newlb,
@@ -298,11 +294,9 @@ __global__ void compActsAndBoundsAdaptiveKernel
             datatype newub;
 
             getNewBoundCandidates(
-                    lhss[block_row_begin],
-                    rhss[block_row_begin],
+                    rhss[block_row_begin] - minacts[0], // slack = rhs - minact. minacts: this is in shared memory - each block's indexing strats from 0
+                    lhss[block_row_begin] - maxacts[0], // surplus = lhs - maxact: maxacts: this is in shared memory - each block's indexing strats from 0
                     vals[element],
-                    minacts[0], // this is in shared memory - each block's indexing strats from 0
-                    maxacts[0], // this is in shared memory - each block's indexing strats from 0
                     lbs[varidx],
                     ubs[varidx],
                     &newlb,
