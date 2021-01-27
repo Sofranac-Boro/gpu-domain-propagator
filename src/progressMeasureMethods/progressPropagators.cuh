@@ -324,7 +324,7 @@ __global__ void GPUAtomicPropEntryKernelWithMeasure
       //                      (2 * max_n_cons_in_block * sizeof(datatype)) / 1024.0));
       GPUAtomicDomainPropagation<datatype> <<< blocks_count, NNZ_PER_WG, 2 * max_n_cons_in_block * sizeof(datatype) >>>
       (
-              n_cons, n_vars, max_n_cons_in_block, col_indices, row_ptrs, row_blocks, vals, lbs, ubs, vartypes,
+              n_cons, max_n_cons_in_block, col_indices, row_ptrs, row_blocks, vals, lbs, ubs, vartypes,
                       lhss, rhss, change_found, prop_round
       );
       cudaDeviceSynchronize();
