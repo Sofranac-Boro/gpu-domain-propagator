@@ -307,10 +307,10 @@ __device__ __forceinline__ void getNewBoundCandidates
    assert(!EPSEQ(coeff, 0.0));
    assert(EPSGE(ub, lb));
 
-   *newlb = EPSGT(coeff, 0)? surplus / coeff : slack / coeff;
-   *newub = EPSGT(coeff, 0)? slack / coeff : surplus / coeff;
-   *newlb = *newlb + ub;
-   *newub = *newub + lb;
+   *newlb = EPSGT(coeff, 0)? surplus : slack;
+   *newub = EPSGT(coeff, 0)? slack : surplus;
+   *newlb = *newlb / coeff + ub;
+   *newub = *newub / coeff + lb;
 
    // do not attempt to use the above formulas if activities or cons sides are inf. It could lead to numerical difficulties and no bound change is possibly valid.
    //lower
@@ -369,7 +369,7 @@ __device__ __host__ datatype calcVarRelProgressMeasure(
         int *inf_change_found,
         int *rel_measure_k
 ) {
-   assert(rel_measure_k >= 0);
+   assert(*rel_measure_k >= 0);
    //  lb <= lb_limit and  ub_limit <= ub
    // lb_start <= lb_limit and ub_limit <= ub_start
    assert(EPSGE(lb_limit, lb));
