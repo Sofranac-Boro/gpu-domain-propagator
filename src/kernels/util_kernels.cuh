@@ -298,6 +298,39 @@ __device__ __forceinline__ void getNewBoundCandidates
         (
                 const datatype slack,
                 const datatype surplus,
+                const int num_minact_inf,
+                const int num_maxact_inf,
+                const datatype coeff,
+                const datatype lb,
+                const datatype ub,
+                datatype *newlb,
+                datatype *newub
+        ) {
+   assert(!EPSEQ(coeff, 0.0));
+   assert(EPSGE(ub, lb));
+
+   *newlb = EPSGT(coeff, 0)? surplus : slack;
+   *newub = EPSGT(coeff, 0)? slack : surplus;
+   *newlb = *newlb / coeff + ub;
+   *newub = *newub / coeff + lb;
+
+   // do not attempt to use the above formulas if activities or cons sides are inf. It could lead to numerical difficulties and no bound change is possibly valid.
+   //lower
+   bool can_tighten = ( EPSGT(coeff, 0.0) && EPSGT(surplus, -GDP_INF) || EPSLT(coeff, 0.0) && EPSLT(slack, GDP_INF) ) && EPSGT(*newlb, -GDP_INF);
+   *newlb = can_tighten ? *newlb : lb;
+   // upper
+   can_tighten = ( EPSGT(coeff, 0.0) && EPSLT(slack, GDP_INF) || EPSLT(coeff, 0.0) && EPSGT(surplus, -GDP_INF) ) && EPSLT(*newub, GDP_INF);
+   *newub = can_tighten ? *newub : ub;
+
+   assert(EPSGE(*newub, *newlb));
+
+}
+
+template<typename datatype>
+__device__ __forceinline__ void getNewBoundCandidates_no_inf
+        (
+                const datatype slack,
+                const datatype surplus,
                 const datatype coeff,
                 const datatype lb,
                 const datatype ub,

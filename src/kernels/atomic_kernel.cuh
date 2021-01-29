@@ -33,13 +33,19 @@ __global__ void GPUAtomicDomainPropagation
 
    __shared__ datatype cache_minacts[NNZ_PER_WG];
    __shared__ datatype cache_maxacts[NNZ_PER_WG];
+   __shared__ int cache_inf_minacts[NNZ_PER_WG]; // used to record and compute the number of inf contrivutions to min activity
+   __shared__ int cache_inf_maxacts[NNZ_PER_WG]; // used to record and compute the number of inf contrivutions to min activity
    __shared__ int validx_considx_map[NNZ_PER_WG];
 
    extern __shared__ unsigned char my_shared_mem[];
-   datatype *shared_mem = reinterpret_cast<datatype *>(my_shared_mem);
 
+   datatype *shared_mem = reinterpret_cast<datatype *>(my_shared_mem);
    datatype *minacts = shared_mem;
    datatype *maxacts = &shared_mem[max_n_cons_in_block];
+
+   int *shared_mem_int = reinterpret_cast<int *>(&shared_mem[2*max_n_cons_in_block]);
+   int *minacts_inf = shared_mem_int;
+   int *maxacts_inf = &shared_mem_int[max_n_cons_in_block];
 
    datatype coeff;
    datatype lb;
@@ -59,6 +65,8 @@ __global__ void GPUAtomicDomainPropagation
          ub = ubs[varidx];
          cache_minacts[threadIdx.x] = EPSGT(coeff, 0) ? coeff * lb : coeff * ub; // minactivity
          cache_maxacts[threadIdx.x] = EPSGT(coeff, 0) ? coeff * ub : coeff * lb; // maxactivity
+         cache_inf_minacts[threadIdx.x] = EPSGT(coeff, 0) ? EPSLE(lb, -GDP_INF) : EPSGE(ub, GDP_INF); // minactivity
+         cache_inf_maxacts[threadIdx.x] = EPSGT(coeff, 0) ? EPSGE(ub, GDP_INF) : EPSLE(lb, -GDP_INF); // maxactivity
       }
       __syncthreads();
 
@@ -74,6 +82,8 @@ __global__ void GPUAtomicDomainPropagation
 
          datatype dot_minact = 0.0;
          datatype dot_maxact = 0.0;
+         int dot_minact_inf = 0;
+         int dot_maxact_inf = 0;
 
          if (local_row < block_row_end) {
             // first element in the row this thread is reducing
@@ -96,6 +106,8 @@ __global__ void GPUAtomicDomainPropagation
 
                dot_minact += cache_minacts[local_element];
                dot_maxact += cache_maxacts[local_element];
+               dot_minact_inf += cache_inf_minacts[local_element];
+               dot_maxact_inf += cache_inf_maxacts[local_element];
             }
          }
 
@@ -103,6 +115,8 @@ __global__ void GPUAtomicDomainPropagation
 
          cache_minacts[threadIdx.x] = dot_minact;
          cache_maxacts[threadIdx.x] = dot_maxact;
+         cache_inf_minacts[threadIdx.x] = dot_minact_inf;
+         cache_inf_maxacts[threadIdx.x] = dot_maxact_inf;
 
          /// Now each row has threads_for_reduction values in cache_minacts
          //#pragma unroll
@@ -115,6 +129,8 @@ __global__ void GPUAtomicDomainPropagation
             if (use_result) {
                dot_minact += cache_minacts[threadIdx.x + j];
                dot_maxact += cache_maxacts[threadIdx.x + j];
+               dot_minact_inf += cache_inf_minacts[threadIdx.x + j];
+               dot_maxact_inf += cache_inf_maxacts[threadIdx.x + j];
             }
 
             __syncthreads();
@@ -122,12 +138,16 @@ __global__ void GPUAtomicDomainPropagation
             if (use_result) {
                cache_minacts[threadIdx.x] = dot_minact;
                cache_maxacts[threadIdx.x] = dot_maxact;
+               cache_inf_minacts[threadIdx.x] = dot_minact_inf;
+               cache_inf_maxacts[threadIdx.x] = dot_maxact_inf;
             }
          }
 
          if (thread_in_block == 0 && local_row < block_row_end) {
             minacts[local_row - block_row_begin] = dot_minact;
             maxacts[local_row - block_row_begin] = dot_maxact;
+            minacts_inf[local_row - block_row_begin] = dot_minact_inf;
+            maxacts_inf[local_row - block_row_begin] = dot_maxact_inf;
          }
       } else {
          /// Reduce all non zeroes of row by single thread
@@ -138,6 +158,9 @@ __global__ void GPUAtomicDomainPropagation
          while (local_row < block_row_end) {
             datatype dot_minact = 0.0;
             datatype dot_maxact = 0.0;
+            int dot_minact_inf = 0;
+            int dot_maxact_inf = 0;
+
 
             //#pragma unroll
             for (int local_element = local_first_element; local_element < local_last_element; local_element++) {
@@ -152,10 +175,14 @@ __global__ void GPUAtomicDomainPropagation
 
                dot_minact += cache_minacts[local_element];
                dot_maxact += cache_maxacts[local_element];
+               dot_minact_inf += cache_inf_minacts[local_element];
+               dot_maxact_inf += cache_inf_maxacts[local_element];
             }
 
             minacts[local_row - block_row_begin] = dot_minact;
             maxacts[local_row - block_row_begin] = dot_maxact;
+            minacts_inf[local_row - block_row_begin] = dot_minact_inf;
+            maxacts_inf[local_row - block_row_begin] = dot_maxact_inf;
 
             local_row += NNZ_PER_WG;
          }
@@ -177,6 +204,8 @@ __global__ void GPUAtomicDomainPropagation
          getNewBoundCandidates(
                  rhss[considx] - minacts[considx - block_row_begin], // slack = rhs - minact. minacts:  this is in shared memory - each block's indexing strats from 0, hence the need for - block row begin
                  lhss[considx] - maxacts[considx - block_row_begin], // surplus = lhs - maxact: maxacts: this is in shared memory - each block's indexing strats from 0, hence the need for - block row begin
+                 minacts_inf[considx - block_row_begin],
+                 maxacts_inf[considx - block_row_begin],
                  coeff,
                  lb,
                  ub,
@@ -312,6 +341,8 @@ __global__ void GPUAtomicDomainPropagation
             getNewBoundCandidates(
                     rhss[block_row_begin] - minacts[0], // slack = rhs - minact. minacts: this is in shared memory - each block's indexing strats from 0
                     lhss[block_row_begin] - maxacts[0], // surplus = lhs - maxact: maxacts: this is in shared memory - each block's indexing strats from 0
+                    0, // TODO
+                    0, // TODO
                     vals[element],
                     lb,
                     ub,
@@ -381,9 +412,11 @@ __global__ void GPUAtomicPropEntryKernel
       // shared memory layout:
       // - max_num_cons_in_block elems of type datatype for minactivities
       // - max_num_cons_in_block elems of type datatype for maxactivities
+      // - max_num_cons_in_block elems of type int for minactivities inf contributions
+      // - max_num_cons_in_block elems of type int for maxactivities inf contributions
    //   VERBOSE_CALL_2(printf("Amount of dynamic shared memory requested: %.2f KB\n",
    //                         (2 * max_n_cons_in_block * sizeof(datatype)) / 1024.0));
-      GPUAtomicDomainPropagation<datatype> <<< blocks_count, NNZ_PER_WG, 2 * max_n_cons_in_block * sizeof(datatype) >>>
+      GPUAtomicDomainPropagation<datatype> <<< blocks_count, NNZ_PER_WG, 2 * max_n_cons_in_block * (sizeof(datatype) + sizeof(int)) >>>
               (
                       n_cons, max_n_cons_in_block, col_indices, row_ptrs, row_blocks, vals, lbs, ubs, vartypes,
                       lhss, rhss, change_found, prop_round

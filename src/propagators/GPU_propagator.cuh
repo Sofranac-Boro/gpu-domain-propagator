@@ -166,9 +166,11 @@ GDP_Retcode propagateConstraintsGPUAtomic(
          // shared memory layout:
          // - max_num_cons_in_block elems of type datatype for minactivities
          // - max_num_cons_in_block elems of type datatype for maxactivities
+         // - max_num_cons_in_block elems of type int for minactivities inf contributions
+         // - max_num_cons_in_block elems of type int for maxactivities inf contributions
          //   VERBOSE_CALL_2(printf("Amount of dynamic shared memory requested: %.2f KB\n",
          //                         (2 * max_n_cons_in_block * sizeof(datatype)) / 1024.0));
-         GPUAtomicDomainPropagation<datatype> <<< blocks_count, NNZ_PER_WG, 2 * max_num_cons_in_block * sizeof(datatype) >>>
+         GPUAtomicDomainPropagation<datatype> <<< blocks_count, NNZ_PER_WG, 2 * max_num_cons_in_block * (sizeof(datatype) + sizeof(int)) >>>
                  (
                          n_cons, max_num_cons_in_block, d_col_indices, d_row_ptrs, d_row_blocks, d_vals, d_lbs, d_ubs, d_vartypes,
                          d_lhss, d_rhss, d_change_found, prop_round
