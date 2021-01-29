@@ -14,7 +14,7 @@ if (OPENMP_FOUND)
 endif ()
 
 if (ARCH)
-    string(APPEND CMAKE_CUDA_FLAGS " --use_fast_math -gencode=arch=compute_${ARCH},code=sm_${ARCH}")
+    string(APPEND CMAKE_CUDA_FLAGS " -gencode=arch=compute_${ARCH},code=sm_${ARCH}")
 else ()
     message("No CUDA architecture specified. To compile optimized code for your CUDA device please specify your device architecture through the ARCH flag.")
 endif ()
