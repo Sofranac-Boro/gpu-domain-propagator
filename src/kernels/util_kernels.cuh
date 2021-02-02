@@ -309,9 +309,6 @@ __device__ __forceinline__ void getNewBoundCandidates
    assert(!EPSEQ(coeff, 0.0));
    assert(EPSGE(ub, lb));
 
-
-
-
    // do not attempt to use the above formulas if activities or cons sides are inf. It could lead to numerical difficulties and no bound change is possibly valid.
    // lower
    //bool can_tighten = ( EPSGT(coeff, 0.0) && EPSGT(surplus, -GDP_INF) || EPSLT(coeff, 0.0) && EPSLT(slack, GDP_INF) ) && EPSGT(*newlb, -GDP_INF);

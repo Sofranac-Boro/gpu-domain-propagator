@@ -77,20 +77,29 @@ void checkInput(
         const GDP_VARTYPE *vartypes
 ) {
    for (int i = 0; i < nnz; i++) {
+      // coeff != 0
       assert(!EPSEQ(csr_vals[i], 0.0));
    }
 
    for (int i = 0; i < n_vars; i++) {
-      assert(EPSGE(ubs[i], lbs[i]));
-      // make sure all integer vars have integer values
+      datatype lb = lbs[i];
+      datatype ub = ubs[i];
 
+      // ub >= lb
+      assert(EPSGE(ub, lb));
+
+      // lb < inf && ub > -inf
+      assert(EPSLT(lb, GDP_INF) && EPSGT(ub, -GDP_INF));
+
+      // make sure all integer vars have integer values
       if (vartypes[i] != GDP_CONTINUOUS) {
-         assert(EPSEQ(lbs[i], EPSCEIL(lbs[i])));
-         assert(EPSEQ(ubs[i], EPSFLOOR(ubs[i])));
+         assert(EPSEQ(lb, EPSCEIL(lb)));
+         assert(EPSEQ(ub, EPSFLOOR(ub)));
       }
    }
 
    for (int i = 0; i < n_cons; i++) {
+      // rhs >= lhs
       assert(EPSGE(rhss[i], lhss[i]));
    }
 }
