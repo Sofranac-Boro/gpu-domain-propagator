@@ -21,12 +21,16 @@ void sequentialComputeActivities
                 const datatype *lbs,
                 datatype *minacts,
                 datatype *maxacts,
+                int* minacts_inf,
+                int* maxacts_inf,
                 datatype *maxactdeltas
         ) {
    for (int considx = 0; considx < n_cons; considx++) {
       ActivitiesTuple activities = computeActivities(considx, col_indices, row_indices, vals, ubs, lbs);
       minacts[considx] = activities.minact;
       maxacts[considx] = activities.maxact;
+      minacts_inf[considx] = activities.minact_inf;
+      maxacts_inf[considx] = activities.maxact_inf;
       maxactdeltas[considx] = activities.maxactdelta;
    }
 }
@@ -49,6 +53,8 @@ bool sequentialPropagationRound
                 const GDP_VARTYPE *vartypes,
                 datatype *minacts,
                 datatype *maxacts,
+                int* minacts_inf,
+                int* maxacts_inf,
                 datatype *maxactdeltas,
                 int *consmarked,
                 const bool recomputeActs
@@ -73,6 +79,8 @@ bool sequentialPropagationRound
             ActivitiesTuple activities = computeActivities(considx, col_indices, row_indices, vals, ubs, lbs);
             minacts[considx] = activities.minact;
             maxacts[considx] = activities.maxact;
+            minacts_inf[considx] = activities.minact_inf;
+            maxacts_inf[considx] = activities.maxact_inf;
             maxactdeltas[considx] = activities.maxactdelta;
             if (considx == 7)
             {
@@ -98,10 +106,12 @@ bool sequentialPropagationRound
                coeff = vals[val_idx];
 
                isVarCont = vartypes[varidx] == GDP_CONTINUOUS;
+               if (varidx == 6)
+                  printf("considx: %d, num_minact_contr: %d, num_maxacts_contr: %d\n", considx, minacts_inf[considx], maxacts_inf[considx]);
 
                NewBounds newbds = tightenVariable<datatype>
                        (
-                               coeff, lhs, rhs, minacts[considx], maxacts[considx], isVarCont, varidx, val_idx,
+                               coeff, lhs, rhs, minacts[considx], maxacts[considx], minacts_inf[considx], maxacts_inf[considx], isVarCont, varidx, val_idx,
                                csc_col_ptrs, csc_row_indices, lbs, ubs
                        );
 
@@ -168,6 +178,8 @@ GDP_Retcode sequentialPropagateDisjoint
 
    datatype *minacts = (datatype *) calloc(n_cons, sizeof(datatype));
    datatype *maxacts = (datatype *) calloc(n_cons, sizeof(datatype));
+   int *minacts_inf = (int *) calloc(n_cons, sizeof(int));
+   int *maxacts_inf = (int *) calloc(n_cons, sizeof(int));
    datatype *maxactdeltas = (datatype *) calloc(n_cons, sizeof(datatype));
    int *consmarked = (int *) calloc(n_cons, sizeof(int));
 
@@ -187,13 +199,13 @@ GDP_Retcode sequentialPropagateDisjoint
    {
       VERBOSE_CALL_2(printf("Propagation round: %d\n", prop_round));
 
-      sequentialComputeActivities<datatype>(n_cons, col_indices, row_indices, vals, ubs, lbs, minacts, maxacts,
+      sequentialComputeActivities<datatype>(n_cons, col_indices, row_indices, vals, ubs, lbs, minacts, maxacts, minacts_inf, maxacts_inf,
                                             maxactdeltas);
 
       change_found = sequentialPropagationRound<datatype>
               (
                       n_cons, n_vars, col_indices, row_indices, csc_col_ptrs, csc_row_indices, vals, lhss, rhss,
-                      lbs, ubs, vartypes, minacts, maxacts, maxactdeltas, consmarked, RECOMPUTE_ACTS_FALSE
+                      lbs, ubs, vartypes, minacts, maxacts, minacts_inf, maxacts_inf, maxactdeltas, consmarked, RECOMPUTE_ACTS_FALSE
               );
 
    }
@@ -203,6 +215,8 @@ GDP_Retcode sequentialPropagateDisjoint
 
    free(minacts);
    free(maxacts);
+   free(minacts_inf);
+   free(maxacts_inf);
    free(maxactdeltas);
    free(consmarked);
    free(csc_vals);
@@ -244,6 +258,8 @@ GDP_Retcode sequentialPropagate
 
    datatype *minacts = (datatype *) calloc(n_cons, sizeof(datatype));
    datatype *maxacts = (datatype *) calloc(n_cons, sizeof(datatype));
+   int *minacts_inf = (int *) calloc(n_cons, sizeof(int));
+   int *maxacts_inf = (int *) calloc(n_cons, sizeof(int));
    datatype *maxactdeltas = (datatype *) calloc(n_cons, sizeof(datatype));
    int *consmarked = (int *) calloc(n_cons, sizeof(int));
 
@@ -271,7 +287,7 @@ GDP_Retcode sequentialPropagate
       change_found = sequentialPropagationRound<datatype>
               (
                       n_cons, n_vars, col_indices, row_indices, csc_col_ptrs, csc_row_indices, vals, lhss, rhss,
-                      lbs, ubs, vartypes, minacts, maxacts, maxactdeltas, consmarked, RECOMPUTE_ACTS_TRUE
+                      lbs, ubs, vartypes, minacts, maxacts, minacts_inf, maxacts_inf, maxactdeltas, consmarked, RECOMPUTE_ACTS_TRUE
               );
 
       FOLLOW_VAR_CALL(FOLLOW_VAR,
@@ -286,6 +302,8 @@ GDP_Retcode sequentialPropagate
 
    free(minacts);
    free(maxacts);
+   free(minacts_inf);
+   free(maxacts_inf);
    free(maxactdeltas);
    free(consmarked);
    free(csc_vals);

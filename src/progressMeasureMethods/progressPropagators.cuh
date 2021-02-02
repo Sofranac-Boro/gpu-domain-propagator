@@ -188,6 +188,8 @@ GDP_Retcode sequentialPropagateWithMeasure
 
    datatype *minacts = (datatype *) calloc(n_cons, sizeof(datatype));
    datatype *maxacts = (datatype *) calloc(n_cons, sizeof(datatype));
+   int *minacts_inf = (int *) calloc(n_cons, sizeof(int));
+   int *maxacts_inf = (int *) calloc(n_cons, sizeof(int));
    datatype *maxactdeltas = (datatype *) calloc(n_cons, sizeof(datatype));
    int *consmarked = (int *) calloc(n_cons, sizeof(int));
 
@@ -221,7 +223,7 @@ GDP_Retcode sequentialPropagateWithMeasure
       change_found = sequentialPropagationRound<datatype>
               (
                       n_cons, n_vars, col_indices, row_indices, csc_col_ptrs, csc_row_indices, vals, lhss, rhss,
-                      lbs, ubs, vartypes, minacts, maxacts, maxactdeltas, consmarked, RECOMPUTE_ACTS_TRUE
+                      lbs, ubs, vartypes, minacts, maxacts, minacts_inf, maxacts_inf, maxactdeltas, consmarked, RECOMPUTE_ACTS_TRUE
               );
 
       FOLLOW_VAR_CALL(FOLLOW_VAR,
@@ -242,6 +244,8 @@ GDP_Retcode sequentialPropagateWithMeasure
 
    free(minacts);
    free(maxacts);
+   free(minacts_inf);
+   free(maxacts_inf);
    free(maxactdeltas);
    free(consmarked);
    free( lbs_start );

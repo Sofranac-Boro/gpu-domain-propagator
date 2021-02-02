@@ -59,6 +59,12 @@ __global__ void GPUAtomicDomainPropagation
          ub = ubs[varidx];
          cache_minacts[threadIdx.x] = EPSGT(coeff, 0) ? coeff * lb : coeff * ub; // minactivity
          cache_maxacts[threadIdx.x] = EPSGT(coeff, 0) ? coeff * ub : coeff * lb; // maxactivity
+
+         cache_inf_minacts[threadIdx.x] = EPSGT(coeff, 0) ? EPSLE(lb, -GDP_INF) : EPSGE(ub, GDP_INF); // minactivity // todo switch to bool or uint8 and try to optimize the rest
+         cache_inf_maxacts[threadIdx.x] = EPSGT(coeff, 0) ? EPSGE(ub, GDP_INF) : EPSLE(lb, -GDP_INF); // maxactivity
+
+         cache_minacts[threadIdx.x] = cache_inf_minacts[threadIdx.x]? 0.0 : cache_minacts[threadIdx.x];
+         cache_maxacts[threadIdx.x] = cache_inf_maxacts[threadIdx.x]? 0.0 : cache_maxacts[threadIdx.x];
       }
       __syncthreads();
 
@@ -210,6 +216,7 @@ __global__ void GPUAtomicDomainPropagation
          }
       }
    } else {
+    //  printf("vector called on cons: %d\n", block_row_begin);
       const int block_data_end = row_ptrs[block_row_begin + 1];
       const int warp_id = threadIdx.x / WARP_SIZE;
       const int lane = threadIdx.x % WARP_SIZE;
@@ -219,7 +226,6 @@ __global__ void GPUAtomicDomainPropagation
 
       // if nnz_in_block<=64, than computing this row with one warp is more efficient then using all the threads in the block
       if (nnz_in_block <= VECTOR_VS_VECTORL_NNZ_THRESHOLD || NNZ_PER_WG <= WARP_SIZE) {
-         // printf("vector kernel, cons: %d\n", row);
          /// CSR-Vector case
          if (block_row_begin < n_cons) {
 
@@ -308,10 +314,14 @@ __global__ void GPUAtomicDomainPropagation
             datatype newub;
             lb = lbs[varidx];
             ub = ubs[varidx];
+           // if (block_row_begin == 9)
+           //    printf("cons 9 miact: %.2f, maxact: %.2f\n", minacts[0], maxacts[0]);
             
             getNewBoundCandidates(
                     rhss[block_row_begin] - minacts[0], // slack = rhs - minact. minacts: this is in shared memory - each block's indexing strats from 0
                     lhss[block_row_begin] - maxacts[0], // surplus = lhs - maxact: maxacts: this is in shared memory - each block's indexing strats from 0
+                    5, // TODO
+                    5, // TODO
                     vals[element],
                     lb,
                     ub,

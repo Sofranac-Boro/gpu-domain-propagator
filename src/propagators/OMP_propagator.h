@@ -24,6 +24,8 @@ bool OMPPropagationRound
                 const GDP_VARTYPE *vartypes,
                 datatype *minacts,
                 datatype *maxacts,
+                int* minacts_inf,
+                int* maxacts_inf,
                 datatype *maxactdeltas,
                 int *consmarked,
                 omp_lock_t *locks,
@@ -57,6 +59,8 @@ bool OMPPropagationRound
       ActivitiesTuple activities = computeActivities(considx, col_indices, row_indices, vals, ubs, lbs);
       minacts[considx] = activities.minact;
       maxacts[considx] = activities.maxact;
+      minacts_inf[considx] = activities.minact_inf;
+      maxacts_inf[considx] = activities.maxact_inf;
       maxactdeltas[considx] = activities.maxactdelta;
 
       slack = rhss[considx] - minacts[considx];
@@ -79,7 +83,7 @@ bool OMPPropagationRound
             {
                NewBounds newbds = tightenVariable<datatype>
                        (
-                               coeff, lhss[considx], rhss[considx], minacts[considx], maxacts[considx], isVarCont,
+                               coeff, lhss[considx], rhss[considx], minacts[considx], maxacts[considx], minacts_inf[considx], maxacts_inf[considx], isVarCont,
                                var_idx, val_idx,
                                csc_col_ptrs, csc_row_indices, lbs, ubs
                        );
@@ -142,6 +146,8 @@ GDP_Retcode fullOMPPropagate
 
    datatype *minacts = (datatype *) calloc(n_cons, sizeof(datatype));
    datatype *maxacts = (datatype *) calloc(n_cons, sizeof(datatype));
+   int *minacts_inf = (int *) calloc(n_cons, sizeof(int));
+   int *maxacts_inf = (int *) calloc(n_cons, sizeof(int));
    datatype *maxactdeltas = (datatype *) calloc(n_cons, sizeof(datatype));
    int *consmarked = (int *) calloc(n_cons, sizeof(int));
 
@@ -167,7 +173,7 @@ GDP_Retcode fullOMPPropagate
       change_found = OMPPropagationRound<datatype>
               (
                       n_cons, n_vars, col_indices, row_indices, csc_col_ptrs, csc_row_indices, vals, lhss, rhss,
-                      lbs, ubs, vartypes, minacts, maxacts, maxactdeltas, consmarked, locks, prop_round
+                      lbs, ubs, vartypes, minacts, maxacts, minacts_inf, maxacts_inf, maxactdeltas, consmarked, locks, prop_round
               );
    }
 
@@ -179,6 +185,8 @@ GDP_Retcode fullOMPPropagate
 
    free(minacts);
    free(maxacts);
+   free(minacts_inf);
+   free(maxacts_inf);
    free(maxactdeltas);
    free(consmarked);
    free(csc_vals);

@@ -146,7 +146,8 @@ slack = 13.0;
 lb = -10.0;
 ub = 10.0;
 isVarCont = true;
-NewBoundTuple res = tightenVarUpperBound(coeff, slack, lb, ub, isVarCont);
+int num_inf_contr = 0;
+NewBoundTuple res = tightenVarUpperBound(coeff, slack, num_inf_contr, lb, ub, isVarCont);
 REQUIRE( res
 .is_tightened );
 assertDoubleEPSEQ(res
@@ -166,14 +167,15 @@ slack = 45.0;
 lb = 1.0;
 ub = 6.0;
 isVarCont = false;
-NewBoundTuple res = tightenVarUpperBound(coeff, slack, lb, ub, isVarCont);
+   int num_inf_contr = 0;
+NewBoundTuple res = tightenVarUpperBound(coeff, slack, num_inf_contr, lb, ub, isVarCont);
 REQUIRE( res
 .is_tightened );
 assertDoubleEPSEQ(res
 .newb, 5.0);
 
 isVarCont = true;
-res = tightenVarUpperBound(coeff, slack, lb, ub, isVarCont);
+res = tightenVarUpperBound(coeff, slack, num_inf_contr, lb, ub, isVarCont);
 REQUIRE( res
 .is_tightened );
 assertDoubleEPSEQ(res
@@ -193,14 +195,15 @@ slack = 37.0;
 lb = -2.0;
 ub = 7.0;
 isVarCont = true;
-NewBoundTuple res = tightenVarLowerBound(coeff, slack, lb, ub, isVarCont);
+   int num_inf_contr = 0;
+NewBoundTuple res = tightenVarLowerBound(coeff, slack, num_inf_contr, lb, ub, isVarCont);
 REQUIRE( res
 .is_tightened );
 assertDoubleEPSEQ(res
 .newb, 3.3);
 
 isVarCont = false;
-res = tightenVarLowerBound(coeff, slack, lb, ub, isVarCont);
+res = tightenVarLowerBound(coeff, slack, num_inf_contr, lb, ub, isVarCont);
 REQUIRE( res
 .is_tightened );
 assertDoubleEPSEQ(res
@@ -220,14 +223,15 @@ slack = 10.5;
 lb = -7.5;
 ub = -3.0;
 isVarCont = true;
-NewBoundTuple res = tightenVarLowerBound(coeff, slack, lb, ub, isVarCont);
+   int num_inf_contr = 0;
+NewBoundTuple res = tightenVarLowerBound(coeff, slack, num_inf_contr, lb, ub, isVarCont);
 REQUIRE( res
 .is_tightened );
 assertDoubleEPSEQ(res
 .newb, -4.0);
 
 isVarCont = false;
-res = tightenVarLowerBound(coeff, slack, lb, ub, isVarCont);
+res = tightenVarLowerBound(coeff, slack, num_inf_contr, lb, ub, isVarCont);
 REQUIRE( res
 .is_tightened );
 assertDoubleEPSEQ(res
