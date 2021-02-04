@@ -85,7 +85,7 @@ bool OMPPropagationRound
                        (
                                coeff, lhss[considx], rhss[considx], minacts[considx], maxacts[considx], minacts_inf[considx], maxacts_inf[considx], isVarCont,
                                var_idx, val_idx,
-                               csc_col_ptrs, csc_row_indices, lbs, ubs
+                               csc_col_ptrs, csc_row_indices, lbs[var_idx], ubs[var_idx]
                        );
 
                if (newbds.lb.is_tightened)

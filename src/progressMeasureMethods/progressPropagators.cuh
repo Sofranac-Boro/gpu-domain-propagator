@@ -217,7 +217,7 @@ GDP_Retcode sequentialPropagateWithMeasure
       memcpy(ubs_prev, ubs, n_vars * sizeof(datatype));
 
       FOLLOW_VAR_CALL(FOLLOW_VAR,
-                      printf("cpu_seq varidx: %7d bounds beofre round: %7d: lb: %9.2e, ub: %9.2e\n", FOLLOW_VAR, prop_round, lbs[FOLLOW_VAR],
+                      printf("cpu_seq varidx %d bounds beofre round %d: lb: %9.2e, ub: %9.2e\n", FOLLOW_VAR, prop_round, lbs[FOLLOW_VAR],
                              ubs[FOLLOW_VAR]));
 
       change_found = sequentialPropagationRound<datatype>
@@ -227,7 +227,7 @@ GDP_Retcode sequentialPropagateWithMeasure
               );
 
       FOLLOW_VAR_CALL(FOLLOW_VAR,
-                      printf("cpu_seq varidx %7d bounds after round %7d: lb: %9.2e, ub: %9.2e\n", FOLLOW_VAR, prop_round, lbs[FOLLOW_VAR], ubs[FOLLOW_VAR]));
+                      printf("cpu_seq varidx %d bounds after round %d: lb: %9.2e, ub: %9.2e\n", FOLLOW_VAR, prop_round, lbs[FOLLOW_VAR], ubs[FOLLOW_VAR]));
 
       const datatype score = calcProgressMeasureSeq(n_vars, lbs, ubs, lbs_start, ubs_start, lbs_limit, ubs_limit, lbs_prev, ubs_prev, measures, abs_measure_k, abs_measure_n);
       assert(EPSLE(score, max_score));

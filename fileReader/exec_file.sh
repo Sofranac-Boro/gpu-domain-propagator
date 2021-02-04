@@ -42,6 +42,9 @@ while true ; do
   esac
 done
 
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
 printf "\n\n === $FILE ===\n"
-python3 -u run_propagation.py -f "$FILE" -d "$DATATYPE" 2>&1 | tee -a $LOGFILE
+
+python3 -u "$DIR/run_propagation.py" -f "$FILE" -d "$DATATYPE" 2>&1 | tee -a $LOGFILE
 

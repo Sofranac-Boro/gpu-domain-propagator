@@ -50,6 +50,10 @@ if (FOLLOW_VAR)
     add_definitions(-DFOLLOW_VAR=${FOLLOW_VAR})
 endif()
 
+if (FOLLOW_CONS)
+    add_definitions(-DFOLLOW_CONS=${FOLLOW_CONS})
+endif()
+
 add_library(GpuProp SHARED
         src/misc.cpp
         src/kernels/util_kernels.cu

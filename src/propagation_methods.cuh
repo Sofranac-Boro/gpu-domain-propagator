@@ -77,20 +77,20 @@ bool isUbBetter(const datatype lb, const datatype ub, const datatype newub) {
 }
 
 template<class datatype>
-NewBoundTuple tightenVarUpperBound(const datatype coeff, const datatype slack, const int num_inf_contr, const datatype lb, const datatype ub,
+NewBoundTuple tightenVarUpperBound(const datatype coeff, const datatype slack, const datatype surplus, const int num_inf_contr, const datatype lb, const datatype ub,
                                    const bool isVarCont) {
-
 
    NewBoundTuple newb_tuple = {false, ub}; // output
    datatype newb;
 
    if (num_inf_contr == 0)
    {
-      newb = lb + (slack / fabs(coeff));
+      newb = EPSGT(coeff, 0)? slack / coeff : surplus / coeff;
+      newb += lb;
    }
    else if (num_inf_contr == 1 && EPSLE(lb, -GDP_INF))
    {
-      newb = slack / fabs(coeff);
+      newb = EPSGT(coeff, 0)? slack / coeff : surplus / coeff;
    }
    else
    {
@@ -102,15 +102,15 @@ NewBoundTuple tightenVarUpperBound(const datatype coeff, const datatype slack, c
    if (isUbBetter(lb, ub, newb)) {
       newb_tuple.is_tightened = true;
       newb_tuple.newb = newb;
+      assert(EPSLE(lb, newb_tuple.newb));
       return newb_tuple;
    }
-
 
    return newb_tuple;
 }
 
 template<class datatype>
-NewBoundTuple tightenVarLowerBound(const datatype coeff, const datatype surplus, const int num_inf_contr, const datatype lb, const datatype ub,
+NewBoundTuple tightenVarLowerBound(const datatype coeff, const datatype slack, const datatype surplus, const int num_inf_contr, const datatype lb, const datatype ub,
                                    const bool isVarCont) {
    NewBoundTuple newb_tuple = {false, lb}; // output
    datatype newb;
@@ -118,11 +118,12 @@ NewBoundTuple tightenVarLowerBound(const datatype coeff, const datatype surplus,
 
    if (num_inf_contr == 0)
    {
-      newb = ub - (surplus / fabs(coeff));
+      newb = EPSGT(coeff, 0)? surplus / coeff : slack / coeff;
+      newb += ub;
    }
    else if (num_inf_contr == 1 && EPSLE(lb, -GDP_INF))
    {
-      newb = (- surplus / fabs(coeff));
+      newb = EPSGT(coeff, 0)? surplus / coeff : slack / coeff;
    }
    else
    {
@@ -131,15 +132,10 @@ NewBoundTuple tightenVarLowerBound(const datatype coeff, const datatype surplus,
 
    newb = adjustLowerBound(isVarCont, newb);
 
-   if (EPSLT(ub, newb))
-   {
-      printf("coeff: %9.2e, surplus: %9.2e, newlb: %9.2e,  lb: %9.2e, ub: %9.2e, num_inf_contr: %d,\n",
-              coeff,        surplus,        newb,          lb,        ub,        num_inf_contr);
-   }
-
    if (isLbBetter(lb, ub, newb)) {
       newb_tuple.is_tightened = true;
       newb_tuple.newb = newb;
+      assert(EPSLE(newb_tuple.newb, ub));
       return newb_tuple;
    }
    return newb_tuple;
@@ -180,6 +176,8 @@ ActivitiesTuple computeActivities
    int maxact_inf = 0;
    int n_vars_in_cons = row_indices[considx + 1] - row_indices[considx];
 
+   FOLLOW_CONS_CALL(considx, printf("Printing constraint %d: ", considx));
+
    for (int var = 0; var < n_vars_in_cons; var++) {
       val_idx = row_indices[considx] + var;
       var_idx = col_indices[val_idx];
@@ -188,16 +186,12 @@ ActivitiesTuple computeActivities
       lb = lbs[var_idx];
       ub = ubs[var_idx];
 
+      FOLLOW_CONS_CALL(considx, printf("%9.2ex_%d [%9.2e, %9.2e] ", coeff, var_idx, lb, ub));
+
       maxactdelta = fabs(coeff) * (ub - lb);
 
       if (EPSGT(maxactdelta, actsTuple.maxactdelta))
          actsTuple.maxactdelta = maxactdelta;
-
-    //  if (considx == 7)
-    //     printf("considx: %d, varidx: %d, coeff: %9.2e, lb: %9.2e, ub: %9.2e\n", considx, var_idx, coeff, lb, ub);
-
-      minactivity += EPSGT(coeff, 0.0) ? coeff * lb : coeff * ub;
-      maxactivity += EPSGT(coeff, 0.0) ? coeff * ub : coeff * lb;
 
       const int is_minac_inf = EPSGT(coeff, 0) ? EPSLE(lb, -GDP_INF) : EPSGE(ub, GDP_INF);
       const int is_maxact_inf = EPSGT(coeff, 0) ? EPSGE(ub, GDP_INF) : EPSLE(lb, -GDP_INF);
@@ -236,14 +230,12 @@ NewBounds tightenVariable
                 const int val_idx,
                 const int *csc_col_ptrs,
                 const int *csc_row_indices,
-                const datatype *lbs,
-                const datatype *ubs
+                datatype lb,
+                datatype ub
         ) {
 
-   datatype ub = ubs[var_idx];
-   datatype lb = lbs[var_idx];
    datatype slack = rhs - minact;
-   datatype surplus = maxact - lhs;
+   datatype surplus = lhs - maxact;
 
    // initialize return data.
    NewBounds newbds;
@@ -251,49 +243,32 @@ NewBounds tightenVariable
    newbds.ub = {false, ub};
 
    if (EPSGT(coeff, 0.0)) {
-      if (EPSGT(coeff * (ub - lb), slack) && EPSLT(slack, GDP_INF)) {
+      if (EPSGT(coeff * (ub - lb), rhs - minact) && EPSLT(slack, GDP_INF)) {
 
-         if (var_idx == 6)
-         {
-            printf("coeff: %9.2e, surplus: %9.2e, slack: %9.2e,  lb: %9.2e, ub: %9.2e, num_minact_inf: %d, num_maxact_inf: %d,\n",
-                   coeff,        surplus,        slack,          lb,        ub,        num_minact_inf,     num_maxact_inf);
-         }
-
-         newbds.ub = tightenVarUpperBound(coeff, slack, num_minact_inf, lb, ub, isVarCont);
+         newbds.ub = tightenVarUpperBound(coeff, slack, surplus, num_minact_inf, lb, ub, isVarCont);
          // update data for lower bound tightening
-         if (newbds.ub.is_tightened) {
-            if (var_idx == 6)
-            {
-               printf("TIGHTENED: coeff: %9.2e, surplus: %9.2e, slack: %9.2e,  lb: %9.2e, ub: %9.2e, num_minact_inf: %d, num_maxact_inf: %d, newb: %9.2e\n",
-                      coeff,        surplus,        slack,          lb,        ub,        num_minact_inf,     num_maxact_inf, newbds.ub.newb);
-            }
-            surplus = surplus - coeff * (ub - newbds.ub.newb);
-            ub = newbds.ub.newb;
-         }
+//         if (newbds.ub.is_tightened) {
+//            surplus = surplus + coeff * (ub - newbds.ub.newb);
+//            ub = newbds.ub.newb;
+//         }
       }
 
-      if (EPSGT(coeff * (ub - lb), surplus) && EPSGT(surplus, -GDP_INF)) {
-         newbds.lb = tightenVarLowerBound(coeff, surplus, num_maxact_inf, lb, ub, isVarCont);
+      if (EPSGT(coeff * (ub - lb), maxact - lhs) && EPSGT(surplus, -GDP_INF)) {
+         newbds.lb = tightenVarLowerBound(coeff, slack, surplus, num_maxact_inf, lb, ub, isVarCont);
       }
    } else {
-      if (EPSGT(coeff * (lb - ub), slack) && EPSLT(slack, GDP_INF)) {
+      if (EPSGT(coeff * (lb - ub), rhs - minact) && EPSLT(slack, GDP_INF)) {
 
-         if (var_idx == 6)
-         {
-            printf("coeff: %9.2e, surplus: %9.2e, slack: %9.2e,  lb: %9.2e, ub: %9.2e, num_minact_inf: %d, num_maxact_inf: %d,\n",
-                   coeff,        surplus,        slack,          lb,        ub,        num_minact_inf,     num_maxact_inf);
-         }
-
-         newbds.lb = tightenVarLowerBound(coeff, slack, num_minact_inf, lb, ub, isVarCont);
+         newbds.lb = tightenVarLowerBound(coeff, slack, surplus, num_minact_inf, lb, ub, isVarCont);
          // update data for upper bound tightening
-         if (newbds.lb.is_tightened) {
-            surplus = surplus - coeff * (newbds.lb.newb - lb);
-            lb = newbds.lb.newb;
-         }
+//         if (newbds.lb.is_tightened) {
+//            surplus = surplus + coeff * (newbds.lb.newb - lb);
+//            lb = newbds.lb.newb;
+//         }
       }
 
-      if (EPSGT(coeff * (lb - ub), surplus) && EPSGT(surplus, -GDP_INF)) {
-         newbds.ub = tightenVarUpperBound(coeff, surplus, num_maxact_inf, lb, ub, isVarCont);
+      if (EPSGT(coeff * (lb - ub), maxact - lhs) && EPSGT(surplus, -GDP_INF)) {
+         newbds.ub = tightenVarUpperBound(coeff, slack, surplus, num_maxact_inf, lb, ub, isVarCont);
       }
    }
    return newbds;

@@ -78,7 +78,7 @@ bool preprocessorPropagationRound
                NewBounds newbds = tightenVariable<datatype>
                        (
                                coeff, lhs, rhs, minacts[considx], maxacts[considx], minacts_inf[considx], maxacts_inf[considx], isVarCont, varidx, val_idx,
-                               csc_col_ptrs, csc_row_indices, lbs, ubs
+                               csc_col_ptrs, csc_row_indices, lbs[varidx], ubs[varidx]
                        );
 
 

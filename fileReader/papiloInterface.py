@@ -29,7 +29,7 @@ class PapiloInterface():
     def run_papilo(self) -> None:
         args = f"{self.papilo_binary} presolve -f {self.input_file} -r {self.output_file} -p {self.parameters_file}"
         print("command: " , args)
-        p = subprocess.run(args.split(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        p = subprocess.run(args.split(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
 
         if get_regex_result(papilo_success_pattern, p.stdout, "time"):
             self.run_successful = True

@@ -137,17 +137,19 @@ TEST_CASE( "tighten variable upper bound test 1")
 {
 double coeff;
 double slack;
+double surplus;
 double lb;
 double ub;
 bool isVarCont;
 
 coeff = 1.0;
 slack = 13.0;
+surplus = GDP_INF;
 lb = -10.0;
 ub = 10.0;
 isVarCont = true;
 int num_inf_contr = 0;
-NewBoundTuple res = tightenVarUpperBound(coeff, slack, num_inf_contr, lb, ub, isVarCont);
+NewBoundTuple res = tightenVarUpperBound(coeff, slack, surplus, num_inf_contr, lb, ub, isVarCont);
 REQUIRE( res
 .is_tightened );
 assertDoubleEPSEQ(res
@@ -158,80 +160,87 @@ TEST_CASE( "tighten variable upper bound test 2")
 {
 double coeff;
 double slack;
+double surplus;
 double lb;
 double ub;
 bool isVarCont;
+int num_inf_contr;
 
-coeff = -10.0;
+coeff = -2.0;
 slack = 45.0;
-lb = 1.0;
-ub = 6.0;
+surplus = -109;
+lb = 0;
+ub = 100;
 isVarCont = false;
-   int num_inf_contr = 0;
-NewBoundTuple res = tightenVarUpperBound(coeff, slack, num_inf_contr, lb, ub, isVarCont);
+num_inf_contr = 0;
+NewBoundTuple res = tightenVarUpperBound(coeff, slack, surplus, num_inf_contr, lb, ub, isVarCont);
 REQUIRE( res
 .is_tightened );
 assertDoubleEPSEQ(res
-.newb, 5.0);
+.newb, 54);
 
 isVarCont = true;
-res = tightenVarUpperBound(coeff, slack, num_inf_contr, lb, ub, isVarCont);
+res = tightenVarUpperBound(coeff, slack, surplus, num_inf_contr, lb, ub, isVarCont);
 REQUIRE( res
 .is_tightened );
 assertDoubleEPSEQ(res
-.newb, 5.5);
+.newb, 54.5);
 }
 
 TEST_CASE( "tighten variable lower bound test 1")
 {
 double coeff;
 double slack;
+double surplus;
 double lb;
 double ub;
 bool isVarCont;
 
-coeff = 10;
-slack = 37.0;
-lb = -2.0;
-ub = 7.0;
+coeff = 1;
+slack = GDP_INF;
+surplus = -5.1;
+lb = -100.0;
+ub = 10;
 isVarCont = true;
    int num_inf_contr = 0;
-NewBoundTuple res = tightenVarLowerBound(coeff, slack, num_inf_contr, lb, ub, isVarCont);
+NewBoundTuple res = tightenVarLowerBound(coeff, slack, surplus, num_inf_contr, lb, ub, isVarCont);
 REQUIRE( res
 .is_tightened );
 assertDoubleEPSEQ(res
-.newb, 3.3);
+.newb, 4.9);
 
 isVarCont = false;
-res = tightenVarLowerBound(coeff, slack, num_inf_contr, lb, ub, isVarCont);
+res = tightenVarLowerBound(coeff, slack, surplus, num_inf_contr, lb, ub, isVarCont);
 REQUIRE( res
 .is_tightened );
 assertDoubleEPSEQ(res
-.newb, 4.0);
+ .newb, 5.0);
 }
 
 TEST_CASE( "tighten variable lower bound test 2")
 {
 double coeff;
 double slack;
+double surplus;
 double lb;
 double ub;
 bool isVarCont;
 
 coeff = -10.5;
 slack = 10.5;
+surplus = 0.0;
 lb = -7.5;
 ub = -3.0;
 isVarCont = true;
    int num_inf_contr = 0;
-NewBoundTuple res = tightenVarLowerBound(coeff, slack, num_inf_contr, lb, ub, isVarCont);
+NewBoundTuple res = tightenVarLowerBound(coeff, slack, surplus, num_inf_contr, lb, ub, isVarCont);
 REQUIRE( res
 .is_tightened );
 assertDoubleEPSEQ(res
 .newb, -4.0);
 
 isVarCont = false;
-res = tightenVarLowerBound(coeff, slack, num_inf_contr, lb, ub, isVarCont);
+res = tightenVarLowerBound(coeff, slack, surplus, num_inf_contr, lb, ub, isVarCont);
 REQUIRE( res
 .is_tightened );
 assertDoubleEPSEQ(res
