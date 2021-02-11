@@ -33,8 +33,8 @@ __global__ void GPUAtomicDomainPropagation
 
    __shared__ datatype cache_minacts[NNZ_PER_WG];
    __shared__ datatype cache_maxacts[NNZ_PER_WG];
-   __shared__ int cache_inf_minacts[NNZ_PER_WG]; // used to record and compute the number of inf contrivutions to min activity
-   __shared__ int cache_inf_maxacts[NNZ_PER_WG]; // used to record and compute the number of inf contrivutions to min activity
+   __shared__ int cache_inf_minacts[NNZ_PER_WG]; // used to record and compute the number of inf contributions to min activity
+   __shared__ int cache_inf_maxacts[NNZ_PER_WG]; // used to record and compute the number of inf contributions to max activity
    __shared__ int validx_considx_map[NNZ_PER_WG];
 
    extern __shared__ unsigned char my_shared_mem[];
@@ -63,10 +63,14 @@ __global__ void GPUAtomicDomainPropagation
          coeff = vals[block_data_begin + threadIdx.x];
          lb = lbs[varidx];
          ub = ubs[varidx];
+
+         assert(EPSGT(ub, -GDP_INF));
+         assert(EPSLT(lb, GDP_INF));
+
          cache_minacts[threadIdx.x] = EPSGT(coeff, 0) ? coeff * lb : coeff * ub; // minactivity
          cache_maxacts[threadIdx.x] = EPSGT(coeff, 0) ? coeff * ub : coeff * lb; // maxactivity
 
-         cache_inf_minacts[threadIdx.x] = EPSGT(coeff, 0) ? EPSLE(lb, -GDP_INF) : EPSGE(ub, GDP_INF); // minactivity // todo switch to bool or uint8 and try to optimize the rest
+         cache_inf_minacts[threadIdx.x] = EPSGT(coeff, 0) ? EPSLE(lb, -GDP_INF) : EPSGE(ub, GDP_INF); // minactivity
          cache_inf_maxacts[threadIdx.x] = EPSGT(coeff, 0) ? EPSGE(ub, GDP_INF) : EPSLE(lb, -GDP_INF); // maxactivity
 
          cache_minacts[threadIdx.x] = cache_inf_minacts[threadIdx.x]? 0.0 : cache_minacts[threadIdx.x];
@@ -204,19 +208,23 @@ __global__ void GPUAtomicDomainPropagation
          datatype newub;
 
          getNewBoundCandidates(
-                 rhss[considx] - minacts[considx - block_row_begin], // slack = rhs - minact. minacts:  this is in shared memory - each block's indexing strats from 0, hence the need for - block row begin
-                 lhss[considx] - maxacts[considx - block_row_begin], // surplus = lhs - maxact: maxacts: this is in shared memory - each block's indexing strats from 0, hence the need for - block row begin
+                 lhss[considx], // surplus = lhs - maxact: maxacts: this is in shared memory - each block's indexing strats from 0, hence the need for - block row begin
+                 rhss[considx], // slack = rhs - minact. minacts:  this is in shared memory - each block's indexing strats from 0, hence the need for - block row begin
+                 minacts[considx - block_row_begin],
+                 maxacts[considx - block_row_begin],
                  minacts_inf[considx - block_row_begin],
                  maxacts_inf[considx - block_row_begin],
                  coeff,
                  lb,
                  ub,
                  &newlb,
-                 &newub
+                 &newub,
+                 varidx,
+                 considx
          );
 
          FOLLOW_VAR_CALL(varidx,
-                         printf("CSR-stream cand: varidx: %7d, considx: %7d, lhs: %9.2e, rhs: %9.2e, coeff: %9.2e, minact: %9.2e, maxact: %9.2e, num_minact_inf: %d, num_maxact_inf: %d, oldlb: %9.2e, oldub: %9.2e, newlb: %9.2e, newub: %9.2e\n",
+                         printf("CSR-stream cand, varidx: %5d, considx: %5d, lhs: %9.2e, rhs: %9.2e, coeff: %9.2e, minact: %9.2e, maxact: %9.2e, num_minact_inf: %d, num_maxact_inf: %d, oldlb: %9.2e, oldub: %9.2e, newlb: %9.2e, newub: %9.2e\n",
                                 varidx, considx, lhss[considx], rhss[considx], coeff,
                                 minacts[considx - block_row_begin], maxacts[considx - block_row_begin], minacts_inf[considx - block_row_begin], maxacts_inf[considx - block_row_begin],
                                 lb, ub, newlb, newub)
@@ -263,10 +271,13 @@ __global__ void GPUAtomicDomainPropagation
                lb = lbs[varidx];
                ub = ubs[varidx];
 
+               assert(EPSGT(ub, -GDP_INF));
+               assert(EPSLT(lb, GDP_INF));
+
                cache_minacts[threadIdx.x] = EPSGT(coeff, 0) ? coeff * lb : coeff * ub; // minactivity
                cache_maxacts[threadIdx.x] = EPSGT(coeff, 0) ? coeff * ub : coeff * lb; // maxactivity
 
-               cache_inf_minacts[threadIdx.x] = EPSGT(coeff, 0) ? EPSLE(lb, -GDP_INF) : EPSGE(ub, GDP_INF); // minactivity // todo switch to bool or uint8 and try to optimize the rest
+               cache_inf_minacts[threadIdx.x] = EPSGT(coeff, 0) ? EPSLE(lb, -GDP_INF) : EPSGE(ub, GDP_INF); // minactivity
                cache_inf_maxacts[threadIdx.x] = EPSGT(coeff, 0) ? EPSGE(ub, GDP_INF) : EPSLE(lb, -GDP_INF); // maxactivity
 
                cache_minacts[threadIdx.x] = cache_inf_minacts[threadIdx.x]? 0.0 : cache_minacts[threadIdx.x];
@@ -283,13 +294,15 @@ __global__ void GPUAtomicDomainPropagation
             }
          }
 
+         __syncthreads();
+
          dot_minact = warp_reduce_sum<datatype>(dot_minact);
          dot_maxact = warp_reduce_sum<datatype>(dot_maxact);
          dot_minact_inf = warp_reduce_sum<int>(dot_minact_inf);
          dot_maxact_inf = warp_reduce_sum<int>(dot_maxact_inf);
 
          if (lane == 0 && warp_id == 0 && block_row_begin < n_cons) {
-            // this is in shared memory - each block's indexing strats from 0
+            // this is in shared memory - each block's indexing starts from 0
             minacts[0] = dot_minact;
             maxacts[0] = dot_maxact;
             minacts_inf[0] = dot_minact_inf;
@@ -308,10 +321,13 @@ __global__ void GPUAtomicDomainPropagation
                lb = lbs[varidx];
                ub = ubs[varidx];
 
+               assert(EPSGT(ub, -GDP_INF));
+               assert(EPSLT(lb, GDP_INF));
+
                cache_minacts[threadIdx.x] = EPSGT(coeff, 0) ? coeff * lb : coeff * ub; // minactivity
                cache_maxacts[threadIdx.x] = EPSGT(coeff, 0) ? coeff * ub : coeff * lb; // maxactivity
 
-               cache_inf_minacts[threadIdx.x] = EPSGT(coeff, 0) ? EPSLE(lb, -GDP_INF) : EPSGE(ub, GDP_INF); // minactivity // todo switch to bool or uint8 and try to optimize the rest
+               cache_inf_minacts[threadIdx.x] = EPSGT(coeff, 0) ? EPSLE(lb, -GDP_INF) : EPSGE(ub, GDP_INF); // minactivity
                cache_inf_maxacts[threadIdx.x] = EPSGT(coeff, 0) ? EPSGE(ub, GDP_INF) : EPSLE(lb, -GDP_INF); // maxactivity
 
                cache_minacts[threadIdx.x] = cache_inf_minacts[threadIdx.x]? 0.0 : cache_minacts[threadIdx.x];
@@ -323,6 +339,8 @@ __global__ void GPUAtomicDomainPropagation
                dot_maxact_inf += cache_inf_maxacts[threadIdx.x];
             }
          }
+
+         __syncthreads();
 
          dot_minact = warp_reduce_sum<datatype>(dot_minact);
          dot_maxact = warp_reduce_sum<datatype>(dot_maxact);
@@ -356,7 +374,6 @@ __global__ void GPUAtomicDomainPropagation
             dot_minact_inf = warp_reduce_sum<int>(dot_minact_inf);
             dot_maxact_inf = warp_reduce_sum<int>(dot_maxact_inf);
 
-
             if (lane == 0 && block_row_begin < n_cons) {
                // this is in shared memory - each block's indexing strats from 0
                minacts[0] = dot_minact;
@@ -382,15 +399,19 @@ __global__ void GPUAtomicDomainPropagation
             ub = ubs[varidx];
             
             getNewBoundCandidates(
-                    rhss[block_row_begin] - minacts[0], // slack = rhs - minact. minacts: this is in shared memory - each block's indexing strats from 0
-                    lhss[block_row_begin] - maxacts[0], // surplus = lhs - maxact: maxacts: this is in shared memory - each block's indexing strats from 0
+                    lhss[block_row_begin], // surplus = lhs - maxact: maxacts: this is in shared memory - each block's indexing strats from 0
+                    rhss[block_row_begin], // slack = rhs - minact. minacts: this is in shared memory - each block's indexing strats from 0
+                    minacts[0],
+                    maxacts[0],
                     minacts_inf[0],
                     maxacts_inf[0],
                     vals[element],
                     lb,
                     ub,
                     &newlb,
-                    &newub
+                    &newub,
+                    varidx,
+                    block_row_begin
             );
 
             FOLLOW_VAR_CALL(
@@ -400,7 +421,7 @@ __global__ void GPUAtomicDomainPropagation
                            minacts[0], maxacts[0], minacts_inf[0], maxacts_inf[0], lbs[col_indices[element]], ubs[col_indices[element]], newlb, newub)
             );
 
-            bool is_var_cont = vartypes[varidx] == GDP_CONTINUOUS;
+            const bool is_var_cont = vartypes[varidx] == GDP_CONTINUOUS;
             newub = adjustUpperBound(newub, is_var_cont);
             newlb = adjustLowerBound(newlb, is_var_cont);
 
@@ -413,9 +434,14 @@ __global__ void GPUAtomicDomainPropagation
             if (is_change_found(oldlb, oldub, newlb, newub)) {
                *change_found = true;
                FOLLOW_VAR_CALL(varidx,
-                               printf("CSR-vector change found for varidx: %7d, considx: %7d. oldlb: %9.2e, oldub: %9.2e, newlb: %9.2e, newub: %9.2e\n",
-                                      varidx, block_row_begin, oldlb, oldub, newlb, newub)
+                               printf("CSR-vector change found for varidx: %7d, considx: %7d. oldlb: %9.2e, oldub: %9.2e, newlb: %9.2e, newub: %9.2e, minact: %9.7e, maxact: %9.7e\n",
+                                      varidx, block_row_begin, oldlb, oldub, newlb, newub, minacts[0], maxacts[0])
                );
+               if (varidx == 902)
+               {
+                  printf("oldlb: %9.2e, oldub: %9.2e, newlb: %9.2e, newub: %9.2e, actual lb: %9.2e, actual ub: %9.2e\n",
+                          oldlb,       oldub,       newlb,       newub,       lbs[varidx],     ubs[varidx]);
+               }
             }
 
          }

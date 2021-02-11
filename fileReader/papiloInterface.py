@@ -8,6 +8,12 @@ from regexes import *
 from readerInterface import FileReaderInterface, get_reader
 
 
+def propagatePapilo(input_file_path: str)-> Tuple[List[float]]:
+    papilo = PapiloInterface("/home/bzfsofra/papilo", input_file_path)
+    papilo.run_papilo()
+    return papilo.get_presolved_bounds()
+
+
 class PapiloInterface():
     def __init__(self, papilo_path: str, input_file: str):
         self.input_file = input_file
@@ -15,7 +21,8 @@ class PapiloInterface():
         self.instance_name = instance_name
         self.tmp_papilo_dir = tempfile.mkdtemp()
 
-        self.output_file = os.path.join(self.tmp_papilo_dir, "presolved" + self.instance_name)
+        #self.output_file = os.path.join(self.tmp_papilo_dir, "presolved" + self.instance_name)
+        self.output_file = os.path.join("/home/bzfsofra/", "presolved" + self.instance_name)
         self.papilo_binary = os.path.join(papilo_path, "build/bin/papilo")
         self.parameters_file = os.path.join(pathlib.Path(__file__).parent.absolute(), "papilo_params.txt")
 

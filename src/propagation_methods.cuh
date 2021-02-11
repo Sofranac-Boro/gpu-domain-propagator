@@ -226,10 +226,6 @@ NewBounds tightenVariable
                 const int num_minact_inf,
                 const int num_maxact_inf,
                 const bool isVarCont,
-                const int var_idx,
-                const int val_idx,
-                const int *csc_col_ptrs,
-                const int *csc_row_indices,
                 datatype lb,
                 datatype ub
         ) {
@@ -243,7 +239,7 @@ NewBounds tightenVariable
    newbds.ub = {false, ub};
 
    if (EPSGT(coeff, 0.0)) {
-      if (EPSGT(coeff * (ub - lb), rhs - minact) && EPSLT(slack, GDP_INF)) {
+      if (EPSGT(coeff * (ub - lb), rhs - minact) && EPSLT(rhs, GDP_INF) && EPSGT(minact, -GDP_INF)) {
 
          newbds.ub = tightenVarUpperBound(coeff, slack, surplus, num_minact_inf, lb, ub, isVarCont);
          // update data for lower bound tightening
@@ -253,11 +249,11 @@ NewBounds tightenVariable
 //         }
       }
 
-      if (EPSGT(coeff * (ub - lb), maxact - lhs) && EPSGT(surplus, -GDP_INF)) {
+      if (EPSGT(coeff * (ub - lb), maxact - lhs) && EPSGT(lhs, -GDP_INF) && EPSLT(maxact, GDP_INF)) {
          newbds.lb = tightenVarLowerBound(coeff, slack, surplus, num_maxact_inf, lb, ub, isVarCont);
       }
    } else {
-      if (EPSGT(coeff * (lb - ub), rhs - minact) && EPSLT(slack, GDP_INF)) {
+      if (EPSGT(coeff * (lb - ub), rhs - minact) && EPSLT(rhs, GDP_INF) && EPSGT(minact, -GDP_INF)) {
 
          newbds.lb = tightenVarLowerBound(coeff, slack, surplus, num_minact_inf, lb, ub, isVarCont);
          // update data for upper bound tightening
@@ -267,7 +263,7 @@ NewBounds tightenVariable
 //         }
       }
 
-      if (EPSGT(coeff * (lb - ub), maxact - lhs) && EPSGT(surplus, -GDP_INF)) {
+      if (EPSGT(coeff * (lb - ub), maxact - lhs) && EPSGT(lhs, -GDP_INF) && EPSLT(maxact, GDP_INF)) {
          newbds.ub = tightenVarUpperBound(coeff, slack, surplus, num_maxact_inf, lb, ub, isVarCont);
       }
    }

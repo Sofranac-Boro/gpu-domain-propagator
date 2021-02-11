@@ -102,14 +102,13 @@ bool sequentialPropagationRound
 
                NewBounds newbds = tightenVariable<datatype>
                        (
-                               coeff, lhs, rhs, minacts[considx], maxacts[considx], minacts_inf[considx], maxacts_inf[considx], isVarCont, varidx, val_idx,
-                               csc_col_ptrs, csc_row_indices, lbs[varidx], ubs[varidx]
+                               coeff, lhs, rhs, minacts[considx], maxacts[considx], minacts_inf[considx], maxacts_inf[considx], isVarCont, lbs[varidx], ubs[varidx]
                        );
 
                if (newbds.lb.is_tightened)
                {
                   FOLLOW_VAR_CALL(varidx,
-                                  printf("cpu_seq lb change found: varidx: %7d, considx: %7d, lhs: %9.2e, rhs: %9.2e, coeff: %9.2e, minact: %9.2e, maxact: %9.2e, num_minact_inf: %d,"
+                                  printf("cpu_seq lb change found: varidx: %7d, considx: %7d, lhs: %9.2e, rhs: %9.2e, coeff: %9.2e, minact: %9.7e, maxact: %9.7e, num_minact_inf: %d,"
                                          " num_maxact_inf: %d, oldlb: %9.2e, oldub: %9.2e, newlb: %9.2e\n",
                                          varidx, considx, lhs, rhs, coeff, minacts[considx], maxacts[considx], minacts_inf[considx], maxacts_inf[considx], lbs[varidx], ubs[varidx], newbds.lb.newb)
                   );
@@ -121,7 +120,7 @@ bool sequentialPropagationRound
                if (newbds.ub.is_tightened)
                {
                   FOLLOW_VAR_CALL(varidx,
-                                  printf("cpu_seq ub change found: varidx: %7d, considx: %7d, lhs: %9.2e, rhs: %9.2e, coeff: %9.2e, minact: %9.2e, maxact: %9.2e, num_minact_inf: %d,"
+                                  printf("cpu_seq ub change found: varidx: %7d, considx: %7d, lhs: %9.2e, rhs: %9.2e, coeff: %9.2e, minact: %9.7e, maxact: %9.7e, num_minact_inf: %d,"
                                          " num_maxact_inf: %d, oldlb(or new): %9.2e, oldub: %9.2e, newub: %9.2e\n",
                                          varidx, considx, lhs, rhs, coeff, minacts[considx], maxacts[considx], minacts_inf[considx], maxacts_inf[considx], lbs[varidx], ubs[varidx], newbds.ub.newb)
                   );

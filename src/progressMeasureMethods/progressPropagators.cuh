@@ -324,9 +324,11 @@ __global__ void GPUAtomicPropEntryKernelWithMeasure
       // shared memory layout:
       // - max_num_cons_in_block elems of type datatype for minactivities
       // - max_num_cons_in_block elems of type datatype for maxactivities
-      //VERBOSE_CALL_2(printf("Amount of dynamic shared memory requested: %.2f KB\n",
-      //                      (2 * max_n_cons_in_block * sizeof(datatype)) / 1024.0));
-      GPUAtomicDomainPropagation<datatype> <<< blocks_count, NNZ_PER_WG, 2 * max_n_cons_in_block * sizeof(datatype) >>>
+      // - max_num_cons_in_block elems of type int for minactivities inf contributions
+      // - max_num_cons_in_block elems of type int for maxactivities inf contributions
+      //   VERBOSE_CALL_2(printf("Amount of dynamic shared memory requested: %.2f KB\n",
+      //                         (2 * max_n_cons_in_block * sizeof(datatype)) / 1024.0));
+      GPUAtomicDomainPropagation<datatype> <<< blocks_count, NNZ_PER_WG, 2 * max_n_cons_in_block * (sizeof(datatype) + sizeof(int)) >>>
       (
               n_cons, max_n_cons_in_block, col_indices, row_ptrs, row_blocks, vals, lbs, ubs, vartypes,
                       lhss, rhss, change_found, prop_round

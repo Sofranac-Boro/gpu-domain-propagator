@@ -193,11 +193,11 @@ if __name__ == "__main__":
                 "prob_name": str(g1.group('prob_file')).split("/")[-1],
                 cpu_seq_time_key: float(g1.group('cpu_seq_time')),
                 cpu_omp_time_key: float(g1.group('cpu_omp_time')),
-                gpu_reduction_time_key: float(g1.group('gpu_reduction_time')),
+#                gpu_reduction_time_key: float(g1.group('gpu_reduction_time')),
                 gpu_atomic_time_key: float(g1.group('gpu_atomic_time')),
                 cpu_seq_rounds_key: int(g1.group('cpu_seq_rounds')),
                 cpu_omp_rounds_key: int(g1.group('cpu_omp_rounds')),
-                gpu_reduction_rounds_key: int(g1.group('gpu_reduction_rounds')),
+ #               gpu_reduction_rounds_key: int(g1.group('gpu_reduction_rounds')),
                 gpu_atomic_rounds_key: int(g1.group('gpu_atomic_rounds')),
                 "res_eq": res_eq
             }
@@ -214,7 +214,7 @@ if __name__ == "__main__":
     for log_file in test_sets:
         print("cpu_seq:",       sum(map(lambda x: x[cpu_seq_rounds_key], test_sets[log_file])) / len(test_sets[log_file]),
               "cpu_omp:",       sum(map(lambda x: x[cpu_omp_rounds_key], test_sets[log_file])) / len(test_sets[log_file]),
-              "gpu_reduction:", sum(map(lambda x: x[gpu_reduction_rounds_key], test_sets[log_file])) / len(test_sets[log_file]),
+#              "gpu_reduction:", sum(map(lambda x: x[gpu_reduction_rounds_key], test_sets[log_file])) / len(test_sets[log_file]),
               "gpu_atomic:",    sum(map(lambda x: x[gpu_atomic_rounds_key], test_sets[log_file])) / len(test_sets[log_file]))
 
 
