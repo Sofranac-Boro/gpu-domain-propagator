@@ -32,7 +32,7 @@ def normalize_infs(arr: List[float]) -> List[float]:
 
 def arrays_equal(bds1: List[float], bds2: List[float]) -> bool:
     try:
-        return np.isclose(bds1, bds2).all()
+        return np.isclose(bds1, bds2,  rtol=1e-05, atol=1e-08).all()
     except ValueError:
         return False
 
