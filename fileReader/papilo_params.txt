@@ -56,7 +56,7 @@ presolve.compressfac = 0.84999999999999998
 presolve.detectlindep = 0
 
 # 0: disable dual reductions, 1: allow dual reductions that never cut off optimal solutions, 2: allow all dual reductions  [Integer: [0,2]]
-presolve.dualreds = 2
+presolve.dualreds = 0
 
 # abort factor of weighted number of reductions for presolving LPs  [Numerical: [0,1]]
 presolve.lpabortfac = 0.0

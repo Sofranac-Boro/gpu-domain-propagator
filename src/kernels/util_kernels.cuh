@@ -315,7 +315,6 @@ __device__ __forceinline__ void getNewBoundCandidates
 
    // do not attempt to use the above formulas if activities or cons sides are inf. It could lead to numerical difficulties and no bound change is possibly valid.
    // lower
-   //bool can_tighten = ( EPSGT(coeff, 0.0) && EPSGT(surplus, -GDP_INF) || EPSLT(coeff, 0.0) && EPSLT(slack, GDP_INF) ) && EPSGT(*newlb, -GDP_INF);
    bool can_tighten = ( EPSGT(coeff, 0.0) && EPSGT(lhs, -GDP_INF) && EPSLT(maxact, GDP_INF) && (num_maxact_inf == 0 || (num_maxact_inf == 1 && EPSGE(ub, GDP_INF))) );
    can_tighten = can_tighten || ( EPSLT(coeff, 0.0) && EPSLT(rhs, GDP_INF) && EPSGT(minact, -GDP_INF) && (num_minact_inf == 0 || (num_minact_inf == 1 && EPSGE(ub, GDP_INF))) );
    bool is_one_inf_case =( EPSGT(coeff, 0.0) && num_maxact_inf == 1 && EPSGE(ub, GDP_INF) ) || ( EPSLT(coeff, 0.0) && num_minact_inf == 1 && EPSGE(ub, GDP_INF) );
@@ -325,7 +324,6 @@ __device__ __forceinline__ void getNewBoundCandidates
    *newlb = can_tighten && EPSGT(*newlb, -GDP_INF)? *newlb : lb;
 
    // upper
-   //can_tighten = ( EPSGT(coeff, 0.0) && EPSLT(slack, GDP_INF) || EPSLT(coeff, 0.0) && EPSGT(surplus, -GDP_INF) ) && EPSLT(*newub, GDP_INF);
    can_tighten = ( EPSGT(coeff, 0.0) && EPSLT(rhs, GDP_INF) && EPSGT(minact, -GDP_INF) && ( num_minact_inf == 0 || (num_minact_inf == 1 && EPSLE(lb, -GDP_INF))) );
    can_tighten = can_tighten || ( EPSLT(coeff, 0.0) && EPSGT(lhs, -GDP_INF) && EPSLT(maxact, GDP_INF) && ( num_maxact_inf == 0 || (num_maxact_inf == 1 && EPSLE(lb, -GDP_INF))) );
    is_one_inf_case =( EPSGT(coeff, 0.0) && num_minact_inf == 1 && EPSLE(lb, -GDP_INF) ) || ( EPSLT(coeff, 0.0) && num_maxact_inf == 1 && EPSLE(lb, -GDP_INF) );
@@ -333,12 +331,6 @@ __device__ __forceinline__ void getNewBoundCandidates
    *newub = EPSGT(coeff, 0)? (rhs - minact) / coeff : (lhs - maxact) / coeff;
    *newub = is_one_inf_case? *newub : *newub + lb;
    *newub = can_tighten && EPSLT(*newub, GDP_INF) ? *newub : ub;
-
-//   if(!EPSGE(*newub, *newlb))
-//   {
-//      printf("from cand: varidx: %d, considx: %d, slack: %9.2e, surplus: %9.2e, num_minact_inf: %7d, num_maxact_inf: %7d, coeff: %9.2e, lb: %9.2e, ub: %9.2e, newlb: %9.2e, newub: %9.2e, can_tighten: %d\n",
-//                         varidx,     considx,     slack,        surplus,        num_minact_inf,      num_maxact_inf,      coeff,        lb,        ub,       *newlb,       *newub,        can_tighten);
-//   }
 
    assert(EPSGE(*newub, *newlb));
 }

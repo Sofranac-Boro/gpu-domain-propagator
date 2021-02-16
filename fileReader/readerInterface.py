@@ -55,7 +55,7 @@ class PythonMIPReader(FileReaderInterface):
 
         print("Reding lp file", self.instance_name)
         self.m.read(input_file)
-        print("Reding of ", self.instance_name, " model done!")
+        print("Reading of ", self.instance_name, " model done!")
 
         self.vars = self.m.vars
         self.constrs = self.m.constrs

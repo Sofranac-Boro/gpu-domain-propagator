@@ -11,7 +11,7 @@ from papiloInterface import propagatePapilo
 
 from papiloInterface import PapiloInterface
 from GPUDomPropInterface import propagateGPUReduction, propagateGPUAtomic, propagateSequential, propagateFullOMP, \
-propagateSequentialWithMeasure, propagateGPUAtomicWithMeasure, propagateSequentialDisjoint
+propagateSequentialWithMeasure, propagateGPUAtomicWithMeasure, propagateSequentialDisjoint, propagateSequentialWithPapiloPostsolve
 from readerInterface import FileReaderInterface, get_reader
 from regexes import OutputGrabber
 from utils import plot_progress_save_pdf, compare_arrays_diff_idx
@@ -56,15 +56,14 @@ def prop_compare_seq_gpu(lp_file_path: str, datatype: _SimpleCData = c_double) -
     lbs_dis = lbs_seq = lbs_gpuatomic = lbs_gpu = lbs_omp = lbs
     ubs_dis = ubs_seq = ubs_gpuatomic = ubs_gpu = ubs_omp = ubs
 
-    (seq_new_lbs, seq_new_ubs) = propagateSequential(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss,
-                                                     lbs_seq, ubs_seq, vartypes, datatype=c_double)
-  #  gdp_solved_instance_path = reader.write_model_with_new_bounds(seq_new_lbs, seq_new_ubs)
+   # (seq_new_lbs, seq_new_ubs, stdout) = propagateSequentialWithPapiloPostsolve(reader, n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss,
+   #                                                          lbs_seq, ubs_seq, vartypes, datatype=c_double)
 
-  #  (lbs_papilo, ubs_papilo) = propagatePapilo(lp_file_path)
 
-  #  print("now running papilo over GDP solved instance:\n")
-   # (seq_new_lbs, seq_new_ubs) = propagatePapilo(gdp_solved_instance_path)
+  #  (lbs_papilo, ubs_papilo, _) = propagatePapilo(lp_file_path)
 
+
+    (seq_new_lbs, seq_new_ubs) = propagateSequential(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_seq, ubs_seq, vartypes, datatype=c_double)
 
     (omp_new_lbs, omp_new_ubs) = propagateFullOMP(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_omp, ubs_omp, vartypes, datatype=c_double)
 
@@ -72,13 +71,13 @@ def prop_compare_seq_gpu(lp_file_path: str, datatype: _SimpleCData = c_double) -
 
    # (dis_new_lbs, dis_new_ubs) = propagateSequentialDisjoint( n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_dis, ubs_dis, vartypes)
   #  idx = 1
-   # print("before call: seq ", idx, " : [", seq_new_lbs[idx], ", ", seq_new_ubs[idx], "] atomic ", idx," : [", lbs_gpuatomic[idx], ", ", ubs_gpuatomic[idx], "]")
+
     (gpuatomic_new_lbs, gpuatomic_new_ubs) = propagateGPUAtomic(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_gpuatomic, ubs_gpuatomic, vartypes, fullAsync=False, datatype=datatype)
-   # print("after call bvefore normalize: seq ", idx, " : [", seq_new_lbs[idx], ", ", seq_new_ubs[idx], "] atomic ", idx," : [", gpuatomic_new_lbs[idx], ", ", gpuatomic_new_ubs[idx], "]")
+
     seq_new_lbs = normalize_infs(seq_new_lbs)
     seq_new_ubs = normalize_infs(seq_new_ubs)
-   # lbs_papilo = normalize_infs(lbs_papilo)
-   # ubs_papilo = normalize_infs(ubs_papilo)
+    #lbs_papilo = normalize_infs(lbs_papilo)
+    #ubs_papilo = normalize_infs(ubs_papilo)
     # gpu_new_lbs = normalize_infs(gpu_new_lbs)
     # gpu_new_ubs = normalize_infs(gpu_new_ubs)
     omp_new_lbs = normalize_infs(omp_new_lbs)
@@ -88,9 +87,10 @@ def prop_compare_seq_gpu(lp_file_path: str, datatype: _SimpleCData = c_double) -
     # # dis_new_lbs = normalize_infs(dis_new_lbs)
     # # dis_new_ubs = normalize_infs(dis_new_ubs)
     #
+
+    equal_seq_omp = arrays_equal(seq_new_lbs, omp_new_lbs) and arrays_equal(seq_new_ubs, omp_new_ubs)
     equal_seq_gpu_atomic = arrays_equal(seq_new_lbs, gpuatomic_new_lbs) and arrays_equal(seq_new_ubs, gpuatomic_new_ubs)
     # equal_seq_gpu_full = arrays_equal(seq_new_lbs, gpu_new_lbs) and arrays_equal(seq_new_ubs, gpu_new_ubs)
-    equal_seq_omp = arrays_equal(seq_new_lbs, omp_new_lbs) and arrays_equal(seq_new_ubs, omp_new_ubs)
     # # equal_seq_dis = arrays_equal(seq_new_lbs, dis_new_lbs) and arrays_equal(seq_new_ubs, dis_new_ubs)
     print("\ncpu_seq to cpu_omp results match: ", equal_seq_omp)
     # print("cpu_seq to gpu_reduction results match: ", equal_seq_gpu_full)
@@ -102,9 +102,8 @@ def prop_compare_seq_gpu(lp_file_path: str, datatype: _SimpleCData = c_double) -
    # print("cpu_seq to pailo results match: ", equal_seq_papilo)
     ### END PAPILO STUFF###
    # idx = 0
-   # print("seq ", idx, " : [", seq_new_lbs[idx], ", ", seq_new_ubs[idx], "] atomic ", idx," : [", gpuatomic_new_lbs[idx], ", ", gpuatomic_new_ubs[idx], "]")
-    compare_arrays_diff_idx(seq_new_lbs, gpuatomic_new_lbs, "lbs")
-    compare_arrays_diff_idx(seq_new_ubs, gpuatomic_new_ubs, "ubs")
+   # compare_arrays_diff_idx(seq_postsolve_lbs, lbs_papilo, "lbs")
+  #  compare_arrays_diff_idx(seq_postsolve_ubs, ubs_papilo, "ubs")
 # print_bounds(seq_new_lbs, seq_new_ubs)
 # print_bounds(gpuatomic_new_lbs, gpuatomic_new_ubs)
 

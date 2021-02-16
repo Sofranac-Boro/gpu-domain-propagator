@@ -437,11 +437,6 @@ __global__ void GPUAtomicDomainPropagation
                                printf("CSR-vector change found for varidx: %7d, considx: %7d. oldlb: %9.2e, oldub: %9.2e, newlb: %9.2e, newub: %9.2e, minact: %9.7e, maxact: %9.7e\n",
                                       varidx, block_row_begin, oldlb, oldub, newlb, newub, minacts[0], maxacts[0])
                );
-               if (varidx == 902)
-               {
-                  printf("oldlb: %9.2e, oldub: %9.2e, newlb: %9.2e, newub: %9.2e, actual lb: %9.2e, actual ub: %9.2e\n",
-                          oldlb,       oldub,       newlb,       newub,       lbs[varidx],     ubs[varidx]);
-               }
             }
 
          }

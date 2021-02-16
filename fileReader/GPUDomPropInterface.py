@@ -1,7 +1,10 @@
 from ctypes import *
 from ctypes import _SimpleCData
-from typing import List, Tuple
+from typing import List, Tuple, Union
 from enum import Enum
+
+from readerInterface import FileReaderInterface
+from papiloInterface import PapiloInterface
 
 so_file = "../build/libGpuProp.so"
 
@@ -242,6 +245,36 @@ def propagateSequential(
     )
 
     return list(c_lbs), list(c_ubs)
+
+
+def propagateSequentialWithPapiloPostsolve(
+        reader: FileReaderInterface,
+        n_vars: int,
+        n_cons: int,
+        nnz: int,
+        csr_col_indices: List[int],
+        csr_row_ptrs: List[int],
+        csr_vals: List[float],
+        lhss: List[float],
+        rhss: List[float],
+        lbs: List[float],
+        ubs: List[float],
+        vartypes: List[int],
+        datatype = c_double
+):
+    (seq_new_lbs, seq_new_ubs) = propagateSequential(n_vars, n_cons, nnz, csr_col_indices, csr_row_ptrs, csr_vals, lhss, rhss,
+                                                     lbs, ubs, vartypes, datatype=datatype)
+
+    gdp_solved_instance_path = reader.write_model_with_new_bounds(seq_new_lbs, seq_new_ubs)
+
+    papilo = PapiloInterface("/home/bzfsofra/papilo", gdp_solved_instance_path + ".mps.gz")
+    stdout = papilo.run_papilo()
+    lbs, ubs = papilo.get_presolved_bounds()
+    postsolve_bd_chgs = papilo.get_num_bound_changes()
+    if postsolve_bd_chgs != 0:
+        print(stdout)
+        raise Exception("papilo found additional bound changes after GDP.")
+    return lbs, ubs, stdout
 
 
 def propagateSequentialWithMeasure(
