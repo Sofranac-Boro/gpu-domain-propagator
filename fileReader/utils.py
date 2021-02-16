@@ -9,6 +9,12 @@ from regexes import *
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 
+def normalize_infs(arr: List[float]) -> List[float]:
+    arr = list(map(lambda val: 1e20 if val >= 1e20 else val, arr))
+    arr = list(map(lambda val: -1e20 if val <= -1e20 else val, arr))
+    return arr
+
+
 def print_bounds(lbs: List[float], ubs: List[float], prnt_name: str = "", num_print: int = 10) -> None:
     print(prnt_name, " lbs: ", lbs[:num_print])
     print(prnt_name, " ubs: ", ubs[:num_print])

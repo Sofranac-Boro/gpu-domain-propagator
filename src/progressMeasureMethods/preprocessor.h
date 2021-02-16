@@ -22,6 +22,8 @@ bool preprocessorPropagationRound
                 const GDP_VARTYPE *vartypes,
                 datatype *minacts,
                 datatype *maxacts,
+                int* minacts_inf,
+                int* maxacts_inf,
                 datatype *maxactdeltas,
                 int *consmarked,
                 const bool recomputeActs
@@ -50,6 +52,8 @@ bool preprocessorPropagationRound
             ActivitiesTuple activities = computeActivities(considx, col_indices, row_indices, vals, ubs, lbs);
             minacts[considx] = activities.minact;
             maxacts[considx] = activities.maxact;
+            minacts_inf[considx] = activities.minact_inf;
+            maxacts_inf[considx] = activities.maxact_inf;
             maxactdeltas[considx] = activities.maxactdelta;
          }
 
@@ -73,8 +77,7 @@ bool preprocessorPropagationRound
 
                NewBounds newbds = tightenVariable<datatype>
                        (
-                               coeff, lhs, rhs, minacts[considx], maxacts[considx], isVarCont, varidx, val_idx,
-                               csc_col_ptrs, csc_row_indices, lbs, ubs
+                               coeff, lhs, rhs, minacts[considx], maxacts[considx], minacts_inf[considx], maxacts_inf[considx], isVarCont, lbs[varidx], ubs[varidx]
                        );
 
 
@@ -141,6 +144,8 @@ void executePreprocessor
 
    datatype *minacts = (datatype *) calloc(n_cons, sizeof(datatype));
    datatype *maxacts = (datatype *) calloc(n_cons, sizeof(datatype));
+   int *minacts_inf = (int *) calloc(n_cons, sizeof(int));
+   int *maxacts_inf = (int *) calloc(n_cons, sizeof(int));
    datatype *maxactdeltas = (datatype *) calloc(n_cons, sizeof(datatype));
    int *consmarked = (int *) calloc(n_cons, sizeof(int));
 
@@ -163,7 +168,7 @@ void executePreprocessor
    {
       VERBOSE_CALL_2(printf("\nPropagation round: %d", prop_round));
 
-      sequentialComputeActivities<datatype>(n_cons, col_indices, row_indices, vals, ubs, lbs, minacts, maxacts,
+      sequentialComputeActivities<datatype>(n_cons, col_indices, row_indices, vals, ubs, lbs, minacts, maxacts, minacts_inf, maxacts_inf,
                                             maxactdeltas);
 
       FOLLOW_VAR_CALL(FOLLOW_VAR,
@@ -173,7 +178,7 @@ void executePreprocessor
       change_found = preprocessorPropagationRound<datatype>
               (
                       n_cons, n_vars, col_indices, row_indices, csc_col_ptrs, csc_row_indices, vals, lhss, rhss,
-                      lbs, ubs, lbs_original, ubs_original, vartypes, minacts, maxacts, maxactdeltas, consmarked, RECOMPUTE_ACTS_FALSE
+                      lbs, ubs, lbs_original, ubs_original, vartypes, minacts, maxacts, minacts_inf, maxacts_inf, maxactdeltas, consmarked, RECOMPUTE_ACTS_FALSE
               );
 
       FOLLOW_VAR_CALL(FOLLOW_VAR,
@@ -186,6 +191,8 @@ void executePreprocessor
 
    free(minacts);
    free(maxacts);
+   free(minacts_inf);
+   free(maxacts_inf);
    free(maxactdeltas);
    free(consmarked);
    free(lbs_original);

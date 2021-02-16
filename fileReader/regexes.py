@@ -4,8 +4,8 @@ import threading
 import time
 import re
 
-result_pattern = r"Reding of  (?P<prob_file>.*)  model done!\nnum vars:  (?P<n_vars>\d*)\nnum cons:  (?P<n_cons>\d*)\nnnz     :  (?P<nnz>\d*)\n\n.*\n.*cpu_seq propagation done. Num rounds: (?P<cpu_seq_rounds>\d*)\ncpu_seq execution time : (?P<cpu_seq_time>\d*).*\n\n.*\n.*cpu_omp propagation done. Num rounds: (?P<cpu_omp_rounds>\d*)\ncpu_omp execution time : (?P<cpu_omp_time>\d*).*\n\n.*\n.*gpu_reduction propagation done. Num rounds: (?P<gpu_reduction_rounds>\d*)\ngpu_reduction execution time : (?P<gpu_reduction_time>\d*).*\n\n.*\n.*gpu_atomic propagation done. Num rounds: (?P<gpu_atomic_rounds>\d*)\ngpu_atomic execution time : (?P<gpu_atomic_time>\d*).*\n\n.*\n.*\n.*\nall results match:  (?P<results_correct>.*)"
-
+# result_pattern = r"Reding of  (?P<prob_file>.*)  model done!\nnum vars:  (?P<n_vars>\d*)\nnum cons:  (?P<n_cons>\d*)\nnnz     :  (?P<nnz>\d*)\n\n.*\n.*cpu_seq propagation done. Num rounds: (?P<cpu_seq_rounds>\d*)\ncpu_seq execution time : (?P<cpu_seq_time>\d*).*\n\n.*\n.*cpu_omp propagation done. Num rounds: (?P<cpu_omp_rounds>\d*)\ncpu_omp execution time : (?P<cpu_omp_time>\d*).*\n\n.*\n.*gpu_reduction propagation done. Num rounds: (?P<gpu_reduction_rounds>\d*)\ngpu_reduction execution time : (?P<gpu_reduction_time>\d*).*\n\n.*\n.*gpu_atomic propagation done. Num rounds: (?P<gpu_atomic_rounds>\d*)\ngpu_atomic execution time : (?P<gpu_atomic_time>\d*).*\n\n.*\n.*\n.*\nall results match:  (?P<results_correct>.*)"
+result_pattern = r"Reding of  (?P<prob_file>.*)  model done!\nnum vars:  (?P<n_vars>\d*)\nnum cons:  (?P<n_cons>\d*)\nnnz     :  (?P<nnz>\d*)\n\n.*\n.*cpu_seq propagation done. Num rounds: (?P<cpu_seq_rounds>\d*)\ncpu_seq execution time : (?P<cpu_seq_time>\d*).*\n\n.*\n.*cpu_omp propagation done. Num rounds: (?P<cpu_omp_rounds>\d*)\ncpu_omp execution time : (?P<cpu_omp_time>\d*).*\n\n.*\n.*gpu_atomic propagation done. Num rounds: (?P<gpu_atomic_rounds>\d*)\ngpu_atomic execution time : (?P<gpu_atomic_time>\d*).*\n\ncpu_seq to cpu_omp results match:  (?P<dsadasdas>.*)\ncpu_seq to gpu_atomic results match:  (?P<dadadas>.*)\nall results match:  (?P<results_correct>.*)"
 seq_to_omp_pattern = r"cpu_seq to cpu_omp results match:  (?P<match>.*)"
 seq_to_red_pattern = r"cpu_seq to gpu_reduction results match:  (?P<match>.*)"
 seq_to_ato_pattern = r"cpu_seq to gpu_atomic results match:  (?P<match>.*)"
@@ -19,6 +19,12 @@ def without_measure_output_pattern(alg): return "(?s)====   Running the {} witho
 def num_rounds_pattern(alg): return "{} propagation done\. Num rounds: (?P<nrounds>\d+)".format(alg)
 def round_measures_pattern(prop_round): return "round {} total score: (?P<score>\d+.\d+), k=(?P<k>\d+), n=(?P<n>\d+)".format(prop_round)
 def round_timestamp_pattern(prop_round, alg): return "Propagation round: {}, {} execution time : (?P<timestamp>\d+) nanoseconds".format(prop_round, alg)
+
+
+# PaPILO
+papilo_results_pattern = r"        propagation            (?P<rounds>\d+)               (?P<b>\d+.\d+)               (?P<c>\d+)              (?P<d>\d+.\d+)              (?P<time>\d+.\d+)"
+papilo_success_pattern = r"presolving finished after (?P<time>\d+.\d+) seconds"
+papilo_solve_stats = r"presolved[ \t]+(?P<rounds>\d+) rounds:[ \t]+(?P<del_cols>\d+) del cols,[ \t]+(?P<del_rows>\d+) del rows,[ \t]+(?P<chg_bounds>\d+) chg bounds,[ \t]+(?P<chg_sides>\d+) chg sides,[ \t]+(?P<chg_coeffs>\d+) chg coeffs,[ \t]+(?P<tsx_applied>\d+) tsx applied,[ \t]+(?P<tsx_conflicts>\d+) tsx conflicts"
 
 
 def get_regex_result(regex_string: str, search_string: str, group_name: str = None):

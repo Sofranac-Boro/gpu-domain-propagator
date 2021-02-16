@@ -188,6 +188,8 @@ GDP_Retcode sequentialPropagateWithMeasure
 
    datatype *minacts = (datatype *) calloc(n_cons, sizeof(datatype));
    datatype *maxacts = (datatype *) calloc(n_cons, sizeof(datatype));
+   int *minacts_inf = (int *) calloc(n_cons, sizeof(int));
+   int *maxacts_inf = (int *) calloc(n_cons, sizeof(int));
    datatype *maxactdeltas = (datatype *) calloc(n_cons, sizeof(datatype));
    int *consmarked = (int *) calloc(n_cons, sizeof(int));
 
@@ -215,17 +217,17 @@ GDP_Retcode sequentialPropagateWithMeasure
       memcpy(ubs_prev, ubs, n_vars * sizeof(datatype));
 
       FOLLOW_VAR_CALL(FOLLOW_VAR,
-                      printf("cpu_seq varidx: %7d bounds beofre round: %7d: lb: %9.2e, ub: %9.2e\n", FOLLOW_VAR, prop_round, lbs[FOLLOW_VAR],
+                      printf("cpu_seq varidx %d bounds beofre round %d: lb: %9.2e, ub: %9.2e\n", FOLLOW_VAR, prop_round, lbs[FOLLOW_VAR],
                              ubs[FOLLOW_VAR]));
 
       change_found = sequentialPropagationRound<datatype>
               (
                       n_cons, n_vars, col_indices, row_indices, csc_col_ptrs, csc_row_indices, vals, lhss, rhss,
-                      lbs, ubs, vartypes, minacts, maxacts, maxactdeltas, consmarked, RECOMPUTE_ACTS_TRUE
+                      lbs, ubs, vartypes, minacts, maxacts, minacts_inf, maxacts_inf, maxactdeltas, consmarked, RECOMPUTE_ACTS_TRUE
               );
 
       FOLLOW_VAR_CALL(FOLLOW_VAR,
-                      printf("cpu_seq varidx %7d bounds after round %7d: lb: %9.2e, ub: %9.2e\n", FOLLOW_VAR, prop_round, lbs[FOLLOW_VAR], ubs[FOLLOW_VAR]));
+                      printf("cpu_seq varidx %d bounds after round %d: lb: %9.2e, ub: %9.2e\n", FOLLOW_VAR, prop_round, lbs[FOLLOW_VAR], ubs[FOLLOW_VAR]));
 
       const datatype score = calcProgressMeasureSeq(n_vars, lbs, ubs, lbs_start, ubs_start, lbs_limit, ubs_limit, lbs_prev, ubs_prev, measures, abs_measure_k, abs_measure_n);
       assert(EPSLE(score, max_score));
@@ -242,6 +244,8 @@ GDP_Retcode sequentialPropagateWithMeasure
 
    free(minacts);
    free(maxacts);
+   free(minacts_inf);
+   free(maxacts_inf);
    free(maxactdeltas);
    free(consmarked);
    free( lbs_start );
@@ -320,9 +324,11 @@ __global__ void GPUAtomicPropEntryKernelWithMeasure
       // shared memory layout:
       // - max_num_cons_in_block elems of type datatype for minactivities
       // - max_num_cons_in_block elems of type datatype for maxactivities
-      //VERBOSE_CALL_2(printf("Amount of dynamic shared memory requested: %.2f KB\n",
-      //                      (2 * max_n_cons_in_block * sizeof(datatype)) / 1024.0));
-      GPUAtomicDomainPropagation<datatype> <<< blocks_count, NNZ_PER_WG, 2 * max_n_cons_in_block * sizeof(datatype) >>>
+      // - max_num_cons_in_block elems of type int for minactivities inf contributions
+      // - max_num_cons_in_block elems of type int for maxactivities inf contributions
+      //   VERBOSE_CALL_2(printf("Amount of dynamic shared memory requested: %.2f KB\n",
+      //                         (2 * max_n_cons_in_block * sizeof(datatype)) / 1024.0));
+      GPUAtomicDomainPropagation<datatype> <<< blocks_count, NNZ_PER_WG, 2 * max_n_cons_in_block * (sizeof(datatype) + sizeof(int)) >>>
       (
               n_cons, max_n_cons_in_block, col_indices, row_ptrs, row_blocks, vals, lbs, ubs, vartypes,
                       lhss, rhss, change_found, prop_round

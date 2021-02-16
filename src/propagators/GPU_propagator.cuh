@@ -163,6 +163,15 @@ GDP_Retcode propagateConstraintsGPUAtomic(
 
          gpu.setMemGPU<bool>(d_change_found, false);
 
+         VERBOSE_CALL_2(printf("\nPropagation round: %d, ", prop_round));
+
+#ifdef FOLLOW_VAR
+         datatype lb, ub;
+         gpu.getMemFromGPU<datatype>(&d_lbs[FOLLOW_VAR], &lb);
+         gpu.getMemFromGPU<datatype>(&d_ubs[FOLLOW_VAR], &ub);
+         printf("\nbounds before round: %d, varidx: %7d, lb: %9.2e, ub: %9.2e\n", prop_round, FOLLOW_VAR, lb, ub);
+#endif
+
          // shared memory layout:
          // - max_num_cons_in_block elems of type datatype for minactivities
          // - max_num_cons_in_block elems of type datatype for maxactivities
@@ -178,7 +187,12 @@ GDP_Retcode propagateConstraintsGPUAtomic(
          cudaDeviceSynchronize();
          gpu.getMemFromGPU<bool>(d_change_found, &change_found);
 
-         VERBOSE_CALL_2(printf("Propagation round: %d, ", prop_round));
+#ifdef FOLLOW_VAR
+         gpu.getMemFromGPU<datatype>(&d_lbs[FOLLOW_VAR], &lb);
+         gpu.getMemFromGPU<datatype>(&d_ubs[FOLLOW_VAR], &ub);
+         printf("\nbounds after round: %d, varidx: %7d, lb: %9.2e, ub: %9.2e\n", prop_round, FOLLOW_VAR, lb, ub);
+#endif
+
          VERBOSE_CALL_2( measureTime("gpu_atomic", start, std::chrono::steady_clock::now()) );
       }
       VERBOSE_CALL(printf("gpu_atomic propagation done. Num rounds: %d\n", prop_round - 1));

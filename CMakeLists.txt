@@ -50,6 +50,10 @@ if (FOLLOW_VAR)
     add_definitions(-DFOLLOW_VAR=${FOLLOW_VAR})
 endif()
 
+if (FOLLOW_CONS)
+    add_definitions(-DFOLLOW_CONS=${FOLLOW_CONS})
+endif()
+
 add_library(GpuProp SHARED
         src/misc.cpp
         src/kernels/util_kernels.cu
@@ -62,6 +66,7 @@ add_library(GpuProp SHARED
 target_compile_features(GpuProp PUBLIC cxx_std_11)
 set_target_properties(GpuProp PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(GpuProp PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+set_property(TARGET GpuProp PROPERTY CUDA_ARCHITECTURES ${ARCH})
 target_link_libraries(GpuProp ${CUDA_cusparse_LIBRARY})
 
 add_executable(testexec test/test_main.cu
@@ -71,6 +76,7 @@ add_executable(testexec test/test_main.cu
         test/test_infra.cu
         src/interface.cu)
 set_property(TARGET testexec PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+set_property(TARGET testexec PROPERTY CUDA_ARCHITECTURES ${ARCH})
 set_target_properties(testexec PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(testexec ${CUDA_cusparse_LIBRARY} GpuProp)
 

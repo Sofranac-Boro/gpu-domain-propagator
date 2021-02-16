@@ -3,6 +3,9 @@ using_python_mip = True
 
 from abc import ABC, abstractmethod
 from typing import Tuple, List, Union, Generator, Dict
+import shutil
+import tempfile
+import os
 
 if using_python_mip:
     from mip import Model, LinExpr, Var
@@ -40,16 +43,36 @@ class FileReaderInterface(ABC):
     def get_SCIP_vartypes(self) -> List[int]:
         pass
 
+    @abstractmethod
+    def write_model_with_new_bounds(self, lbs: List[float], ubs: [List[float]]) -> str:
+        pass
+
 
 class PythonMIPReader(FileReaderInterface):
     def __init__(self, input_file: str) -> None:
-        m = Model()
-        print("Reding lp file", input_file)
-        m.read(input_file)
-        print("Reding of ", input_file, " model done!")
-        self.m = m
-        self.vars = m.vars
-        self.constrs = m.constrs
+        self.instance_name = input_file.split("/")[-1].split(".")[0]
+        self.m = Model()
+
+        print("Reding lp file", self.instance_name)
+        self.m.read(input_file)
+        print("Reading of ", self.instance_name, " model done!")
+
+        self.vars = self.m.vars
+        self.constrs = self.m.constrs
+
+        self.tmp_reader_dir = tempfile.mkdtemp()
+
+    def __del__(self):
+        shutil.rmtree(self.tmp_reader_dir)
+
+    def write_model_with_new_bounds(self, lbs: List[float], ubs: [List[float]]) -> str:
+        assert(len(lbs) == len(ubs) == len(self.m.vars))
+        for i in range(len(lbs)):
+            self.m.vars[i].lb = lbs[i]
+            self.m.vars[i].ub = ubs[i]
+        out_path = os.path.join(self.tmp_reader_dir, str(self.instance_name) + ".mps")
+        self.m.write(out_path)
+        return out_path
 
     def get_n_vars(self) -> int:
         return self.m.num_cols
