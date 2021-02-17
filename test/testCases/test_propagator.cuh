@@ -101,17 +101,18 @@ REQUIRE( isLbBetter(oldlb, oldub, newlb)
 
 TEST_CASE( "can cons be tightened test")
 {
-
-double slack = 9.1;
-double surplus = 10.8;
+double rhs = 9.1;
+double minact = 0;
+double maxact = 10.8;
+double lhs = 0;
 double maxactdelta = 3.8;
-REQUIRE_FALSE( canConsBeTightened(slack, surplus, maxactdelta)
+REQUIRE_FALSE( canConsBeTightened(minact, maxact, 0, 0, lhs, rhs, maxactdelta)
 );
 
-slack = 2.0;
-surplus = 3.8;
+rhs = 2.0;
+maxact = 3.8;
 maxactdelta = 2.8;
-REQUIRE( canConsBeTightened(slack, surplus, maxactdelta)
+REQUIRE( canConsBeTightened(minact, maxact, 0, 0, lhs, rhs, maxactdelta)
 );
 }
 
@@ -149,7 +150,7 @@ lb = -10.0;
 ub = 10.0;
 isVarCont = true;
 int num_inf_contr = 0;
-NewBoundTuple res = tightenVarUpperBound(coeff, slack, surplus, num_inf_contr, lb, ub, isVarCont);
+NewBoundTuple<double> res = tightenVarUpperBound(coeff, slack, surplus, num_inf_contr, lb, ub, isVarCont);
 REQUIRE( res
 .is_tightened );
 assertDoubleEPSEQ(res
@@ -173,7 +174,7 @@ lb = 0;
 ub = 100;
 isVarCont = false;
 num_inf_contr = 0;
-NewBoundTuple res = tightenVarUpperBound(coeff, slack, surplus, num_inf_contr, lb, ub, isVarCont);
+NewBoundTuple<double> res = tightenVarUpperBound(coeff, slack, surplus, num_inf_contr, lb, ub, isVarCont);
 REQUIRE( res
 .is_tightened );
 assertDoubleEPSEQ(res
@@ -203,7 +204,7 @@ lb = -100.0;
 ub = 10;
 isVarCont = true;
    int num_inf_contr = 0;
-NewBoundTuple res = tightenVarLowerBound(coeff, slack, surplus, num_inf_contr, lb, ub, isVarCont);
+NewBoundTuple<double> res = tightenVarLowerBound(coeff, slack, surplus, num_inf_contr, lb, ub, isVarCont);
 REQUIRE( res
 .is_tightened );
 assertDoubleEPSEQ(res
@@ -233,7 +234,7 @@ lb = -7.5;
 ub = -3.0;
 isVarCont = true;
    int num_inf_contr = 0;
-NewBoundTuple res = tightenVarLowerBound(coeff, slack, surplus, num_inf_contr, lb, ub, isVarCont);
+NewBoundTuple<double> res = tightenVarLowerBound(coeff, slack, surplus, num_inf_contr, lb, ub, isVarCont);
 REQUIRE( res
 .is_tightened );
 assertDoubleEPSEQ(res

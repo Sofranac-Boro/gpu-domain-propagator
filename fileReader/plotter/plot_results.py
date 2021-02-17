@@ -175,11 +175,13 @@ if __name__ == "__main__":
 
     test_sets = {}
     false_results = {}
+    max_num_rounds = {}
 
     # For each log file, parse the contents and save the data in the main data struct
     for log_file in log_files_data:
         test_sets[log_file] = []
         false_results[log_file] = 0
+        max_num_rounds[log_file] = 0
         with open(log_file, 'r') as f:
             results_file = f.read()
 
@@ -195,27 +197,29 @@ if __name__ == "__main__":
                 "prob_name": str(g1.group('prob_file')).split("/")[-1],
                 cpu_seq_time_key: float(g1.group('cpu_seq_time')),
                 cpu_omp_time_key: float(g1.group('cpu_omp_time')),
-#                gpu_reduction_time_key: float(g1.group('gpu_reduction_time')),
+              #  gpu_reduction_time_key: float(g1.group('gpu_reduction_time')),
                 gpu_atomic_time_key: float(g1.group('gpu_atomic_time')),
                 cpu_seq_rounds_key: int(g1.group('cpu_seq_rounds')),
                 cpu_omp_rounds_key: int(g1.group('cpu_omp_rounds')),
- #               gpu_reduction_rounds_key: int(g1.group('gpu_reduction_rounds')),
+            #    gpu_reduction_rounds_key: int(g1.group('gpu_reduction_rounds')),
                 gpu_atomic_rounds_key: int(g1.group('gpu_atomic_rounds')),
                 "res_eq": res_eq
             }
 
             # Only add the instance to the data struct if the results of all algorithms match
-            if res_eq == "True":
+            if res_eq == "True" and instace[cpu_seq_rounds_key] < 100 and instace[cpu_omp_rounds_key] < 100 and instace[gpu_atomic_rounds_key] < 100:
                 assert(instace[cpu_seq_time_key] >= 2)
                 assert(instace[cpu_omp_time_key] >= 2)
                 assert(instace[gpu_atomic_time_key] >= 2)
                 test_sets[log_file].append(instace)
-            elif res_eq == "False":
+            elif instace[cpu_seq_rounds_key] == 100 or instace[cpu_omp_rounds_key] == 100 or instace[gpu_atomic_rounds_key] == 100:
+                max_num_rounds[log_file]+=1
+            elif res_eq == "False" and instace[cpu_seq_rounds_key] < 100 and instace[cpu_omp_rounds_key] < 100 and instace[gpu_atomic_rounds_key] < 100:
                 false_results[log_file]+=1
 
     print("Finished parsing log files. Number of instances with correct/wrong results:")
     for log_file in test_sets:
-        print(log_file, " correct: ", len(test_sets[log_file]), ", incorrect: ", false_results[log_file])
+        print(log_file, " correct: ", len(test_sets[log_file]), ", incorrect: ", false_results[log_file], ", max num rounds: ", max_num_rounds[log_file])
 
     print("Average number of rounds for ", log_file)
     for log_file in test_sets:

@@ -16,17 +16,17 @@ struct ActivitiesTupleStruct {
 };
 typedef struct ActivitiesTupleStruct ActivitiesTuple;
 
-struct NewBoundTupleStruct {
+template <typename datatype>
+struct NewBoundTuple {
     bool is_tightened;
-    double newb;
+    datatype newb;
 };
-typedef struct NewBoundTupleStruct NewBoundTuple;
 
-struct NewBoundsStruct {
-    NewBoundTuple lb;
-    NewBoundTuple ub;
+template <typename datatype>
+struct NewBounds {
+    NewBoundTuple<datatype> lb;
+    NewBoundTuple<datatype> ub;
 };
-typedef struct NewBoundsStruct NewBounds;
 
 
 void markConstraints
@@ -54,33 +54,20 @@ datatype adjustLowerBound(const bool is_var_cont, const datatype lb) {
 template<class datatype>
 bool isLbBetter(const datatype lb, const datatype ub, const datatype newlb) {
    assert(EPSLE(lb, ub));
-
-   /* from SCIP, todo do we need this in the GPU version? */
-   /* if lower bound is moved to 0 or higher, always accept bound change */
-   //if (lb < 0.0 && newlb >= 0.0)
-   //   return true;
-
    return EPSGT(newlb, lb);
 }
 
 template<class datatype>
 bool isUbBetter(const datatype lb, const datatype ub, const datatype newub) {
-
    assert(EPSLE(lb, ub));
-
-   /* from SCIP, todo do we need this in the GPU version? */
-   /* if upper bound is moved to 0 or lower, always accept bound change */
-   //if (ub > 0.0 && newub <= 0.0)
-   //   return true;
-
    return EPSLT(newub, ub);
 }
 
 template<class datatype>
-NewBoundTuple tightenVarUpperBound(const datatype coeff, const datatype slack, const datatype surplus, const int num_inf_contr, const datatype lb, const datatype ub,
+NewBoundTuple<datatype> tightenVarUpperBound(const datatype coeff, const datatype slack, const datatype surplus, const int num_inf_contr, const datatype lb, const datatype ub,
                                    const bool isVarCont) {
 
-   NewBoundTuple newb_tuple = {false, ub}; // output
+   NewBoundTuple<datatype> newb_tuple = {false, ub}; // output
    datatype newb;
 
    if (num_inf_contr == 0)
@@ -110,9 +97,9 @@ NewBoundTuple tightenVarUpperBound(const datatype coeff, const datatype slack, c
 }
 
 template<class datatype>
-NewBoundTuple tightenVarLowerBound(const datatype coeff, const datatype slack, const datatype surplus, const int num_inf_contr, const datatype lb, const datatype ub,
+NewBoundTuple<datatype> tightenVarLowerBound(const datatype coeff, const datatype slack, const datatype surplus, const int num_inf_contr, const datatype lb, const datatype ub,
                                    const bool isVarCont) {
-   NewBoundTuple newb_tuple = {false, lb}; // output
+   NewBoundTuple<datatype> newb_tuple = {false, lb}; // output
    datatype newb;
 
 
@@ -142,8 +129,24 @@ NewBoundTuple tightenVarLowerBound(const datatype coeff, const datatype slack, c
 }
 
 template<class datatype>
-bool canConsBeTightened(const datatype slack, const datatype surplus, const datatype maxactdelta) {
-   return !EPSLE(maxactdelta, MIN(slack, surplus));
+bool canConsBeTightened(
+        const datatype minact,
+        const datatype maxact,
+        const int numminactinf,
+        const int nummaxactinf,
+        const datatype lhs,
+        const datatype rhs,
+        const datatype maxactdelta
+        ) {
+   if (numminactinf > 1 && nummaxactinf > 1)
+      return false;
+
+   if (EPSLT(maxactdelta, GDP_INF))
+   {
+      return !EPSLE(maxactdelta, min(rhs - minact, maxact - lhs));
+   }
+
+   return true;
 }
 
 template<class datatype>
@@ -216,7 +219,7 @@ ActivitiesTuple computeActivities
 }
 
 template<class datatype>
-NewBounds tightenVariable
+NewBounds<datatype> tightenVariable
         (
                 const datatype coeff,
                 const datatype lhs,
@@ -226,15 +229,15 @@ NewBounds tightenVariable
                 const int num_minact_inf,
                 const int num_maxact_inf,
                 const bool isVarCont,
-                datatype lb,
-                datatype ub
+                const datatype lb,
+                const datatype ub
         ) {
 
    datatype slack = rhs - minact;
    datatype surplus = lhs - maxact;
 
    // initialize return data.
-   NewBounds newbds;
+   NewBounds<datatype> newbds;
    newbds.lb = {false, lb};
    newbds.ub = {false, ub};
 

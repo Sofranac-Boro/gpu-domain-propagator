@@ -33,8 +33,6 @@ bool preprocessorPropagationRound
    bool isVarCont;
    datatype rhs;
    datatype lhs;
-   datatype slack;
-   datatype surplus;
 
    bool change_found = false;
    int val_idx;
@@ -61,12 +59,10 @@ bool preprocessorPropagationRound
 
          rhs = rhss[considx];
          lhs = lhss[considx];
-         slack = rhs - minacts[considx];
-         surplus = maxacts[considx] - lhs;
 
-         if (canConsBeTightened(slack, surplus, maxactdeltas[considx])) {
+         if (canConsBeTightened(minacts[considx], maxacts[considx], minacts_inf[considx], maxacts_inf[considx], lhs, rhs, maxactdeltas[considx])) {
             int num_vars_in_cons = row_indices[considx + 1] - row_indices[considx];
-            slack = EPSLT(slack, 0.0) ? 0.0 : slack;
+
 
             for (int var = 0; var < num_vars_in_cons; var++) {
                val_idx = row_indices[considx] + var;
@@ -75,7 +71,7 @@ bool preprocessorPropagationRound
 
                isVarCont = vartypes[varidx] == GDP_CONTINUOUS;
 
-               NewBounds newbds = tightenVariable<datatype>
+               NewBounds<datatype> newbds = tightenVariable<datatype>
                        (
                                coeff, lhs, rhs, minacts[considx], maxacts[considx], minacts_inf[considx], maxacts_inf[considx], isVarCont, lbs[varidx], ubs[varidx]
                        );

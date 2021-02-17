@@ -192,6 +192,7 @@ GDP_Retcode sequentialPropagateWithMeasure
    int *maxacts_inf = (int *) calloc(n_cons, sizeof(int));
    datatype *maxactdeltas = (datatype *) calloc(n_cons, sizeof(datatype));
    int *consmarked = (int *) calloc(n_cons, sizeof(int));
+   int *consmarked_nextround = (int *) calloc(n_cons, sizeof(int));
 
    // all cons marked for propagation in the first round
    for (int i = 0; i < n_cons; i++)
@@ -223,7 +224,7 @@ GDP_Retcode sequentialPropagateWithMeasure
       change_found = sequentialPropagationRound<datatype>
               (
                       n_cons, n_vars, col_indices, row_indices, csc_col_ptrs, csc_row_indices, vals, lhss, rhss,
-                      lbs, ubs, vartypes, minacts, maxacts, minacts_inf, maxacts_inf, maxactdeltas, consmarked, RECOMPUTE_ACTS_TRUE
+                      lbs, ubs, vartypes, minacts, maxacts, minacts_inf, maxacts_inf, maxactdeltas, consmarked, consmarked_nextround, RECOMPUTE_ACTS_TRUE
               );
 
       FOLLOW_VAR_CALL(FOLLOW_VAR,
@@ -262,6 +263,7 @@ GDP_Retcode sequentialPropagateWithMeasure
    free(csc_vals);
    free(csc_col_ptrs);
    free(csc_row_indices);
+   free(consmarked_nextround);
 
    return GDP_OKAY;
 }
