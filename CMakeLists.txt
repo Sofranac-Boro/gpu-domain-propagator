@@ -19,6 +19,11 @@ else ()
     message("No CUDA architecture specified. To compile optimized code for your CUDA device please specify your device architecture through the ARCH flag.")
 endif ()
 
+if("${FASTMATH}" STREQUAL "On")
+    message("Enabling fast math setting. This might cause floating point trouble!")
+    string(APPEND CMAKE_CUDA_FLAGS " --use_fast_math")
+endif()
+
 # make 'Release' the default build type
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
