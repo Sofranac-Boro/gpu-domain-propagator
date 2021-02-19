@@ -102,8 +102,8 @@ def prop_compare_seq_gpu(lp_file_path: str, datatype: _SimpleCData = c_double) -
    # print("cpu_seq to pailo results match: ", equal_seq_papilo)
     ### END PAPILO STUFF###
    # idx = 0
-    compare_arrays_diff_idx(seq_new_lbs, omp_new_lbs, "lbs")
-    compare_arrays_diff_idx(seq_new_ubs, omp_new_ubs, "ubs")
+   #  compare_arrays_diff_idx(seq_new_lbs, omp_new_lbs, "lbs")
+   #  compare_arrays_diff_idx(seq_new_ubs, omp_new_ubs, "ubs")
 # print_bounds(seq_new_lbs, seq_new_ubs)
 # print_bounds(gpuatomic_new_lbs, gpuatomic_new_ubs)
 
