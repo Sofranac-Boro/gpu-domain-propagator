@@ -9,6 +9,7 @@ from matplotlib.ticker import FormatStrFormatter
 from typing import List, Tuple
 import os
 import sys
+import pprint
 
 # add parent directory to path, need it to load some functions
 currentdir = os.path.dirname(os.path.realpath(__file__))
@@ -39,12 +40,32 @@ machine_to_time = {
 }
 
 
+def print_stats(test_sets, false_results, max_num_rounds):
+    print("Number of instances with correct/wrong results:")
+    for log_file in test_sets:
+        print(log_file, " correct: ", len(test_sets[log_file]), ", incorrect: ", false_results[log_file], ", max num rounds: ", max_num_rounds[log_file])
+
+
+    for log_file in test_sets:
+
+        cpu_seq_rounds = list(map(lambda x: x[cpu_seq_rounds_key], test_sets[log_file]))
+        cpu_omp_rounds = list(map(lambda x: x[cpu_omp_rounds_key], test_sets[log_file]))
+        #gpu_red_rounds = list(map(lambda x: x[gpu_reduction_rounds_key], test_sets[log_file]))
+        gpu_ato_rounds = list(map(lambda x: x[gpu_atomic_rounds_key], test_sets[log_file]))
+        print(log_file, ": ")
+        print("Average number of rounds for cpu_seq:",      sum(cpu_seq_rounds) / len(test_sets[log_file]),
+              "cpu_omp:",       sum(cpu_omp_rounds) / len(test_sets[log_file]),
+              #              "gpu_reduction:", sum(gpu_red_rounds) / len(test_sets[log_file]),
+              "gpu_atomic:",    sum(gpu_ato_rounds) / len(test_sets[log_file]))
+
+        print("maximum increase factor: ", max([gpu_ato_rounds[i] / cpu_seq_rounds[i] for i in range(len(gpu_ato_rounds))]))
+
 # Helper methods
 def getsetovernvarscons(test_set, threashold):
     new_test_set = {}
     for f in test_set.keys():
         data = list(filter(lambda x: x["nvars"] >= threashold or x["ncons"] >= threashold, test_set[f]))
-        print("num instance for ", f, " with at least ", threashold, " cons or vars: ", len(data))
+        print("num instance for ", f, " with at least ", threashold, " cons or vars: ", len(data), ". Num removed instances: ", len(test_set[f]) - len(data))
         new_test_set[f] = data
     return new_test_set
 
@@ -124,13 +145,15 @@ def create_plots(dist_data, speedups):
     ys = []
     for algorithm in speedups:
         for machine in speedups[algorithm]:
+            linestyle = 'dashed' if algorithm == 'cpu_omp' else 'solid'
             ys += speedups[algorithm][machine][1]
             plt.plot(np.arange(len(speedups[algorithm][machine][0])), speedups[algorithm][machine][1],
-                     label=str(algorithm) + "-" + str(machine))
+                     label=str(algorithm) + "-" + str(machine), linestyle=linestyle)
 
     plt.yscale('log')
     yticks = get_y_ticks(ys)
     plt.yticks(yticks, yticks)
+    plt.xticks(np.arange(len(speedups[algorithm][machine][0])), map(lambda x: "Set-" + str(x+1), np.arange(len(speedups[algorithm][machine][0]))))
     plt.tick_params(which='minor', left=False)
     ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
     plt.legend(fancybox=True, framealpha=0.5)
@@ -145,12 +168,13 @@ def create_plots(dist_data, speedups):
     for algorithm in dist_data:
         for machine in dist_data[algorithm]:
             ys += dist_data[algorithm][machine]
+            linestyle = 'dashed' if algorithm == 'cpu_omp' else 'solid'
             plt.plot(np.arange(len(dist_data[algorithm][machine])), dist_data[algorithm][machine],
-                     label=str(algorithm) + "-" + str(machine))
+                     label=str(algorithm) + "-" + str(machine), linestyle=linestyle)
 
     plt.legend(fancybox=True, framealpha=0.5)
     plt.yscale('log')
-    yticks = get_y_ticks(ys, 7)
+    yticks = get_y_ticks(ys)
     plt.yticks(yticks, yticks)
     plt.tick_params(which='minor', left=False)
 
@@ -217,21 +241,11 @@ if __name__ == "__main__":
             elif res_eq == "False" and instace[cpu_seq_rounds_key] < 100 and instace[cpu_omp_rounds_key] < 100 and instace[gpu_atomic_rounds_key] < 100:
                 false_results[log_file]+=1
 
-    print("Finished parsing log files. Number of instances with correct/wrong results:")
-    for log_file in test_sets:
-        print(log_file, " correct: ", len(test_sets[log_file]), ", incorrect: ", false_results[log_file], ", max num rounds: ", max_num_rounds[log_file])
-
-    print("Average number of rounds for ", log_file)
-    for log_file in test_sets:
-        print("cpu_seq:",       sum(map(lambda x: x[cpu_seq_rounds_key], test_sets[log_file])) / len(test_sets[log_file]),
-              "cpu_omp:",       sum(map(lambda x: x[cpu_omp_rounds_key], test_sets[log_file])) / len(test_sets[log_file]),
-#              "gpu_reduction:", sum(map(lambda x: x[gpu_reduction_rounds_key], test_sets[log_file])) / len(test_sets[log_file]),
-              "gpu_atomic:",    sum(map(lambda x: x[gpu_atomic_rounds_key], test_sets[log_file])) / len(test_sets[log_file]))
-
-
+    print_stats(test_sets, max_num_rounds, false_results)
     # remove small instances from the test set
     print("\nRemoving small instances from the test sets")
     test_sets = getsetovernvarscons(test_sets, 1000)
+
 
     ####  gather data for plotting sub-figure b) - speedup distributions ####
 
@@ -267,6 +281,9 @@ if __name__ == "__main__":
         ub = buckets[i + 1]
         redset = reduceset(test_sets, lb, ub)
         key = "Set-" + str(i + 1)
+        #print(key, " size: ")
+        ##for key in redset.keys():
+          #  print(len(redset[key]))
 
         # initi output data struct
         avg_speedups = {}
@@ -307,3 +324,15 @@ if __name__ == "__main__":
                 speedups_plot_dict[alg][machine][1].append(speedups[subset][alg][machine])
 
     create_plots(speedup_distros, speedups_plot_dict)
+
+    # Printing data for speedup table
+    print("\nData for the speedups table: ")
+    for alg in speedups_plot_dict:
+        for machine in speedups_plot_dict[alg]:
+            print(alg, " ", machine, ":")
+            print("    ", speedups_plot_dict[alg][machine][0])
+            print("    ", speedups_plot_dict[alg][machine][1])
+            print("     percentiles: 5%=", np.percentile(speedup_distros[alg][machine], 5), " 50%=", np.percentile(speedup_distros[alg][machine], 50), " 95%=", np.percentile(speedup_distros[alg][machine], 95))
+            print("     average speedup: ", geo_mean_overflow(speedup_distros[alg][machine]))
+
+
