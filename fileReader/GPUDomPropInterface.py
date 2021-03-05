@@ -264,6 +264,7 @@ def propagateSequentialWithPapiloPostsolve(
 ):
     (seq_new_lbs, seq_new_ubs) = propagateSequential(n_vars, n_cons, nnz, csr_col_indices, csr_row_ptrs, csr_vals, lhss, rhss,
                                                      lbs, ubs, vartypes, datatype=datatype)
+    print("\nRunning papilo after cpu_seq...")
 
     gdp_solved_instance_path = reader.write_model_with_new_bounds(seq_new_lbs, seq_new_ubs)
 
@@ -272,8 +273,9 @@ def propagateSequentialWithPapiloPostsolve(
     lbs, ubs = papilo.get_presolved_bounds()
     postsolve_bd_chgs = papilo.get_num_bound_changes()
     if postsolve_bd_chgs != 0:
-        print(stdout)
+       # print(stdout)
         raise Exception("papilo found additional bound changes after GDP.")
+    print("papilo did not find any bound changes after cpu_seq!\n")
     return lbs, ubs, stdout
 
 

@@ -34,16 +34,19 @@ class PapiloInterface():
     def __del__(self):
         shutil.rmtree(self.tmp_papilo_dir)
 
-    def run_papilo(self):
+    def run_papilo(self, use_rationals=False):
         args = f"{self.papilo_binary} presolve -f {self.input_file} -r {self.output_file} -p {self.parameters_file}"
+        if use_rationals:
+            args+=" -a r"
         print("command: " , args)
         p = subprocess.run(args.split(), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
 
         if get_regex_result(papilo_success_pattern, p.stdout, "time"):
-            print("papilo run successful! output:\n", p.stdout)
+            print("papilo run successful!")
+            #print(p.stdout)
             self.run_successful = True
             self.num_rounds = get_regex_result(papilo_results_pattern, p.stdout, "rounds")
-            self.exec_time = get_regex_result(papilo_results_pattern, p.stdout, "time")
+            self.exec_time = get_regex_result(papilo_success_pattern, p.stdout, "time")
         else:
             print(p.stdout)
             raise Exception("papilo run failed. Output:\n")
@@ -54,7 +57,10 @@ class PapiloInterface():
     def get_presolved_bounds(self) -> Union[Tuple[List[float]], None]:
         if not self.run_successful:
             raise Exception("Papilo run failed, cannot retriece solved bounds!")
-        reader: FileReaderInterface = get_reader(self.output_file)
+        out = OutputGrabber()
+
+        with out:
+            reader: FileReaderInterface = get_reader(self.output_file)
         return reader.get_var_bounds()
 
     def get_num_bound_changes(self):
@@ -64,6 +70,18 @@ class PapiloInterface():
         chg_bds = get_regex_result(papilo_solve_stats, self.output, "chg_bounds")
         assert(chg_bds is not None)
         return int(chg_bds)
+
+    def get_exec_time(self):
+        if not self.run_successful:
+            raise Exception("Papilo run failed, cannot retrieve execution time!")
+        return self.exec_time
+
+    def get_num_rounds(self):
+        if not self.run_successful:
+            raise Exception("Papilo run failed, cannot retrieve num rounds!")
+        return self.num_rounds
+
+
 
 
 

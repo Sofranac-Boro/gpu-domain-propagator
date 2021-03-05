@@ -56,12 +56,6 @@ def prop_compare_seq_gpu(lp_file_path: str, datatype: _SimpleCData = c_double) -
     lbs_dis = lbs_seq = lbs_gpuatomic = lbs_gpu = lbs_omp = lbs
     ubs_dis = ubs_seq = ubs_gpuatomic = ubs_gpu = ubs_omp = ubs
 
-   # (seq_new_lbs, seq_new_ubs, stdout) = propagateSequentialWithPapiloPostsolve(reader, n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss,
-   #                                                          lbs_seq, ubs_seq, vartypes, datatype=c_double)
-
-
-  #  (lbs_papilo, ubs_papilo, _) = propagatePapilo(lp_file_path)
-
 
     (seq_new_lbs, seq_new_ubs) = propagateSequential(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_seq, ubs_seq, vartypes, datatype=c_double)
 
@@ -76,8 +70,6 @@ def prop_compare_seq_gpu(lp_file_path: str, datatype: _SimpleCData = c_double) -
 
     seq_new_lbs = normalize_infs(seq_new_lbs)
     seq_new_ubs = normalize_infs(seq_new_ubs)
-    #lbs_papilo = normalize_infs(lbs_papilo)
-    #ubs_papilo = normalize_infs(ubs_papilo)
     # gpu_new_lbs = normalize_infs(gpu_new_lbs)
     # gpu_new_ubs = normalize_infs(gpu_new_ubs)
     omp_new_lbs = normalize_infs(omp_new_lbs)
@@ -98,14 +90,63 @@ def prop_compare_seq_gpu(lp_file_path: str, datatype: _SimpleCData = c_double) -
     # # print("cpu_seq to cpu_seq_dis results match: ", equal_seq_dis)
     print("all results match: ", equal_seq_gpu_atomic and equal_seq_omp)
 
-   # equal_seq_papilo = arrays_equal(seq_new_lbs, lbs_papilo) and arrays_equal(seq_new_ubs, ubs_papilo)
-   # print("cpu_seq to pailo results match: ", equal_seq_papilo)
-    ### END PAPILO STUFF###
-   # idx = 0
    #  compare_arrays_diff_idx(seq_new_lbs, omp_new_lbs, "lbs")
    #  compare_arrays_diff_idx(seq_new_ubs, omp_new_ubs, "ubs")
-# print_bounds(seq_new_lbs, seq_new_ubs)
-# print_bounds(gpuatomic_new_lbs, gpuatomic_new_ubs)
+
+
+def papilo_comparison_run(lp_file_path: str, datatype: _SimpleCData = c_double) -> None:
+    reader: FileReaderInterface = get_reader(lp_file_path)
+
+    n_cons = reader.get_n_cons()
+    n_vars = reader.get_n_vars()
+    nnz = reader.get_nnz()
+    lbs, ubs = reader.get_var_bounds()
+    lhss, rhss = reader.get_lrhss()
+    coeffs, row_ptrs, col_indices = reader.get_cons_matrix()
+    vartypes = reader.get_SCIP_vartypes()
+
+    # print sparsity and input data size
+    print("num vars: ", n_vars)
+    print("num cons: ", n_cons)
+    print("nnz     : ", nnz)
+
+    lbs_dis = lbs_seq = lbs_gpuatomic = lbs_gpu = lbs_omp = lbs
+    ubs_dis = ubs_seq = ubs_gpuatomic = ubs_gpu = ubs_omp = ubs
+
+    with OutputGrabber():
+        (tmp_lbs, tmp_ubs) = propagateSequential(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss,
+                                                         lbs_dis, ubs_dis, vartypes, datatype=datatype)
+        tmp_lbs = normalize_infs(tmp_lbs)
+        tmp_ubs = normalize_infs(tmp_ubs)
+
+    (omp_new_lbs, omp_new_ubs) = propagateFullOMP(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_omp, ubs_omp, vartypes, datatype=c_double)
+
+    (seq_new_lbs, seq_new_ubs, stdout) = propagateSequentialWithPapiloPostsolve(reader, n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss,
+                                                              lbs_seq, ubs_seq, vartypes, datatype=c_double)
+
+    print("papilo execution start...")
+    papilo = PapiloInterface("/home/bzfsofra/papilo", lp_file_path)
+    papilo_output = papilo.run_papilo(use_rationals=True)
+    lbs_papilo, ubs_papilo = papilo.get_presolved_bounds()
+
+    print("papilo propagation done. Num rounds: ", papilo.get_num_rounds())
+    print("papilo execution time : ", papilo.get_exec_time(), " seconds")
+
+    #print("papilo outputL \n", papilo_output)
+
+    omp_new_lbs = normalize_infs(omp_new_lbs)
+    omp_new_ubs = normalize_infs(omp_new_ubs)
+    seq_new_lbs = normalize_infs(seq_new_lbs)
+    seq_new_ubs = normalize_infs(seq_new_ubs)
+    lbs_papilo = normalize_infs(lbs_papilo)
+    ubs_papilo = normalize_infs(ubs_papilo)
+
+    equal_seq_omp = arrays_equal(tmp_lbs, omp_new_lbs) and arrays_equal(tmp_ubs, omp_new_ubs)
+    equal_seq_papilo = arrays_equal(seq_new_lbs, lbs_papilo) and arrays_equal(seq_new_ubs, ubs_papilo)
+
+    print("cpu_seq to cpu_omp results match: ", equal_seq_omp)
+    print("cpu_seq to pailo results match: ", equal_seq_papilo)
+    print("all results match: ", equal_seq_papilo and equal_seq_omp)
 
 
 def propagation_measure_run(input_file: str):
@@ -165,6 +206,7 @@ if __name__ == "__main__":
     try:
         prop_compare_seq_gpu(args.file, datatype)
        # propagation_measure_run(args.file)
+       # papilo_comparison_run(args.file, datatype)
     except Exception as e:
         print("\nexecution of ", args.file, " failed. Exception: ")
         print(e)

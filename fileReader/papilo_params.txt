@@ -71,7 +71,7 @@ presolve.randomseed = 0
 presolve.removeslackvars = 0
 
 # maximal number of threads to use (0: automatic)  [Integer: [0,2147483647]]
-presolve.threads = 0
+presolve.threads = 1
 
 # time limit for presolve  [Numerical: [0,1.7976931348623157e+308]]
 presolve.tlim = 1.7976931348623157e+308
