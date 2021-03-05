@@ -90,4 +90,4 @@ Usage: ./exec_tests.sh -f|--files <FILES> -l|--logfile <LOGFILE>
 ```
 ## Miscellaneous Notes
 
-- Exact code used for the submission to the IAAA 10th Workshop on Irregular Applications: Architectures and Algorithms can be found on the `IAAA_submission` branch
+- Exact code used for the submission to the IAAA 10th Workshop on Irregular Applications: Architectures and Algorithms can be found on the `IAAA_version` branch
