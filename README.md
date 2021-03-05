@@ -88,4 +88,6 @@ Usage: ./exec_tests.sh -f|--files <FILES> -l|--logfile <LOGFILE>
 <FILES>: path to the folder containing input files in e.g. .lp or .mps format
 <LOGFILE>L path to the log file to save output
 ```
+## Miscellaneous Notes
 
+- Exact code used for the submission to the IAAA 10th Workshop on Irregular Applications: Architectures and Algorithms can be found on the `IAAA_submission` branch
