@@ -11,11 +11,12 @@ import os
 import sys
 import pprint
 import matplotlib.pylab as pylab
+
 params = {'legend.fontsize': 'x-large',
           'axes.labelsize': 'x-large',
-          'axes.titlesize':'x-large',
-          'xtick.labelsize':'x-large',
-          'ytick.labelsize':'x-large'}
+          'axes.titlesize': 'x-large',
+          'xtick.labelsize': 'x-large',
+          'ytick.labelsize': 'x-large'}
 pylab.rcParams.update(params)
 
 # add parent directory to path, need it to load some functions
@@ -75,13 +76,13 @@ def get_line_color(machine, algorithm):
         return 'tab:green'
     elif 'xeon' in machine:
         return 'tab:purple'
-        #'tab:blue'
+        # 'tab:blue'
     elif 'amdtr' in machine:
         return 'tab:blue'
-        #return 'tab:red'
+        # return 'tab:red'
     elif 'i7-9700K' in machine:
         return 'tab:pink'
-       # return 'tab:green'
+    # return 'tab:green'
     else:
         raise Exception("Unknown machine: ", machine)
 
@@ -89,33 +90,33 @@ def get_line_color(machine, algorithm):
 def print_stats(test_sets, false_results, max_num_rounds):
     print("Number of instances with correct/wrong results:")
     for log_file in test_sets:
-        print(log_file, " correct: ", len(test_sets[log_file]), ", incorrect: ", false_results[log_file], ", max num rounds: ", max_num_rounds[log_file])
-
+        print(log_file, " correct: ", len(test_sets[log_file]), ", incorrect: ", false_results[log_file],
+              ", max num rounds: ", max_num_rounds[log_file])
 
     for log_file in test_sets:
-
         cpu_seq_rounds = list(map(lambda x: x[cpu_seq_rounds_key], test_sets[log_file]))
         cpu_omp_rounds = list(map(lambda x: x[cpu_omp_rounds_key], test_sets[log_file]))
-        #gpu_red_rounds = list(map(lambda x: x[gpu_reduction_rounds_key], test_sets[log_file]))
+        # gpu_red_rounds = list(map(lambda x: x[gpu_reduction_rounds_key], test_sets[log_file]))
         gpu_ato_rounds = list(map(lambda x: x[gpu_atomic_rounds_key], test_sets[log_file]))
         print(log_file, ": ")
-        print("Average number of rounds for cpu_seq:",      sum(cpu_seq_rounds) / len(test_sets[log_file]),
-              "cpu_omp:",       sum(cpu_omp_rounds) / len(test_sets[log_file]),
+        print("Average number of rounds for cpu_seq:", sum(cpu_seq_rounds) / len(test_sets[log_file]),
+              "cpu_omp:", sum(cpu_omp_rounds) / len(test_sets[log_file]),
               #              "gpu_reduction:", sum(gpu_red_rounds) / len(test_sets[log_file]),
-              "gpu_atomic:",    sum(gpu_ato_rounds) / len(test_sets[log_file]))
+              "gpu_atomic:", sum(gpu_ato_rounds) / len(test_sets[log_file]))
 
-        print("maximum increase factor: ", max([gpu_ato_rounds[i] / cpu_seq_rounds[i] for i in range(len(gpu_ato_rounds))]))
+        print("maximum increase factor: ",
+              max([gpu_ato_rounds[i] / cpu_seq_rounds[i] for i in range(len(gpu_ato_rounds))]))
 
 
 def print_stats_papilo(test_sets, max_num_rounds, false_results, additional_changes_found):
     print("Number of instances with correct/wrong results:")
     base = list(test_sets.keys())[0]
     for log_file in test_sets:
-        print(log_file, " correct: ", len(test_sets[log_file]), ", incorrect: ", len(false_results[log_file]), ", max num rounds: ", len(max_num_rounds[log_file]), "additional changes found by papilo: ", len(additional_changes_found[log_file]))
+        print(log_file, " correct: ", len(test_sets[log_file]), ", incorrect: ", len(false_results[log_file]),
+              ", max num rounds: ", len(max_num_rounds[log_file]), "additional changes found by papilo: ",
+              len(additional_changes_found[log_file]))
 
-
-
-        #print(base, " vs ", log_file, ": ", set(additional_changes_found[base]) == set(additional_changes_found[log_file]))
+        # print(base, " vs ", log_file, ": ", set(additional_changes_found[base]) == set(additional_changes_found[log_file]))
     # base = false_results["17_02_papilo_1thread_double_ada.log"]
     # rational = false_results["17_02_papilo_rationals_ada.log"]
     # diff_set = np.setdiff1d(rational,base)
@@ -124,14 +125,14 @@ def print_stats_papilo(test_sets, max_num_rounds, false_results, additional_chan
     #     print(inst, " correct previously: ", inst in map(lambda x: x['prob_name'], test_sets["17_02_papilo_1thread_double_ada.log"]))
 
 
-
 # Helper methods
 def getsetovernvarscons(test_set, threashold):
     print("\nRemoving small instances from the test sets")
     new_test_set = {}
     for f in test_set.keys():
         data = list(filter(lambda x: x["nvars"] >= threashold or x["ncons"] >= threashold, test_set[f]))
-        print("num instance for ", f, " with at least ", threashold, " cons or vars: ", len(data), ". Num removed instances: ", len(test_set[f]) - len(data))
+        print("num instance for ", f, " with at least ", threashold, " cons or vars: ", len(data),
+              ". Num removed instances: ", len(test_set[f]) - len(data))
         new_test_set[f] = data
     return new_test_set
 
@@ -207,18 +208,20 @@ def create_plots(dist_data, speedups):
     ### Subplot A ###
     if plot_a:
         ax = fig.add_subplot(111)
-       # plt.text(0.5, 1.05, "(a)", transform=ax.transAxes, size='x-large')
+        # plt.text(0.5, 1.05, "(a)", transform=ax.transAxes, size='x-large')
         ys = []
         for algorithm in speedups:
             for machine in speedups[algorithm]:
                 ys += speedups[algorithm][machine][1]
                 plt.plot(np.arange(len(speedups[algorithm][machine][0])), speedups[algorithm][machine][1],
-                         label=str(algorithm) + "-" + str(machine), linestyle=get_linestyle(algorithm, machine), color=get_line_color(machine, algorithm))
+                         label=str(algorithm) + "-" + str(machine), linestyle=get_linestyle(algorithm, machine),
+                         color=get_line_color(machine, algorithm))
 
         plt.yscale('log')
         yticks = get_y_ticks(ys, 10)
         plt.yticks(yticks, yticks)
-        plt.xticks(np.arange(len(speedups[algorithm][machine][0])), map(lambda x: "Set-" + str(x+1), np.arange(len(speedups[algorithm][machine][0]))))
+        plt.xticks(np.arange(len(speedups[algorithm][machine][0])),
+                   map(lambda x: "Set-" + str(x + 1), np.arange(len(speedups[algorithm][machine][0]))))
         plt.tick_params(which='minor', left=False)
         ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
         plt.legend(fancybox=True, framealpha=0.5)
@@ -234,10 +237,11 @@ def create_plots(dist_data, speedups):
             for machine in dist_data[algorithm]:
                 ys += dist_data[algorithm][machine]
                 plt.plot(np.arange(len(dist_data[algorithm][machine])), dist_data[algorithm][machine],
-                         label=str(algorithm) + "-" + str(machine), linestyle=get_linestyle(algorithm, machine), color=get_line_color(machine, algorithm))
-          #  print("machine ", machine, " alg: ", algorithm, " min speedup: ", min(dist_data[algorithm][machine]))
+                         label=str(algorithm) + "-" + str(machine), linestyle=get_linestyle(algorithm, machine),
+                         color=get_line_color(machine, algorithm))
+        #  print("machine ", machine, " alg: ", algorithm, " min speedup: ", min(dist_data[algorithm][machine]))
 
-       # plt.legend(fancybox=True, framealpha=0.5)
+        # plt.legend(fancybox=True, framealpha=0.5)
         plt.yscale('log')
         yticks = get_y_ticks(ys, 10)
         plt.yticks(yticks, yticks)
@@ -293,18 +297,22 @@ def parse_results_GDP(log_files_data):
             zz.append(instace['nnz'])
 
             # Only add the instance to the data struct if the results of all algorithms match
-            if res_eq == "True" and instace[cpu_seq_rounds_key] < 100 and instace[cpu_omp_rounds_key] < 100 and instace[gpu_atomic_rounds_key] < 100:
-                assert(instace[cpu_seq_time_key] >= 2)
-                assert(instace[cpu_omp_time_key] >= 2)
-                assert(instace[gpu_atomic_time_key] >= 2)
+            if res_eq == "True" and instace[cpu_seq_rounds_key] < 100 and instace[cpu_omp_rounds_key] < 100 and instace[
+                gpu_atomic_rounds_key] < 100:
+                assert (instace[cpu_seq_time_key] >= 2)
+                assert (instace[cpu_omp_time_key] >= 2)
+                assert (instace[gpu_atomic_time_key] >= 2)
                 test_sets[log_file].append(instace)
-            elif instace[cpu_seq_rounds_key] == 100 or instace[cpu_omp_rounds_key] == 100 or instace[gpu_atomic_rounds_key] == 100:
-                max_num_rounds[log_file]+=1
-            elif res_eq == "False" and instace[cpu_seq_rounds_key] < 100 and instace[cpu_omp_rounds_key] < 100 and instace[gpu_atomic_rounds_key] < 100:
-                false_results[log_file]+=1
-    print(f"av cons {sum(cons)/len(cons)}, vars {sum(vars)/len(vars)}, nnz: {sum(zz)/len(zz)}")
+            elif instace[cpu_seq_rounds_key] == 100 or instace[cpu_omp_rounds_key] == 100 or instace[
+                gpu_atomic_rounds_key] == 100:
+                max_num_rounds[log_file] += 1
+            elif res_eq == "False" and instace[cpu_seq_rounds_key] < 100 and instace[cpu_omp_rounds_key] < 100 and \
+                    instace[gpu_atomic_rounds_key] < 100:
+                false_results[log_file] += 1
+    print(f"av cons {sum(cons) / len(cons)}, vars {sum(vars) / len(vars)}, nnz: {sum(zz) / len(zz)}")
     print("len: ", len(cons))
     return test_sets, max_num_rounds, false_results
+
 
 def parse_results_papilo(log_files_data):
     # regexes used to parse the log files
@@ -330,26 +338,26 @@ def parse_results_papilo(log_files_data):
             prob_name = str(g1.group('prob_file')).split("/")[-1]
             res_eq = str(g1.group('results_correct'))
             papilo_time = float(g1.group('papilo_time'))
-            #papilo reports in seconds, we need nanoseconds:
+            # papilo reports in seconds, we need nanoseconds:
             papilo_time = papilo_time * 1e9
             instace = {
                 "nvars": int(g1.group('n_vars')),
                 "ncons": int(g1.group('n_cons')),
                 "nnz": int(g1.group('nnz')),
                 "prob_name": str(g1.group('prob_file')).split("/")[-1],
-                cpu_seq_time_key  : float(g1.group('cpu_seq_time')),
-                cpu_omp_time_key  : float(g1.group('cpu_omp_time')),
-                papilo_time_key   : papilo_time,
+                cpu_seq_time_key: float(g1.group('cpu_seq_time')),
+                cpu_omp_time_key: float(g1.group('cpu_omp_time')),
+                papilo_time_key: papilo_time,
                 cpu_seq_rounds_key: int(g1.group('cpu_seq_rounds')),
                 cpu_omp_rounds_key: int(g1.group('cpu_omp_rounds')),
-              #  papilo_rounds_key : int(g1.group('papilo_rounds')),
+                #  papilo_rounds_key : int(g1.group('papilo_rounds')),
                 "res_eq": res_eq
             }
 
             # Only add the instance to the data struct if the results of all algorithms match
             if res_eq == "True" and instace[cpu_seq_rounds_key] < 100 and instace[cpu_omp_rounds_key] < 100:
-                assert(instace[cpu_seq_time_key] >= 2)
-                assert(instace[cpu_omp_time_key] >= 2)
+                assert (instace[cpu_seq_time_key] >= 2)
+                assert (instace[cpu_omp_time_key] >= 2)
                 test_sets[log_file].append(instace)
             elif instace[cpu_seq_rounds_key] == 100 or instace[cpu_omp_rounds_key] == 100:
                 max_num_rounds[log_file].append(prob_name)
@@ -361,6 +369,7 @@ def parse_results_papilo(log_files_data):
             additional_changes[log_file].append(prob_name)
 
     return test_sets, max_num_rounds, false_results, additional_changes
+
 
 def get_plots_data(log_files_data, test_sets):
     ####  gather data for plotting sub-figure b) - speedup distributions ####
@@ -397,7 +406,7 @@ def get_plots_data(log_files_data, test_sets):
         ub = buckets[i + 1]
         redset = reduceset(test_sets, lb, ub)
         key = "Set-" + str(i + 1)
-        #print(key, " size: ")
+        # print(key, " size: ")
         ##for key in redset.keys():
         #  print(len(redset[key]))
 
@@ -446,10 +455,13 @@ def get_plots_data(log_files_data, test_sets):
             print(alg, " ", machine, ":")
             print("    ", speedups_plot_dict[alg][machine][0])
             print("    ", speedups_plot_dict[alg][machine][1])
-            print("     percentiles: 5%=", np.percentile(speedup_distros[alg][machine], 5), " 50%=", np.percentile(speedup_distros[alg][machine], 50), " 95%=", np.percentile(speedup_distros[alg][machine], 95))
+            print("     percentiles: 5%=", np.percentile(speedup_distros[alg][machine], 5), " 50%=",
+                  np.percentile(speedup_distros[alg][machine], 50), " 95%=",
+                  np.percentile(speedup_distros[alg][machine], 95))
             print("     average speedup: ", geo_mean_overflow(speedup_distros[alg][machine]))
 
     return speedup_distros, speedups_plot_dict
+
 
 def process_data_GDP(log_files_data):
     ### building the main data struct ###
@@ -462,16 +474,18 @@ def process_data_GDP(log_files_data):
 
     create_plots(speedup_distros, speedups_plot_dict)
 
+
 def process_data_papilo(log_files_data):
     ### building the main data struct ###
     test_sets, max_num_rounds, false_results, additional_changes = parse_results_papilo(log_files_data)
     print_stats_papilo(test_sets, max_num_rounds, false_results, additional_changes)
     # remove small instances from the test set
-   # test_sets = getsetovernvarscons(test_sets, 1000)
+    # test_sets = getsetovernvarscons(test_sets, 1000)
 
     speedup_distros, speedups_plot_dict = get_plots_data(log_files_data, test_sets)
 
     create_plots(speedup_distros, speedups_plot_dict)
+
 
 # Main
 if __name__ == "__main__":
@@ -482,8 +496,4 @@ if __name__ == "__main__":
         base_case_run = data["base_case"]
 
     process_data_GDP(log_files_data)
-   # process_data_papilo(log_files_data)
-
-
-
-
+# process_data_papilo(log_files_data)

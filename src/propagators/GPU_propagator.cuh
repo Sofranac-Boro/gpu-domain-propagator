@@ -139,24 +139,22 @@ GDP_Retcode propagateConstraintsGPUAtomic(
 
    VERBOSE_CALL(printf(
            "\ngpu_atomic execution start... Datatype: %s, MAXNUMROUNDS: %d, fullAsync: %s\n",
-                       getDatatypeName<datatype>(), MAX_NUM_ROUNDS, fullAsync? "true" : "false"
-                       ));
+           getDatatypeName<datatype>(), MAX_NUM_ROUNDS, fullAsync ? "true" : "false"
+   ));
 #ifdef VERBOSE
    auto start = std::chrono::steady_clock::now();
 #endif
 
-   if (fullAsync)
-   {
+   if (fullAsync) {
       GPUAtomicPropEntryKernel<datatype> <<<1, 1>>>
               (
-                      blocks_count, n_cons, n_vars, max_num_cons_in_block, d_col_indices, d_row_ptrs, d_row_blocks, d_vals,
+                      blocks_count, n_cons, n_vars, max_num_cons_in_block, d_col_indices, d_row_ptrs, d_row_blocks,
+                      d_vals,
                       d_lbs, d_ubs, d_vartypes, d_lhss, d_rhss, d_change_found
               );
       CUDA_CALL(cudaPeekAtLastError());
       CUDA_CALL(cudaDeviceSynchronize());
-   }
-   else
-   {
+   } else {
       int prop_round;
       bool change_found = true;
       for (prop_round = 1; prop_round <= MAX_NUM_ROUNDS && change_found; prop_round++) {
@@ -179,9 +177,11 @@ GDP_Retcode propagateConstraintsGPUAtomic(
          // - max_num_cons_in_block elems of type int for maxactivities inf contributions
          //   VERBOSE_CALL_2(printf("Amount of dynamic shared memory requested: %.2f KB\n",
          //                         (2 * max_n_cons_in_block * sizeof(datatype)) / 1024.0));
-         GPUAtomicDomainPropagation<datatype> <<< blocks_count, NNZ_PER_WG, 2 * max_num_cons_in_block * (sizeof(datatype) + sizeof(int)) >>>
+         GPUAtomicDomainPropagation<datatype> <<< blocks_count, NNZ_PER_WG, 2 * max_num_cons_in_block *
+                                                                            (sizeof(datatype) + sizeof(int)) >>>
                  (
-                         n_cons, max_num_cons_in_block, d_col_indices, d_row_ptrs, d_row_blocks, d_vals, d_lbs, d_ubs, d_vartypes,
+                         n_cons, max_num_cons_in_block, d_col_indices, d_row_ptrs, d_row_blocks, d_vals, d_lbs, d_ubs,
+                         d_vartypes,
                          d_lhss, d_rhss, d_change_found, prop_round
                  );
          cudaDeviceSynchronize();
@@ -193,7 +193,7 @@ GDP_Retcode propagateConstraintsGPUAtomic(
          printf("\nbounds after round: %d, varidx: %7d, lb: %9.2e, ub: %9.2e\n", prop_round, FOLLOW_VAR, lb, ub);
 #endif
 
-         VERBOSE_CALL_2( measureTime("gpu_atomic", start, std::chrono::steady_clock::now()) );
+         VERBOSE_CALL_2(measureTime("gpu_atomic", start, std::chrono::steady_clock::now()));
       }
       VERBOSE_CALL(printf("gpu_atomic propagation done. Num rounds: %d\n", prop_round - 1));
    }

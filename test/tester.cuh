@@ -30,7 +30,8 @@ public:
 
 
     void executeSequentialDisjointPropagator(TestSetup<datatype> &ts) {
-       csr_to_csc(ts.n_cons, ts.n_vars, ts.nnz, ts.csr_col_indices, ts.csr_row_ptrs, ts.csc_col_ptrs, ts.csc_row_indices,
+       csr_to_csc(ts.n_cons, ts.n_vars, ts.nnz, ts.csr_col_indices, ts.csr_row_ptrs, ts.csc_col_ptrs,
+                  ts.csc_row_indices,
                   ts.csc_vals, ts.csr_vals);
 
        sequentialPropagateDisjoint<datatype>

@@ -36,15 +36,15 @@ void compareArrays(const int len, const T *arr1, const T *arr2, double epsilon =
 }
 
 template<typename T>
-std::vector <T> arrToVector(T *arr, int size) {
+std::vector<T> arrToVector(T *arr, int size) {
    return std::vector<T>(arr, arr + size);
 }
 
 //Function to convert array to Set 
 template<typename datatype>
-std::set <datatype> convertToSet(const datatype *v, const int beginidx, const int endidx) {
+std::set<datatype> convertToSet(const datatype *v, const int beginidx, const int endidx) {
    // Declaring the  set
-   std::set <datatype> s;
+   std::set<datatype> s;
 
    // Traverse the Vector
    for (int i = beginidx; i < endidx; i++) {
@@ -74,8 +74,8 @@ void compareCSCRandomRowOrder
       int beginidx = csc_col_ptrs[i];
       int endidx = csc_col_ptrs[i + 1];
 
-      std::set <datatype> loc_vals = convertToSet<datatype>(csc_vals, beginidx, endidx);
-      std::set <datatype> loc_vals_exp = convertToSet<datatype>(exp_vals, beginidx, endidx);
+      std::set<datatype> loc_vals = convertToSet<datatype>(csc_vals, beginidx, endidx);
+      std::set<datatype> loc_vals_exp = convertToSet<datatype>(exp_vals, beginidx, endidx);
 
       std::set<int> loc_row_indices = convertToSet<int>(csc_row_indices, beginidx, endidx);
       std::set<int> loc_row_indices_exp = convertToSet<int>(exp_row_indices, beginidx, endidx);

@@ -43,7 +43,7 @@ __global__ void GPUAtomicDomainPropagation
    datatype *minacts = shared_mem;
    datatype *maxacts = &shared_mem[max_n_cons_in_block];
 
-   int *shared_mem_int = reinterpret_cast<int *>(&shared_mem[2*max_n_cons_in_block]);
+   int *shared_mem_int = reinterpret_cast<int *>(&shared_mem[2 * max_n_cons_in_block]);
    int *minacts_inf = shared_mem_int;
    int *maxacts_inf = &shared_mem_int[max_n_cons_in_block];
 
@@ -73,8 +73,8 @@ __global__ void GPUAtomicDomainPropagation
          cache_inf_minacts[threadIdx.x] = EPSGT(coeff, 0) ? EPSLE(lb, -GDP_INF) : EPSGE(ub, GDP_INF); // minactivity
          cache_inf_maxacts[threadIdx.x] = EPSGT(coeff, 0) ? EPSGE(ub, GDP_INF) : EPSLE(lb, -GDP_INF); // maxactivity
 
-         cache_minacts[threadIdx.x] = cache_inf_minacts[threadIdx.x]? 0.0 : cache_minacts[threadIdx.x];
-         cache_maxacts[threadIdx.x] = cache_inf_maxacts[threadIdx.x]? 0.0 : cache_maxacts[threadIdx.x];
+         cache_minacts[threadIdx.x] = cache_inf_minacts[threadIdx.x] ? 0.0 : cache_minacts[threadIdx.x];
+         cache_maxacts[threadIdx.x] = cache_inf_maxacts[threadIdx.x] ? 0.0 : cache_maxacts[threadIdx.x];
       }
       __syncthreads();
 
@@ -226,7 +226,8 @@ __global__ void GPUAtomicDomainPropagation
          FOLLOW_VAR_CALL(varidx,
                          printf("CSR-stream cand, varidx: %5d, considx: %5d, lhs: %9.2e, rhs: %9.2e, coeff: %9.2e, minact: %9.2e, maxact: %9.2e, num_minact_inf: %d, num_maxact_inf: %d, oldlb: %9.2e, oldub: %9.2e, newlb: %9.2e, newub: %9.2e\n",
                                 varidx, considx, lhss[considx], rhss[considx], coeff,
-                                minacts[considx - block_row_begin], maxacts[considx - block_row_begin], minacts_inf[considx - block_row_begin], maxacts_inf[considx - block_row_begin],
+                                minacts[considx - block_row_begin], maxacts[considx - block_row_begin],
+                                minacts_inf[considx - block_row_begin], maxacts_inf[considx - block_row_begin],
                                 lb, ub, newlb, newub)
          );
 
@@ -277,11 +278,13 @@ __global__ void GPUAtomicDomainPropagation
                cache_minacts[threadIdx.x] = EPSGT(coeff, 0) ? coeff * lb : coeff * ub; // minactivity
                cache_maxacts[threadIdx.x] = EPSGT(coeff, 0) ? coeff * ub : coeff * lb; // maxactivity
 
-               cache_inf_minacts[threadIdx.x] = EPSGT(coeff, 0) ? EPSLE(lb, -GDP_INF) : EPSGE(ub, GDP_INF); // minactivity
-               cache_inf_maxacts[threadIdx.x] = EPSGT(coeff, 0) ? EPSGE(ub, GDP_INF) : EPSLE(lb, -GDP_INF); // maxactivity
+               cache_inf_minacts[threadIdx.x] = EPSGT(coeff, 0) ? EPSLE(lb, -GDP_INF) : EPSGE(ub,
+                                                                                              GDP_INF); // minactivity
+               cache_inf_maxacts[threadIdx.x] = EPSGT(coeff, 0) ? EPSGE(ub, GDP_INF) : EPSLE(lb,
+                                                                                             -GDP_INF); // maxactivity
 
-               cache_minacts[threadIdx.x] = cache_inf_minacts[threadIdx.x]? 0.0 : cache_minacts[threadIdx.x];
-               cache_maxacts[threadIdx.x] = cache_inf_maxacts[threadIdx.x]? 0.0 : cache_maxacts[threadIdx.x];
+               cache_minacts[threadIdx.x] = cache_inf_minacts[threadIdx.x] ? 0.0 : cache_minacts[threadIdx.x];
+               cache_maxacts[threadIdx.x] = cache_inf_maxacts[threadIdx.x] ? 0.0 : cache_maxacts[threadIdx.x];
 
                dot_minact += cache_minacts[threadIdx.x];
                dot_maxact += cache_maxacts[threadIdx.x];
@@ -327,11 +330,13 @@ __global__ void GPUAtomicDomainPropagation
                cache_minacts[threadIdx.x] = EPSGT(coeff, 0) ? coeff * lb : coeff * ub; // minactivity
                cache_maxacts[threadIdx.x] = EPSGT(coeff, 0) ? coeff * ub : coeff * lb; // maxactivity
 
-               cache_inf_minacts[threadIdx.x] = EPSGT(coeff, 0) ? EPSLE(lb, -GDP_INF) : EPSGE(ub, GDP_INF); // minactivity
-               cache_inf_maxacts[threadIdx.x] = EPSGT(coeff, 0) ? EPSGE(ub, GDP_INF) : EPSLE(lb, -GDP_INF); // maxactivity
+               cache_inf_minacts[threadIdx.x] = EPSGT(coeff, 0) ? EPSLE(lb, -GDP_INF) : EPSGE(ub,
+                                                                                              GDP_INF); // minactivity
+               cache_inf_maxacts[threadIdx.x] = EPSGT(coeff, 0) ? EPSGE(ub, GDP_INF) : EPSLE(lb,
+                                                                                             -GDP_INF); // maxactivity
 
-               cache_minacts[threadIdx.x] = cache_inf_minacts[threadIdx.x]? 0.0 : cache_minacts[threadIdx.x];
-               cache_maxacts[threadIdx.x] = cache_inf_maxacts[threadIdx.x]? 0.0 : cache_maxacts[threadIdx.x];
+               cache_minacts[threadIdx.x] = cache_inf_minacts[threadIdx.x] ? 0.0 : cache_minacts[threadIdx.x];
+               cache_maxacts[threadIdx.x] = cache_inf_maxacts[threadIdx.x] ? 0.0 : cache_maxacts[threadIdx.x];
 
                dot_minact += cache_minacts[threadIdx.x];
                dot_maxact += cache_maxacts[threadIdx.x];
@@ -397,7 +402,7 @@ __global__ void GPUAtomicDomainPropagation
             datatype newub;
             lb = lbs[varidx];
             ub = ubs[varidx];
-            
+
             getNewBoundCandidates(
                     lhss[block_row_begin], // surplus = lhs - maxact: maxacts: this is in shared memory - each block's indexing strats from 0
                     rhss[block_row_begin], // slack = rhs - minact. minacts: this is in shared memory - each block's indexing strats from 0
@@ -418,7 +423,8 @@ __global__ void GPUAtomicDomainPropagation
                     varidx,
                     printf("CSR-vector cand: varidx: %7d, considx: %7d, lhs: %9.2e, rhs: %9.2e, coeff: %9.2e, minact: %9.2e, maxact: %9.2e, num_minact_inf: %d, num_maxact_inf: %d, oldlb: %9.2e, oldub: %9.2e, newlb: %9.2e, newub: %9.2e\n",
                            varidx, block_row_begin, lhss[block_row_begin], rhss[block_row_begin], vals[element],
-                           minacts[0], maxacts[0], minacts_inf[0], maxacts_inf[0], lbs[col_indices[element]], ubs[col_indices[element]], newlb, newub)
+                           minacts[0], maxacts[0], minacts_inf[0], maxacts_inf[0], lbs[col_indices[element]],
+                           ubs[col_indices[element]], newlb, newub)
             );
 
             const bool is_var_cont = vartypes[varidx] == GDP_CONTINUOUS;
@@ -469,7 +475,8 @@ __global__ void GPUAtomicPropEntryKernel
       *change_found = false;
 
       FOLLOW_VAR_CALL(FOLLOW_VAR,
-                      printf("\nbounds before round: %d, varidx: %7d, lb: %9.2e, ub: %9.2e\n", prop_round, FOLLOW_VAR, lbs[FOLLOW_VAR],
+                      printf("\nbounds before round: %d, varidx: %7d, lb: %9.2e, ub: %9.2e\n", prop_round, FOLLOW_VAR,
+                             lbs[FOLLOW_VAR],
                              ubs[FOLLOW_VAR]));
       const int num_blocks_bound_copy = ceil(double(n_vars) / BOUND_COPY_NUM_THREADS);
 
@@ -478,9 +485,10 @@ __global__ void GPUAtomicPropEntryKernel
       // - max_num_cons_in_block elems of type datatype for maxactivities
       // - max_num_cons_in_block elems of type int for minactivities inf contributions
       // - max_num_cons_in_block elems of type int for maxactivities inf contributions
-   //   VERBOSE_CALL_2(printf("Amount of dynamic shared memory requested: %.2f KB\n",
-   //                         (2 * max_n_cons_in_block * sizeof(datatype)) / 1024.0));
-      GPUAtomicDomainPropagation<datatype> <<< blocks_count, NNZ_PER_WG, 2 * max_n_cons_in_block * (sizeof(datatype) + sizeof(int)) >>>
+      //   VERBOSE_CALL_2(printf("Amount of dynamic shared memory requested: %.2f KB\n",
+      //                         (2 * max_n_cons_in_block * sizeof(datatype)) / 1024.0));
+      GPUAtomicDomainPropagation<datatype> <<< blocks_count, NNZ_PER_WG, 2 * max_n_cons_in_block *
+                                                                         (sizeof(datatype) + sizeof(int)) >>>
               (
                       n_cons, max_n_cons_in_block, col_indices, row_ptrs, row_blocks, vals, lbs, ubs, vartypes,
                       lhss, rhss, change_found, prop_round

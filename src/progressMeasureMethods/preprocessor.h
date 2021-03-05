@@ -17,13 +17,13 @@ bool preprocessorPropagationRound
                 const datatype *rhss,
                 datatype *lbs,
                 datatype *ubs,
-                datatype* lbs_original,
-                datatype* ubs_original,
+                datatype *lbs_original,
+                datatype *ubs_original,
                 const GDP_VARTYPE *vartypes,
                 datatype *minacts,
                 datatype *maxacts,
-                int* minacts_inf,
-                int* maxacts_inf,
+                int *minacts_inf,
+                int *maxacts_inf,
                 datatype *maxactdeltas,
                 int *consmarked,
                 const bool recomputeActs
@@ -60,7 +60,8 @@ bool preprocessorPropagationRound
          rhs = rhss[considx];
          lhs = lhss[considx];
 
-         if (canConsBeTightened(minacts[considx], maxacts[considx], minacts_inf[considx], maxacts_inf[considx], lhs, rhs, maxactdeltas[considx])) {
+         if (canConsBeTightened(minacts[considx], maxacts[considx], minacts_inf[considx], maxacts_inf[considx], lhs,
+                                rhs, maxactdeltas[considx])) {
             int num_vars_in_cons = row_indices[considx + 1] - row_indices[considx];
 
 
@@ -73,19 +74,20 @@ bool preprocessorPropagationRound
 
                NewBounds<datatype> newbds = tightenVariable<datatype>
                        (
-                               coeff, lhs, rhs, minacts[considx], maxacts[considx], minacts_inf[considx], maxacts_inf[considx], isVarCont, lbs[varidx], ubs[varidx]
+                               coeff, lhs, rhs, minacts[considx], maxacts[considx], minacts_inf[considx],
+                               maxacts_inf[considx], isVarCont, lbs[varidx], ubs[varidx]
                        );
 
 
                // if the bounds was infinite before, and the new bound is finite
-               if (newbds.lb.is_tightened && EPSLE(lbs_original[varidx], -GDP_INF) && EPSGT(newbds.lb.newb, -GDP_INF))
-               {
+               if (newbds.lb.is_tightened && EPSLE(lbs_original[varidx], -GDP_INF) && EPSGT(newbds.lb.newb, -GDP_INF)) {
                   // it could happen that some other constraint in the system already found a finite tightening for this var.
                   // In this case, only update if the new finite bound is "worse"
-                  if ( EPSLE(lbs[varidx], -GDP_INF) || ( EPSGT(lbs[varidx], -GDP_INF) && EPSLT(newbds.lb.newb, lbs[varidx]) ) )
-                  {
+                  if (EPSLE(lbs[varidx], -GDP_INF) ||
+                      (EPSGT(lbs[varidx], -GDP_INF) && EPSLT(newbds.lb.newb, lbs[varidx]))) {
                      FOLLOW_VAR_CALL(varidx,
-                                     printf("preprocessor lb change found: varidx: %7d, oldlb: %9.2e, newlb: %9.2e\n", varidx, lbs[varidx],
+                                     printf("preprocessor lb change found: varidx: %7d, oldlb: %9.2e, newlb: %9.2e\n",
+                                            varidx, lbs[varidx],
                                             newbds.lb.newb));
                      lbs[varidx] = newbds.lb.newb;
                      change_found = true;
@@ -94,14 +96,14 @@ bool preprocessorPropagationRound
                }
 
                // if the bounds was infinite before, and the new bound is finite
-               if (newbds.ub.is_tightened && EPSGE(ubs_original[varidx], GDP_INF) && EPSLT(newbds.ub.newb, GDP_INF))
-               {
+               if (newbds.ub.is_tightened && EPSGE(ubs_original[varidx], GDP_INF) && EPSLT(newbds.ub.newb, GDP_INF)) {
                   // it could happen that some other constraint in the system already found a finite tightening for this var.
                   // In this case, only update if the new finite bound is "worse"
-                  if ( EPSGE(ubs[varidx], GDP_INF) || ( EPSLT(ubs[varidx], GDP_INF) && EPSGT(newbds.ub.newb, ubs[varidx]) ) )
-                  {
+                  if (EPSGE(ubs[varidx], GDP_INF) ||
+                      (EPSLT(ubs[varidx], GDP_INF) && EPSGT(newbds.ub.newb, ubs[varidx]))) {
                      FOLLOW_VAR_CALL(varidx,
-                                     printf("preprocessor ub change found: varidx: %7d, oldub: %9.2e, newub: %9.2e\n", varidx, ubs[varidx],
+                                     printf("preprocessor ub change found: varidx: %7d, oldub: %9.2e, newub: %9.2e\n",
+                                            varidx, ubs[varidx],
                                             newbds.ub.newb));
                      ubs[varidx] = newbds.ub.newb;
                      change_found = true;
@@ -145,8 +147,8 @@ void executePreprocessor
    datatype *maxactdeltas = (datatype *) calloc(n_cons, sizeof(datatype));
    int *consmarked = (int *) calloc(n_cons, sizeof(int));
 
-   datatype* lbs_original = (datatype*)SAFEMALLOC(n_vars * sizeof(datatype));
-   datatype* ubs_original = (datatype*)SAFEMALLOC(n_vars * sizeof(datatype));
+   datatype *lbs_original = (datatype *) SAFEMALLOC(n_vars * sizeof(datatype));
+   datatype *ubs_original = (datatype *) SAFEMALLOC(n_vars * sizeof(datatype));
 
    // all cons marked for propagation in the first round
    for (int i = 0; i < n_cons; i++)
@@ -164,21 +166,25 @@ void executePreprocessor
    {
       VERBOSE_CALL_2(printf("\nPropagation round: %d", prop_round));
 
-      sequentialComputeActivities<datatype>(n_cons, col_indices, row_indices, vals, ubs, lbs, minacts, maxacts, minacts_inf, maxacts_inf,
+      sequentialComputeActivities<datatype>(n_cons, col_indices, row_indices, vals, ubs, lbs, minacts, maxacts,
+                                            minacts_inf, maxacts_inf,
                                             maxactdeltas);
 
       FOLLOW_VAR_CALL(FOLLOW_VAR,
-                      printf("preprocessor varidx: %7d bounds before round: %7d: lb: %9.2e, ub: %9.2e\n", FOLLOW_VAR, prop_round, lbs[FOLLOW_VAR],
+                      printf("preprocessor varidx: %7d bounds before round: %7d: lb: %9.2e, ub: %9.2e\n", FOLLOW_VAR,
+                             prop_round, lbs[FOLLOW_VAR],
                              ubs[FOLLOW_VAR]));
 
       change_found = preprocessorPropagationRound<datatype>
               (
                       n_cons, n_vars, col_indices, row_indices, csc_col_ptrs, csc_row_indices, vals, lhss, rhss,
-                      lbs, ubs, lbs_original, ubs_original, vartypes, minacts, maxacts, minacts_inf, maxacts_inf, maxactdeltas, consmarked, RECOMPUTE_ACTS_FALSE
+                      lbs, ubs, lbs_original, ubs_original, vartypes, minacts, maxacts, minacts_inf, maxacts_inf,
+                      maxactdeltas, consmarked, RECOMPUTE_ACTS_FALSE
               );
 
       FOLLOW_VAR_CALL(FOLLOW_VAR,
-                      printf("preprocessor varidx: %7d bounds after round: %7d: lb: %9.2e, ub: %9.2e\n", FOLLOW_VAR, prop_round, lbs[FOLLOW_VAR],
+                      printf("preprocessor varidx: %7d bounds after round: %7d: lb: %9.2e, ub: %9.2e\n", FOLLOW_VAR,
+                             prop_round, lbs[FOLLOW_VAR],
                              ubs[FOLLOW_VAR]));
    }
 
@@ -194,4 +200,5 @@ void executePreprocessor
    free(lbs_original);
    free(ubs_original);
 }
+
 #endif //GPU_DOMAIN_PROPAGATOR_PREPROCESSOR_H

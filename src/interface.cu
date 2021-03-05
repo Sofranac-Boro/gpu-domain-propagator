@@ -28,22 +28,22 @@ GDP_RETCODE propagateConstraintsGPUReductionDouble(
         double *ubs,
         const int *vartypes
 ) {
-      CALL_AND_HANDLE(
-              propagateConstraintsGPUReduction<double>
-                      (
-                              n_cons,
-                              n_vars,
-                              nnz,
-                              csr_col_indices,
-                              csr_row_ptrs,
-                              csr_vals,
-                              lhss,
-                              rhss,
-                              lbs,
-                              ubs,
-                              (GDP_VARTYPE *) vartypes
-                      )
-              )
+   CALL_AND_HANDLE(
+           propagateConstraintsGPUReduction<double>
+                   (
+                           n_cons,
+                           n_vars,
+                           nnz,
+                           csr_col_indices,
+                           csr_row_ptrs,
+                           csr_vals,
+                           lhss,
+                           rhss,
+                           lbs,
+                           ubs,
+                           (GDP_VARTYPE *) vartypes
+                   )
+   )
 }
 
 GDP_RETCODE propagateConstraintsGPUReductionFloat(
@@ -91,21 +91,21 @@ GDP_RETCODE propagateConstraintsGPUAtomicDouble(
         const int *vartypes,
         const bool fullAsync
 ) {
-      CALL_AND_HANDLE( propagateConstraintsGPUAtomic<double>
-              (
-                      n_cons,
-                      n_vars,
-                      nnz,
-                      csr_col_indices,
-                      csr_row_ptrs,
-                      csr_vals,
-                      lhss,
-                      rhss,
-                      lbs,
-                      ubs,
-                      (GDP_VARTYPE *) vartypes,
-                      fullAsync
-              ))
+   CALL_AND_HANDLE(propagateConstraintsGPUAtomic<double>
+                           (
+                                   n_cons,
+                                   n_vars,
+                                   nnz,
+                                   csr_col_indices,
+                                   csr_row_ptrs,
+                                   csr_vals,
+                                   lhss,
+                                   rhss,
+                                   lbs,
+                                   ubs,
+                                   (GDP_VARTYPE *) vartypes,
+                                   fullAsync
+                           ))
 }
 
 GDP_RETCODE propagateConstraintsGPUAtomicFloat(
@@ -122,21 +122,21 @@ GDP_RETCODE propagateConstraintsGPUAtomicFloat(
         const int *vartypes,
         const bool fullAsync
 ) {
-      CALL_AND_HANDLE( propagateConstraintsGPUAtomic<float>
-              (
-                      n_cons,
-                      n_vars,
-                      nnz,
-                      csr_col_indices,
-                      csr_row_ptrs,
-                      csr_vals,
-                      lhss,
-                      rhss,
-                      lbs,
-                      ubs,
-                      (GDP_VARTYPE *) vartypes,
-                      fullAsync
-              ) )
+   CALL_AND_HANDLE(propagateConstraintsGPUAtomic<float>
+                           (
+                                   n_cons,
+                                   n_vars,
+                                   nnz,
+                                   csr_col_indices,
+                                   csr_row_ptrs,
+                                   csr_vals,
+                                   lhss,
+                                   rhss,
+                                   lbs,
+                                   ubs,
+                                   (GDP_VARTYPE *) vartypes,
+                                   fullAsync
+                           ))
 }
 
 GDP_RETCODE propagateConstraintsSequentialDouble
@@ -153,20 +153,20 @@ GDP_RETCODE propagateConstraintsSequentialDouble
                 double *ubs,
                 const int *vartypes
         ) {
-      CALL_AND_HANDLE(sequentialPropagate<double>
-              (
-                      n_cons,
-                      n_vars,
-                      nnz,
-                      col_indices,
-                      row_indices,
-                      vals,
-                      lhss,
-                      rhss,
-                      lbs,
-                      ubs,
-                      (GDP_VARTYPE *) vartypes
-              ))
+   CALL_AND_HANDLE(sequentialPropagate<double>
+                           (
+                                   n_cons,
+                                   n_vars,
+                                   nnz,
+                                   col_indices,
+                                   row_indices,
+                                   vals,
+                                   lhss,
+                                   rhss,
+                                   lbs,
+                                   ubs,
+                                   (GDP_VARTYPE *) vartypes
+                           ))
 }
 
 GDP_RETCODE propagateConstraintsSequentialFloat
@@ -183,20 +183,20 @@ GDP_RETCODE propagateConstraintsSequentialFloat
                 float *ubs,
                 const int *vartypes
         ) {
-      CALL_AND_HANDLE(sequentialPropagate<float>
-              (
-                      n_cons,
-                      n_vars,
-                      nnz,
-                      col_indices,
-                      row_indices,
-                      vals,
-                      lhss,
-                      rhss,
-                      lbs,
-                      ubs,
-                      (GDP_VARTYPE *) vartypes
-              ))
+   CALL_AND_HANDLE(sequentialPropagate<float>
+                           (
+                                   n_cons,
+                                   n_vars,
+                                   nnz,
+                                   col_indices,
+                                   row_indices,
+                                   vals,
+                                   lhss,
+                                   rhss,
+                                   lbs,
+                                   ubs,
+                                   (GDP_VARTYPE *) vartypes
+                           ))
 }
 
 GDP_RETCODE propagateConstraintsFullOMPDouble
@@ -213,20 +213,20 @@ GDP_RETCODE propagateConstraintsFullOMPDouble
                 double *ubs,
                 const int *vartypes
         ) {
-      CALL_AND_HANDLE(fullOMPPropagate<double>
-              (
-                      n_cons,
-                      n_vars,
-                      nnz,
-                      col_indices,
-                      row_indices,
-                      vals,
-                      lhss,
-                      rhss,
-                      lbs,
-                      ubs,
-                      (GDP_VARTYPE *) vartypes
-              ))
+   CALL_AND_HANDLE(fullOMPPropagate<double>
+                           (
+                                   n_cons,
+                                   n_vars,
+                                   nnz,
+                                   col_indices,
+                                   row_indices,
+                                   vals,
+                                   lhss,
+                                   rhss,
+                                   lbs,
+                                   ubs,
+                                   (GDP_VARTYPE *) vartypes
+                           ))
 }
 
 GDP_RETCODE propagateConstraintsFullOMPFloat
@@ -274,20 +274,20 @@ GDP_RETCODE propagateConstraintsSequentialDisjointDouble
                 const int *vartypes
         ) {
 
-      CALL_AND_HANDLE(sequentialPropagateDisjoint<double>
-              (
-                      n_cons,
-                      n_vars,
-                      nnz,
-                      col_indices,
-                      row_indices,
-                      vals,
-                      lhss,
-                      rhss,
-                      lbs,
-                      ubs,
-                      (GDP_VARTYPE *) vartypes
-              ))
+   CALL_AND_HANDLE(sequentialPropagateDisjoint<double>
+                           (
+                                   n_cons,
+                                   n_vars,
+                                   nnz,
+                                   col_indices,
+                                   row_indices,
+                                   vals,
+                                   lhss,
+                                   rhss,
+                                   lbs,
+                                   ubs,
+                                   (GDP_VARTYPE *) vartypes
+                           ))
 }
 
 GDP_RETCODE sequentialPropagateWithMeasureDouble
@@ -305,20 +305,20 @@ GDP_RETCODE sequentialPropagateWithMeasureDouble
                 const int *vartypes
         ) {
 
-      CALL_AND_HANDLE(sequentialPropagateWithMeasure<double>
-              (
-                      n_cons,
-                      n_vars,
-                      nnz,
-                      col_indices,
-                      row_indices,
-                      vals,
-                      lhss,
-                      rhss,
-                      lbs,
-                      ubs,
-                      (GDP_VARTYPE *) vartypes
-              ))
+   CALL_AND_HANDLE(sequentialPropagateWithMeasure<double>
+                           (
+                                   n_cons,
+                                   n_vars,
+                                   nnz,
+                                   col_indices,
+                                   row_indices,
+                                   vals,
+                                   lhss,
+                                   rhss,
+                                   lbs,
+                                   ubs,
+                                   (GDP_VARTYPE *) vartypes
+                           ))
 }
 
 GDP_RETCODE atomicPropagateWithMeasureDouble
@@ -336,19 +336,19 @@ GDP_RETCODE atomicPropagateWithMeasureDouble
                 const int *vartypes
         ) {
 
-      CALL_AND_HANDLE(propagateConstraintsGPUAtomicWithMeasure<double>
-              (
-                      n_cons,
-                      n_vars,
-                      nnz,
-                      col_indices,
-                      row_indices,
-                      vals,
-                      lhss,
-                      rhss,
-                      lbs,
-                      ubs,
-                      (GDP_VARTYPE *) vartypes
-              ))
+   CALL_AND_HANDLE(propagateConstraintsGPUAtomicWithMeasure<double>
+                           (
+                                   n_cons,
+                                   n_vars,
+                                   nnz,
+                                   col_indices,
+                                   row_indices,
+                                   vals,
+                                   lhss,
+                                   rhss,
+                                   lbs,
+                                   ubs,
+                                   (GDP_VARTYPE *) vartypes
+                           ))
 }
 

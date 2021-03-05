@@ -56,7 +56,7 @@ public:
     void printConsMatrix() {
        printf("\n");
        for (int cons = 0; cons < n_cons; cons++) {
-          std::vector <datatype> dense_cons(n_vars, 0);
+          std::vector<datatype> dense_cons(n_vars, 0);
           //fill in the non-zeros
           for (int j = csr_row_ptrs[cons]; j < csr_row_ptrs[cons + 1]; j++) {
              int varidx = csr_col_indices[j];
@@ -586,8 +586,8 @@ public:
 
     void resetProblem() {
 
-       std::vector <datatype> varlbs;
-       std::vector <datatype> varubs;
+       std::vector<datatype> varlbs;
+       std::vector<datatype> varubs;
        std::vector<int> consmarked(this->n_cons, 1);
 
        for (int i = 0; i < this->n_vars; i++) {

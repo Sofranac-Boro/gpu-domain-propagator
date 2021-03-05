@@ -16,13 +16,13 @@ struct ActivitiesTupleStruct {
 };
 typedef struct ActivitiesTupleStruct ActivitiesTuple;
 
-template <typename datatype>
+template<typename datatype>
 struct NewBoundTuple {
     bool is_tightened;
     datatype newb;
 };
 
-template <typename datatype>
+template<typename datatype>
 struct NewBounds {
     NewBoundTuple<datatype> lb;
     NewBoundTuple<datatype> ub;
@@ -64,23 +64,20 @@ bool isUbBetter(const datatype lb, const datatype ub, const datatype newub) {
 }
 
 template<class datatype>
-NewBoundTuple<datatype> tightenVarUpperBound(const datatype coeff, const datatype slack, const datatype surplus, const int num_inf_contr, const datatype lb, const datatype ub,
-                                   const bool isVarCont) {
+NewBoundTuple<datatype>
+tightenVarUpperBound(const datatype coeff, const datatype slack, const datatype surplus, const int num_inf_contr,
+                     const datatype lb, const datatype ub,
+                     const bool isVarCont) {
 
    NewBoundTuple<datatype> newb_tuple = {false, ub}; // output
    datatype newb;
 
-   if (num_inf_contr == 0)
-   {
-      newb = EPSGT(coeff, 0)? slack / coeff : surplus / coeff;
+   if (num_inf_contr == 0) {
+      newb = EPSGT(coeff, 0) ? slack / coeff : surplus / coeff;
       newb += lb;
-   }
-   else if (num_inf_contr == 1 && EPSLE(lb, -GDP_INF))
-   {
-      newb = EPSGT(coeff, 0)? slack / coeff : surplus / coeff;
-   }
-   else
-   {
+   } else if (num_inf_contr == 1 && EPSLE(lb, -GDP_INF)) {
+      newb = EPSGT(coeff, 0) ? slack / coeff : surplus / coeff;
+   } else {
       return newb_tuple;
    }
 
@@ -97,23 +94,20 @@ NewBoundTuple<datatype> tightenVarUpperBound(const datatype coeff, const datatyp
 }
 
 template<class datatype>
-NewBoundTuple<datatype> tightenVarLowerBound(const datatype coeff, const datatype slack, const datatype surplus, const int num_inf_contr, const datatype lb, const datatype ub,
-                                   const bool isVarCont) {
+NewBoundTuple<datatype>
+tightenVarLowerBound(const datatype coeff, const datatype slack, const datatype surplus, const int num_inf_contr,
+                     const datatype lb, const datatype ub,
+                     const bool isVarCont) {
    NewBoundTuple<datatype> newb_tuple = {false, lb}; // output
    datatype newb;
 
 
-   if (num_inf_contr == 0)
-   {
-      newb = EPSGT(coeff, 0)? surplus / coeff : slack / coeff;
+   if (num_inf_contr == 0) {
+      newb = EPSGT(coeff, 0) ? surplus / coeff : slack / coeff;
       newb += ub;
-   }
-   else if (num_inf_contr == 1 && EPSLE(lb, -GDP_INF))
-   {
-      newb = EPSGT(coeff, 0)? surplus / coeff : slack / coeff;
-   }
-   else
-   {
+   } else if (num_inf_contr == 1 && EPSLE(lb, -GDP_INF)) {
+      newb = EPSGT(coeff, 0) ? surplus / coeff : slack / coeff;
+   } else {
       return newb_tuple;
    }
 
@@ -137,12 +131,11 @@ bool canConsBeTightened(
         const datatype lhs,
         const datatype rhs,
         const datatype maxactdelta
-        ) {
+) {
    if (numminactinf > 1 && nummaxactinf > 1)
       return false;
 
-   if (EPSLT(maxactdelta, GDP_INF))
-   {
+   if (EPSLT(maxactdelta, GDP_INF)) {
       return !EPSLE(maxactdelta, min(rhs - minact, maxact - lhs));
    }
 
@@ -201,12 +194,10 @@ ActivitiesTuple computeActivities
       minact_inf += is_minac_inf;
       maxact_inf += is_maxact_inf;
 
-      if (is_minac_inf == 0)
-      {
+      if (is_minac_inf == 0) {
          minactivity += EPSGT(coeff, 0) ? coeff * lb : coeff * ub;
       }
-      if (is_maxact_inf == 0)
-      {
+      if (is_maxact_inf == 0) {
          maxactivity += EPSGT(coeff, 0) ? coeff * ub : coeff * lb;
       }
    }

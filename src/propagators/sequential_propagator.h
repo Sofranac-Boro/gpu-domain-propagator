@@ -21,8 +21,8 @@ void sequentialComputeActivities
                 const datatype *lbs,
                 datatype *minacts,
                 datatype *maxacts,
-                int* minacts_inf,
-                int* maxacts_inf,
+                int *minacts_inf,
+                int *maxacts_inf,
                 datatype *maxactdeltas
         ) {
    for (int considx = 0; considx < n_cons; considx++) {
@@ -53,11 +53,11 @@ bool sequentialPropagationRound
                 const GDP_VARTYPE *vartypes,
                 datatype *minacts,
                 datatype *maxacts,
-                int* minacts_inf,
-                int* maxacts_inf,
+                int *minacts_inf,
+                int *maxacts_inf,
                 datatype *maxactdeltas,
                 int *consmarked,
-                int* consmarked_nextround,
+                int *consmarked_nextround,
                 const bool recomputeActs
         ) {
 
@@ -69,7 +69,7 @@ bool sequentialPropagationRound
    int val_idx;
    int varidx;
 
-   std::fill(consmarked_nextround, consmarked_nextround+n_cons, 0);
+   std::fill(consmarked_nextround, consmarked_nextround + n_cons, 0);
 
    for (int considx = 0; considx < n_cons; considx++) {
       if (consmarked[considx] == 1) {
@@ -87,10 +87,13 @@ bool sequentialPropagationRound
          rhs = rhss[considx];
          lhs = lhss[considx];
 
-         FOLLOW_CONS_CALL(considx, printf("\ncons %d: minact:  %9.2e, maxact: %9.2e, minact_inf: %d, maxact_inf: %d, lhs: %9.2e, rhs: %9.2e\n",
-                                          considx, minacts[considx], maxacts[considx], minacts_inf[considx], maxacts_inf[considx], lhs, rhs));
+         FOLLOW_CONS_CALL(considx,
+                          printf("\ncons %d: minact:  %9.2e, maxact: %9.2e, minact_inf: %d, maxact_inf: %d, lhs: %9.2e, rhs: %9.2e\n",
+                                 considx, minacts[considx], maxacts[considx], minacts_inf[considx],
+                                 maxacts_inf[considx], lhs, rhs));
 
-         if (canConsBeTightened(minacts[considx], maxacts[considx], minacts_inf[considx], maxacts_inf[considx], lhs, rhs, maxactdeltas[considx])) {
+         if (canConsBeTightened(minacts[considx], maxacts[considx], minacts_inf[considx], maxacts_inf[considx], lhs,
+                                rhs, maxactdeltas[considx])) {
             int num_vars_in_cons = row_indices[considx + 1] - row_indices[considx];
 
             for (int var = 0; var < num_vars_in_cons; var++) {
@@ -102,34 +105,36 @@ bool sequentialPropagationRound
 
                NewBounds<datatype> newbds = tightenVariable<datatype>
                        (
-                               coeff, lhs, rhs, minacts[considx], maxacts[considx], minacts_inf[considx], maxacts_inf[considx], isVarCont, lbs[varidx], ubs[varidx]
+                               coeff, lhs, rhs, minacts[considx], maxacts[considx], minacts_inf[considx],
+                               maxacts_inf[considx], isVarCont, lbs[varidx], ubs[varidx]
                        );
 
-               if (newbds.lb.is_tightened)
-               {
+               if (newbds.lb.is_tightened) {
                   FOLLOW_VAR_CALL(varidx,
                                   printf("cpu_seq lb change found: varidx: %7d, considx: %7d, lhs: %9.2e, rhs: %9.2e, coeff: %9.2e, minact: %9.7e, maxact: %9.7e, num_minact_inf: %d,"
                                          " num_maxact_inf: %d, oldlb: %9.2e, oldub: %9.2e, newlb: %9.2e\n",
-                                         varidx, considx, lhs, rhs, coeff, minacts[considx], maxacts[considx], minacts_inf[considx], maxacts_inf[considx], lbs[varidx], ubs[varidx], newbds.lb.newb)
+                                         varidx, considx, lhs, rhs, coeff, minacts[considx], maxacts[considx],
+                                         minacts_inf[considx], maxacts_inf[considx], lbs[varidx], ubs[varidx],
+                                         newbds.lb.newb)
                   );
                   lbs[varidx] = newbds.lb.newb;
                   assert(EPSLE(lbs[varidx], ubs[varidx]));
 
                }
 
-               if (newbds.ub.is_tightened)
-               {
+               if (newbds.ub.is_tightened) {
                   FOLLOW_VAR_CALL(varidx,
                                   printf("cpu_seq ub change found: varidx: %7d, considx: %7d, lhs: %9.2e, rhs: %9.2e, coeff: %9.2e, minact: %9.7e, maxact: %9.7e, num_minact_inf: %d,"
                                          " num_maxact_inf: %d, oldlb(or new): %9.2e, oldub: %9.2e, newub: %9.2e\n",
-                                         varidx, considx, lhs, rhs, coeff, minacts[considx], maxacts[considx], minacts_inf[considx], maxacts_inf[considx], lbs[varidx], ubs[varidx], newbds.ub.newb)
+                                         varidx, considx, lhs, rhs, coeff, minacts[considx], maxacts[considx],
+                                         minacts_inf[considx], maxacts_inf[considx], lbs[varidx], ubs[varidx],
+                                         newbds.ub.newb)
                   );
                   ubs[varidx] = newbds.ub.newb;
                   assert(EPSLE(lbs[varidx], ubs[varidx]));
                }
 
-               if (newbds.ub.is_tightened || newbds.lb.is_tightened)
-               {
+               if (newbds.ub.is_tightened || newbds.lb.is_tightened) {
                   change_found = true;
                   markConstraints(varidx, csc_col_ptrs, csc_row_indices, consmarked_nextround);
                }
@@ -194,13 +199,15 @@ GDP_Retcode sequentialPropagateDisjoint
    for (prop_round = 1; prop_round <= MAX_NUM_ROUNDS && change_found; prop_round++)  // maxnumrounds = 100
    {
       VERBOSE_CALL_2(printf("Propagation round: %d\n", prop_round));
-      sequentialComputeActivities<datatype>(n_cons, col_indices, row_indices, vals, ubs, lbs, minacts, maxacts, minacts_inf, maxacts_inf,
+      sequentialComputeActivities<datatype>(n_cons, col_indices, row_indices, vals, ubs, lbs, minacts, maxacts,
+                                            minacts_inf, maxacts_inf,
                                             maxactdeltas);
 
       change_found = sequentialPropagationRound<datatype>
               (
                       n_cons, n_vars, col_indices, row_indices, csc_col_ptrs, csc_row_indices, vals, lhss, rhss,
-                      lbs, ubs, vartypes, minacts, maxacts, minacts_inf, maxacts_inf, maxactdeltas, consmarked, consmarked_nextround, RECOMPUTE_ACTS_FALSE
+                      lbs, ubs, vartypes, minacts, maxacts, minacts_inf, maxacts_inf, maxactdeltas, consmarked,
+                      consmarked_nextround, RECOMPUTE_ACTS_FALSE
               );
 
    }
@@ -271,7 +278,7 @@ GDP_Retcode sequentialPropagate
    VERBOSE_CALL(printf(
            "\ncpu_seq execution start... Datatype: %s, MAXNUMROUNDS: %d",
            getDatatypeName<datatype>(), MAX_NUM_ROUNDS));
-   VERBOSE_CALL_2( printf("\n") );
+   VERBOSE_CALL_2(printf("\n"));
 
    bool change_found = true;
    int prop_round;
@@ -279,18 +286,21 @@ GDP_Retcode sequentialPropagate
    {
       VERBOSE_CALL_2(printf("Propagation round: %d, ", prop_round));
       FOLLOW_VAR_CALL(FOLLOW_VAR,
-                      printf("cpu_seq varidx %d bounds beofre round %d: lb: %9.2e, ub: %9.2e\n", FOLLOW_VAR, prop_round, lbs[FOLLOW_VAR],
+                      printf("cpu_seq varidx %d bounds beofre round %d: lb: %9.2e, ub: %9.2e\n", FOLLOW_VAR, prop_round,
+                             lbs[FOLLOW_VAR],
                              ubs[FOLLOW_VAR]));
 
       change_found = sequentialPropagationRound<datatype>
               (
                       n_cons, n_vars, col_indices, row_indices, csc_col_ptrs, csc_row_indices, vals, lhss, rhss,
-                      lbs, ubs, vartypes, minacts, maxacts, minacts_inf, maxacts_inf, maxactdeltas, consmarked, consmarked_nextround, RECOMPUTE_ACTS_TRUE
+                      lbs, ubs, vartypes, minacts, maxacts, minacts_inf, maxacts_inf, maxactdeltas, consmarked,
+                      consmarked_nextround, RECOMPUTE_ACTS_TRUE
               );
 
       FOLLOW_VAR_CALL(FOLLOW_VAR,
-                      printf("cpu_seq varidx %d bounds after round %d: lb: %9.2e, ub: %9.2e\n", FOLLOW_VAR, prop_round, lbs[FOLLOW_VAR], ubs[FOLLOW_VAR]));
-      VERBOSE_CALL_2( measureTime("cpu_seq", start, std::chrono::steady_clock::now()) );
+                      printf("cpu_seq varidx %d bounds after round %d: lb: %9.2e, ub: %9.2e\n", FOLLOW_VAR, prop_round,
+                             lbs[FOLLOW_VAR], ubs[FOLLOW_VAR]));
+      VERBOSE_CALL_2(measureTime("cpu_seq", start, std::chrono::steady_clock::now()));
    }
 
    VERBOSE_CALL(printf("\ncpu_seq propagation done. Num rounds: %d\n", prop_round - 1));

@@ -78,18 +78,12 @@ void initArrayAscending
 }
 
 template<typename datatype>
-cudaDataType_t CtoCudaDatatype()
-{
-   if (std::is_same<datatype, double>::value)
-   {
+cudaDataType_t CtoCudaDatatype() {
+   if (std::is_same<datatype, double>::value) {
       return CUDA_R_64F;
-   }
-   else if (std::is_same<datatype, float>::value)
-   {
+   } else if (std::is_same<datatype, float>::value) {
       return CUDA_R_32F;
-   }
-   else
-   {
+   } else {
       throw std::runtime_error(std::string("Unsupported datatype. Cannot convert to cuda type\n"));
    }
 }
@@ -126,23 +120,24 @@ void csr_to_csc(
    CUSPARSE_CALL(cusparseCreate(&handle));
    CUSPARSE_CALL(cusparseSetStream(handle, stream));
 
-   CUSPARSE_CALL( cusparseCsr2cscEx2_bufferSize
-           (
-                   handle, n_cons, n_vars, nnz, d_vals, d_row_ptrs, d_col_indices, d_vals_csc_tmp,
-                   d_csc_col_ptrs, d_csc_row_indices, CtoCudaDatatype<datatype>(),
-                   CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO, CUSPARSE_CSR2CSC_ALG2, &pBufferSizeInBytes
-           ) );
+   CUSPARSE_CALL(cusparseCsr2cscEx2_bufferSize
+                         (
+                                 handle, n_cons, n_vars, nnz, d_vals, d_row_ptrs, d_col_indices, d_vals_csc_tmp,
+                                 d_csc_col_ptrs, d_csc_row_indices, CtoCudaDatatype<datatype>(),
+                                 CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO, CUSPARSE_CSR2CSC_ALG2,
+                                 &pBufferSizeInBytes
+                         ));
 
    CUDA_CALL(cudaMalloc(&pBuffer, pBufferSizeInBytes));
 
    // TODO when CUSPARSE_ACTION_SYMBOLIC is used, the algorithm only works on indices. However, if I pass NULL or d_vals to
    // the function instead of d_vals_csc, it somehow messes up the d_vals and d_csc_row/col. Look into this.
-   CUSPARSE_CALL( cusparseCsr2cscEx2
-           (
-                   handle, n_cons, n_vars, nnz, d_vals, d_row_ptrs, d_col_indices, d_vals_csc_tmp,
-                   d_csc_col_ptrs, d_csc_row_indices, CtoCudaDatatype<datatype>(),
-                   CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO, CUSPARSE_CSR2CSC_ALG2, pBuffer
-           ) );
+   CUSPARSE_CALL(cusparseCsr2cscEx2
+                         (
+                                 handle, n_cons, n_vars, nnz, d_vals, d_row_ptrs, d_col_indices, d_vals_csc_tmp,
+                                 d_csc_col_ptrs, d_csc_row_indices, CtoCudaDatatype<datatype>(),
+                                 CUSPARSE_ACTION_NUMERIC, CUSPARSE_INDEX_BASE_ZERO, CUSPARSE_CSR2CSC_ALG2, pBuffer
+                         ));
 
    CUDA_CALL(cudaDeviceSynchronize());
 
@@ -274,12 +269,11 @@ __device__ __forceinline__ float atomicMax(float *address, float val) {
 }
 
 template<typename datatype>
-__host__ __device__ __forceinline__ void atomicAdd1(datatype* val)
-{
+__host__ __device__ __forceinline__ void atomicAdd1(datatype *val) {
 #ifdef  __CUDA_ARCH__
-      atomicAdd(val, 1);
+   atomicAdd(val, 1);
 #else
-      __sync_fetch_and_add(val, 1);
+   __sync_fetch_and_add(val, 1);
 #endif
 }
 
@@ -315,21 +309,27 @@ __device__ __forceinline__ void getNewBoundCandidates
 
    // do not attempt to use the above formulas if activities or cons sides are inf. It could lead to numerical difficulties and no bound change is possibly valid.
    // lower
-   bool can_tighten = ( EPSGT(coeff, 0.0) && EPSGT(lhs, -GDP_INF) && EPSLT(maxact, GDP_INF) && (num_maxact_inf == 0 || (num_maxact_inf == 1 && EPSGE(ub, GDP_INF))) );
-   can_tighten = can_tighten || ( EPSLT(coeff, 0.0) && EPSLT(rhs, GDP_INF) && EPSGT(minact, -GDP_INF) && (num_minact_inf == 0 || (num_minact_inf == 1 && EPSGE(ub, GDP_INF))) );
-   bool is_one_inf_case =( EPSGT(coeff, 0.0) && num_maxact_inf == 1 && EPSGE(ub, GDP_INF) ) || ( EPSLT(coeff, 0.0) && num_minact_inf == 1 && EPSGE(ub, GDP_INF) );
+   bool can_tighten = (EPSGT(coeff, 0.0) && EPSGT(lhs, -GDP_INF) && EPSLT(maxact, GDP_INF) &&
+                       (num_maxact_inf == 0 || (num_maxact_inf == 1 && EPSGE(ub, GDP_INF))));
+   can_tighten = can_tighten || (EPSLT(coeff, 0.0) && EPSLT(rhs, GDP_INF) && EPSGT(minact, -GDP_INF) &&
+                                 (num_minact_inf == 0 || (num_minact_inf == 1 && EPSGE(ub, GDP_INF))));
+   bool is_one_inf_case = (EPSGT(coeff, 0.0) && num_maxact_inf == 1 && EPSGE(ub, GDP_INF)) ||
+                          (EPSLT(coeff, 0.0) && num_minact_inf == 1 && EPSGE(ub, GDP_INF));
 
-   *newlb = EPSGT(coeff, 0)? (lhs - maxact) / coeff : (rhs - minact) / coeff;
-   *newlb = is_one_inf_case? *newlb : *newlb + ub;
-   *newlb = can_tighten && EPSGT(*newlb, -GDP_INF)? *newlb : lb;
+   *newlb = EPSGT(coeff, 0) ? (lhs - maxact) / coeff : (rhs - minact) / coeff;
+   *newlb = is_one_inf_case ? *newlb : *newlb + ub;
+   *newlb = can_tighten && EPSGT(*newlb, -GDP_INF) ? *newlb : lb;
 
    // upper
-   can_tighten = ( EPSGT(coeff, 0.0) && EPSLT(rhs, GDP_INF) && EPSGT(minact, -GDP_INF) && ( num_minact_inf == 0 || (num_minact_inf == 1 && EPSLE(lb, -GDP_INF))) );
-   can_tighten = can_tighten || ( EPSLT(coeff, 0.0) && EPSGT(lhs, -GDP_INF) && EPSLT(maxact, GDP_INF) && ( num_maxact_inf == 0 || (num_maxact_inf == 1 && EPSLE(lb, -GDP_INF))) );
-   is_one_inf_case =( EPSGT(coeff, 0.0) && num_minact_inf == 1 && EPSLE(lb, -GDP_INF) ) || ( EPSLT(coeff, 0.0) && num_maxact_inf == 1 && EPSLE(lb, -GDP_INF) );
+   can_tighten = (EPSGT(coeff, 0.0) && EPSLT(rhs, GDP_INF) && EPSGT(minact, -GDP_INF) &&
+                  (num_minact_inf == 0 || (num_minact_inf == 1 && EPSLE(lb, -GDP_INF))));
+   can_tighten = can_tighten || (EPSLT(coeff, 0.0) && EPSGT(lhs, -GDP_INF) && EPSLT(maxact, GDP_INF) &&
+                                 (num_maxact_inf == 0 || (num_maxact_inf == 1 && EPSLE(lb, -GDP_INF))));
+   is_one_inf_case = (EPSGT(coeff, 0.0) && num_minact_inf == 1 && EPSLE(lb, -GDP_INF)) ||
+                     (EPSLT(coeff, 0.0) && num_maxact_inf == 1 && EPSLE(lb, -GDP_INF));
 
-   *newub = EPSGT(coeff, 0)? (rhs - minact) / coeff : (lhs - maxact) / coeff;
-   *newub = is_one_inf_case? *newub : *newub + lb;
+   *newub = EPSGT(coeff, 0) ? (rhs - minact) / coeff : (lhs - maxact) / coeff;
+   *newub = is_one_inf_case ? *newub : *newub + lb;
    *newub = can_tighten && EPSLT(*newub, GDP_INF) ? *newub : ub;
 
    assert(EPSGE(*newub, *newlb));
@@ -349,17 +349,19 @@ __device__ __forceinline__ void getNewBoundCandidates_no_inf
    assert(!EPSEQ(coeff, 0.0));
    assert(EPSGE(ub, lb));
 
-   *newlb = EPSGT(coeff, 0)? surplus : slack;
-   *newub = EPSGT(coeff, 0)? slack : surplus;
+   *newlb = EPSGT(coeff, 0) ? surplus : slack;
+   *newub = EPSGT(coeff, 0) ? slack : surplus;
    *newlb = *newlb / coeff + ub;
    *newub = *newub / coeff + lb;
 
    // do not attempt to use the above formulas if activities or cons sides are inf. It could lead to numerical difficulties and no bound change is possibly valid.
    //lower
-   bool can_tighten = ( EPSGT(coeff, 0.0) && EPSGT(surplus, -GDP_INF) || EPSLT(coeff, 0.0) && EPSLT(slack, GDP_INF) ) && EPSGT(*newlb, -GDP_INF);
+   bool can_tighten = (EPSGT(coeff, 0.0) && EPSGT(surplus, -GDP_INF) || EPSLT(coeff, 0.0) && EPSLT(slack, GDP_INF)) &&
+                      EPSGT(*newlb, -GDP_INF);
    *newlb = can_tighten ? *newlb : lb;
    // upper
-   can_tighten = ( EPSGT(coeff, 0.0) && EPSLT(slack, GDP_INF) || EPSLT(coeff, 0.0) && EPSGT(surplus, -GDP_INF) ) && EPSLT(*newub, GDP_INF);
+   can_tighten = (EPSGT(coeff, 0.0) && EPSLT(slack, GDP_INF) || EPSLT(coeff, 0.0) && EPSGT(surplus, -GDP_INF)) &&
+                 EPSLT(*newub, GDP_INF);
    *newub = can_tighten ? *newub : ub;
 
    assert(EPSGE(*newub, *newlb));
@@ -424,16 +426,16 @@ __device__ __host__ datatype calcVarRelProgressMeasure(
    assert(EPSLE(lb_limit, ub_limit));
 
    // if limit bound is finite, so should be the starting value.
-   DEBUG_CALL( EPSGT(lb_limit, -GDP_INF)? assert(EPSGT(lb_start, -GDP_INF)) : assert(true) );
-   DEBUG_CALL( EPSLT(ub_limit, GDP_INF) ? assert(EPSLT(ub_start, GDP_INF)) : assert(true) );
+   DEBUG_CALL(EPSGT(lb_limit, -GDP_INF) ? assert(EPSGT(lb_start, -GDP_INF)) : assert(true));
+   DEBUG_CALL(EPSLT(ub_limit, GDP_INF) ? assert(EPSLT(ub_start, GDP_INF)) : assert(true));
 
    // if start bound is inf, it means it should never be possible to get a finite value for this bound
-   DEBUG_CALL( EPSLE(lb_start, -GDP_INF)? assert(EPSLE(lb, -GDP_INF)) : assert(true) );
-   DEBUG_CALL( EPSGE(ub_start, GDP_INF)? assert(EPSGE(ub, GDP_INF)) : assert(true) );
+   DEBUG_CALL(EPSLE(lb_start, -GDP_INF) ? assert(EPSLE(lb, -GDP_INF)) : assert(true));
+   DEBUG_CALL(EPSGE(ub_start, GDP_INF) ? assert(EPSGE(ub, GDP_INF)) : assert(true));
 
    // if start bound is finite, it should never be possible to get a "worse" finite value of the bound
-   DEBUG_CALL( EPSGT(lb_start, -GDP_INF) && EPSGT(lb, -GDP_INF)? assert(EPSGE(lb, lb_start)) : assert(true) );
-   DEBUG_CALL( EPSLT(ub_start,GDP_INF) && EPSLT(ub, GDP_INF)? assert(EPSLE(ub, ub_start)) : assert(true) );
+   DEBUG_CALL(EPSGT(lb_start, -GDP_INF) && EPSGT(lb, -GDP_INF) ? assert(EPSGE(lb, lb_start)) : assert(true));
+   DEBUG_CALL(EPSLT(ub_start, GDP_INF) && EPSLT(ub, GDP_INF) ? assert(EPSLE(ub, ub_start)) : assert(true));
    // measure contribution to finite-finite progress
    datatype score = 0.0;
    datatype increment;
@@ -448,20 +450,18 @@ __device__ __host__ datatype calcVarRelProgressMeasure(
    }
    // Upper bound
    if (EPSLT(ub_start, GDP_INF) && EPSLT(ub, GDP_INF) && EPSLE(ub, ub_start) && !(EPSEQ(ub_start, ub_limit))) {
-      increment = (ub_start - ub)/(ub_start - ub_limit);
+      increment = (ub_start - ub) / (ub_start - ub_limit);
       assert(EPSLE(increment, 1.0));
       score += increment;
    }
 
    // measure contribution to infinite-finite progress
-   if (EPSLE(lb_prevround, -GDP_INF) && EPSGT(lb, -GDP_INF))
-   {
+   if (EPSLE(lb_prevround, -GDP_INF) && EPSGT(lb, -GDP_INF)) {
       *inf_change_found = 1;
       atomicAdd1<int>(rel_measure_k);
    }
 
-   if (EPSGE(ub_prevround, GDP_INF) && EPSLT(ub, GDP_INF))
-   {
+   if (EPSGE(ub_prevround, GDP_INF) && EPSLT(ub, GDP_INF)) {
       *inf_change_found = 1;
       atomicAdd1<int>(rel_measure_k);
    }
@@ -476,10 +476,10 @@ __global__ void calcRelProgressMeasure(
         const datatype *ubs,
         const datatype *lbs_start,
         const datatype *ubs_start,
-        const datatype* lbs_limit,
-        const datatype* ubs_limit,
-        const datatype* lbs_prev,
-        const datatype* ubs_prev,
+        const datatype *lbs_limit,
+        const datatype *ubs_limit,
+        const datatype *lbs_prev,
+        const datatype *ubs_prev,
         datatype *measures,
         int *inf_change_found,
         int *abs_measure_k
@@ -488,7 +488,8 @@ __global__ void calcRelProgressMeasure(
 
    if (varidx < n_vars) {
       measures[varidx] = calcVarRelProgressMeasure(lbs[varidx], ubs[varidx], lbs_start[varidx], ubs_start[varidx],
-                                                   lbs_limit[varidx], ubs_limit[varidx], lbs_prev[varidx], ubs_prev[varidx],
+                                                   lbs_limit[varidx], ubs_limit[varidx], lbs_prev[varidx],
+                                                   ubs_prev[varidx],
                                                    inf_change_found, abs_measure_k);
    }
 }
@@ -516,8 +517,8 @@ __device__ __forceinline__ bool is_change_found(
         const datatype newlb,
         const datatype newub
 ) {
-   assert( EPSGE(oldub, oldlb) );
-   assert( EPSGE(newub, newlb) );
+   assert(EPSGE(oldub, oldlb));
+   assert(EPSGE(newub, newlb));
 
    return EPSLT(newub, oldub) || EPSGT(newlb, oldlb);
 }

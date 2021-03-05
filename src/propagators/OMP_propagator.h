@@ -26,12 +26,12 @@ bool OMPPropagationRound
                 const GDP_VARTYPE *vartypes,
                 datatype *minacts,
                 datatype *maxacts,
-                int* minacts_inf,
-                int* maxacts_inf,
+                int *minacts_inf,
+                int *maxacts_inf,
                 datatype *maxactdeltas,
                 int *consmarked,
                 omp_lock_t *locks,
-                int* consmarked_nextround,
+                int *consmarked_nextround,
                 const int round
         ) {
 
@@ -42,9 +42,9 @@ bool OMPPropagationRound
    int varidx;
    int num_marked_cons = 0;
 
-   std::fill(consmarked_nextround, consmarked_nextround+n_cons, 0);
-   memcpy(lbs_local, lbs, n_vars*sizeof(datatype));
-   memcpy(ubs_local, ubs, n_vars*sizeof(datatype));
+   std::fill(consmarked_nextround, consmarked_nextround + n_cons, 0);
+   memcpy(lbs_local, lbs, n_vars * sizeof(datatype));
+   memcpy(ubs_local, ubs, n_vars * sizeof(datatype));
 
    // put all indices of marked constraints at the beginning of the array
    for (int i = 0; i < n_cons; i++) {
@@ -65,10 +65,13 @@ bool OMPPropagationRound
       maxacts_inf[considx] = activities.maxact_inf;
       maxactdeltas[considx] = activities.maxactdelta;
 
-      FOLLOW_CONS_CALL(considx, printf("\ncons %d: minact:  %9.2e, maxact: %9.2e, minact_inf: %d, maxact_inf: %d, lhs: %9.2e, rhs: %9.2e\n",
-                                       considx, minacts[considx], maxacts[considx], minacts_inf[considx], maxacts_inf[considx], lhss[considx], rhss[considx]));
+      FOLLOW_CONS_CALL(considx,
+                       printf("\ncons %d: minact:  %9.2e, maxact: %9.2e, minact_inf: %d, maxact_inf: %d, lhs: %9.2e, rhs: %9.2e\n",
+                              considx, minacts[considx], maxacts[considx], minacts_inf[considx], maxacts_inf[considx],
+                              lhss[considx], rhss[considx]));
 
-      if (canConsBeTightened(minacts[considx], maxacts[considx], minacts_inf[considx], maxacts_inf[considx], lhss[considx], rhss[considx], maxactdeltas[considx])) {
+      if (canConsBeTightened(minacts[considx], maxacts[considx], minacts_inf[considx], maxacts_inf[considx],
+                             lhss[considx], rhss[considx], maxactdeltas[considx])) {
          const int num_vars_in_cons = row_indices[considx + 1] - row_indices[considx];
          //slack = EPSLT(slack, 0.0) ? 0.0 : slack;
          for (int var = 0; var < num_vars_in_cons; var++) {
@@ -94,8 +97,7 @@ bool OMPPropagationRound
                );
                omp_set_lock(&(locks[varidx]));
                {
-                  if (isLbBetter(lbs[varidx], ubs[varidx], newbds.lb.newb))
-                  {
+                  if (isLbBetter(lbs[varidx], ubs[varidx], newbds.lb.newb)) {
                      lbs[varidx] = newbds.lb.newb;
                      assert(EPSLE(lbs[varidx], ubs[varidx]));
                   }
@@ -113,8 +115,7 @@ bool OMPPropagationRound
                );
                omp_set_lock(&(locks[varidx]));
                {
-                  if (isUbBetter(lbs[varidx], ubs[varidx], newbds.ub.newb))
-                  {
+                  if (isUbBetter(lbs[varidx], ubs[varidx], newbds.ub.newb)) {
                      ubs[varidx] = newbds.ub.newb;
                      assert(EPSLE(lbs[varidx], ubs[varidx]));
                   }
@@ -171,8 +172,8 @@ GDP_Retcode fullOMPPropagate
    datatype *maxactdeltas = (datatype *) calloc(n_cons, sizeof(datatype));
    int *consmarked = (int *) calloc(n_cons, sizeof(int));
    int *consmarked_nextround = (int *) calloc(n_cons, sizeof(int));
-   datatype* lbs_local = (datatype*) malloc(n_vars*sizeof(datatype));
-   datatype* ubs_local = (datatype*) malloc(n_vars*sizeof(datatype));
+   datatype *lbs_local = (datatype *) malloc(n_vars * sizeof(datatype));
+   datatype *ubs_local = (datatype *) malloc(n_vars * sizeof(datatype));
    // all cons marked for propagation in the first round
    for (int i = 0; i < n_cons; i++)
       consmarked[i] = 1;
@@ -194,16 +195,19 @@ GDP_Retcode fullOMPPropagate
    for (prop_round = 1; prop_round < MAX_NUM_ROUNDS && change_found; prop_round++) {
       VERBOSE_CALL_2(printf("Propagation round: %d, ", prop_round));
       FOLLOW_VAR_CALL(FOLLOW_VAR,
-                      printf("cpu_omp varidx %d bounds beofre round %d: lb: %9.2e, ub: %9.2e\n", FOLLOW_VAR, prop_round, lbs[FOLLOW_VAR],
+                      printf("cpu_omp varidx %d bounds beofre round %d: lb: %9.2e, ub: %9.2e\n", FOLLOW_VAR, prop_round,
+                             lbs[FOLLOW_VAR],
                              ubs[FOLLOW_VAR]));
       change_found = OMPPropagationRound<datatype>
               (
                       n_cons, n_vars, col_indices, row_indices, csc_col_ptrs, csc_row_indices, vals, lhss, rhss,
-                      lbs, ubs, lbs_local, ubs_local, vartypes, minacts, maxacts, minacts_inf, maxacts_inf, maxactdeltas, consmarked, locks, consmarked_nextround, prop_round
+                      lbs, ubs, lbs_local, ubs_local, vartypes, minacts, maxacts, minacts_inf, maxacts_inf,
+                      maxactdeltas, consmarked, locks, consmarked_nextround, prop_round
               );
       FOLLOW_VAR_CALL(FOLLOW_VAR,
-                      printf("cpu_omp varidx %d bounds after round %d: lb: %9.2e, ub: %9.2e\n", FOLLOW_VAR, prop_round, lbs[FOLLOW_VAR], ubs[FOLLOW_VAR]));
-      VERBOSE_CALL_2( measureTime("cpu_omp", start, std::chrono::steady_clock::now()) );
+                      printf("cpu_omp varidx %d bounds after round %d: lb: %9.2e, ub: %9.2e\n", FOLLOW_VAR, prop_round,
+                             lbs[FOLLOW_VAR], ubs[FOLLOW_VAR]));
+      VERBOSE_CALL_2(measureTime("cpu_omp", start, std::chrono::steady_clock::now()));
    }
 
    VERBOSE_CALL(printf("cpu_omp propagation done. Num rounds: %d\n", prop_round - 1));
