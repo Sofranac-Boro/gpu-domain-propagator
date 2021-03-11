@@ -194,6 +194,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Propagate MIP or LP file')
     parser.add_argument("-f", "--file", type=str, required=True)
     parser.add_argument("-d", "--datatype", type=str, required=False, default="double")
+    parser.add_argument("-t", "--testtype", type=str, required=False, default="gdp", choices=['gdp', 'measure', 'papilo'])
     args = parser.parse_args()
 
     if args.datatype == "" or args.datatype == "double":
@@ -204,9 +205,15 @@ if __name__ == "__main__":
         raise Exception("Unsupported datatype: ", args.datatype)
 
     try:
-        prop_compare_seq_gpu(args.file, datatype)
-       # propagation_measure_run(args.file)
-       # papilo_comparison_run(args.file, datatype)
+        if args.testtype == "gdp":
+            prop_compare_seq_gpu(args.file, datatype)
+        elif args.testtype == "measure":
+            propagation_measure_run(args.file)
+        elif args.testtype == "papilo":
+            papilo_comparison_run(args.file, datatype)
+        else:
+            raise Exception("Unknown test type: ", args.testtype)
+
     except Exception as e:
         print("\nexecution of ", args.file, " failed. Exception: ")
         print(e)
