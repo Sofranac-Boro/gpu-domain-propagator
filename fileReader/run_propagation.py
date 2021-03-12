@@ -6,7 +6,7 @@ import numpy as np
 from scipy.sparse import csr_matrix
 from typing import List
 
-from papiloInterface import propagatePapilo
+from papiloInterface import PAPILO_PATH
 
 
 from papiloInterface import PapiloInterface
@@ -119,14 +119,14 @@ def papilo_comparison_run(lp_file_path: str, datatype: _SimpleCData = c_double) 
         tmp_lbs = normalize_infs(tmp_lbs)
         tmp_ubs = normalize_infs(tmp_ubs)
 
-    (omp_new_lbs, omp_new_ubs) = propagateFullOMP(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_omp, ubs_omp, vartypes, datatype=c_double)
+   # (omp_new_lbs, omp_new_ubs) = propagateFullOMP(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_omp, ubs_omp, vartypes, datatype=c_double)
 
     (seq_new_lbs, seq_new_ubs, stdout) = propagateSequentialWithPapiloPostsolve(reader, n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss,
-                                                              lbs_seq, ubs_seq, vartypes, datatype=c_double)
+                                                               lbs_seq, ubs_seq, vartypes, datatype=c_double)
 
     print("papilo execution start...")
-    papilo = PapiloInterface("/home/bzfsofra/papilo", lp_file_path)
-    papilo_output = papilo.run_papilo(use_rationals=True)
+    papilo = PapiloInterface(PAPILO_PATH, lp_file_path)
+    papilo_output = papilo.run_papilo(use_rationals=False)
     lbs_papilo, ubs_papilo = papilo.get_presolved_bounds()
 
     print("papilo propagation done. Num rounds: ", papilo.get_num_rounds())
@@ -134,19 +134,19 @@ def papilo_comparison_run(lp_file_path: str, datatype: _SimpleCData = c_double) 
 
     #print("papilo outputL \n", papilo_output)
 
-    omp_new_lbs = normalize_infs(omp_new_lbs)
-    omp_new_ubs = normalize_infs(omp_new_ubs)
+   # omp_new_lbs = normalize_infs(omp_new_lbs)
+   # omp_new_ubs = normalize_infs(omp_new_ubs)
     seq_new_lbs = normalize_infs(seq_new_lbs)
     seq_new_ubs = normalize_infs(seq_new_ubs)
     lbs_papilo = normalize_infs(lbs_papilo)
     ubs_papilo = normalize_infs(ubs_papilo)
 
-    equal_seq_omp = arrays_equal(tmp_lbs, omp_new_lbs) and arrays_equal(tmp_ubs, omp_new_ubs)
+  #  equal_seq_omp = arrays_equal(tmp_lbs, omp_new_lbs) and arrays_equal(tmp_ubs, omp_new_ubs)
     equal_seq_papilo = arrays_equal(seq_new_lbs, lbs_papilo) and arrays_equal(seq_new_ubs, ubs_papilo)
 
-    print("cpu_seq to cpu_omp results match: ", equal_seq_omp)
+  #  print("cpu_seq to cpu_omp results match: ", equal_seq_omp)
     print("cpu_seq to pailo results match: ", equal_seq_papilo)
-    print("all results match: ", equal_seq_papilo and equal_seq_omp)
+    print("all results match: ", equal_seq_papilo)
 
 
 def propagation_measure_run(input_file: str):

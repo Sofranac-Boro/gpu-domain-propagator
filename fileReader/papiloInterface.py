@@ -7,9 +7,12 @@ from typing import List, Tuple, Union
 from regexes import *
 from readerInterface import FileReaderInterface, get_reader
 
+#PAPILO_PATH = "/home/bzfsofra/papilo"
+PAPILO_PATH = "/home/optimi/bzfsofra/papilo"
+
 
 def propagatePapilo(input_file_path: str):
-    papilo = PapiloInterface("/home/bzfsofra/papilo", input_file_path)
+    papilo = PapiloInterface(PAPILO_PATH, input_file_path)
     stdout = papilo.run_papilo()
     lbs, ubs = papilo.get_presolved_bounds()
     return lbs, ubs, stdout
@@ -48,8 +51,7 @@ class PapiloInterface():
             self.num_rounds = get_regex_result(papilo_results_pattern, p.stdout, "rounds")
             self.exec_time = get_regex_result(papilo_success_pattern, p.stdout, "time")
         else:
-            print(p.stdout)
-            raise Exception("papilo run failed. Output:\n")
+            raise Exception("papilo run failed:\n", p.stdout)
 
         self.output = p.stdout
         return p.stdout

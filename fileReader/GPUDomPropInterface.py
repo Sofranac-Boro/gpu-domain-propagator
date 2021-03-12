@@ -4,7 +4,7 @@ from typing import List, Tuple, Union
 from enum import Enum
 
 from readerInterface import FileReaderInterface
-from papiloInterface import PapiloInterface
+from papiloInterface import PapiloInterface, PAPILO_PATH
 
 so_file = "../build/libGpuProp.so"
 
@@ -268,7 +268,7 @@ def propagateSequentialWithPapiloPostsolve(
 
     gdp_solved_instance_path = reader.write_model_with_new_bounds(seq_new_lbs, seq_new_ubs)
 
-    papilo = PapiloInterface("/home/bzfsofra/papilo", gdp_solved_instance_path + ".mps.gz")
+    papilo = PapiloInterface(PAPILO_PATH, gdp_solved_instance_path + ".mps.gz")
     stdout = papilo.run_papilo()
     lbs, ubs = papilo.get_presolved_bounds()
     postsolve_bd_chgs = papilo.get_num_bound_changes()
