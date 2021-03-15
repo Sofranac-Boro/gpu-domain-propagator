@@ -40,7 +40,7 @@ class TestGDP(unittest.TestCase):
         for g1 in re.finditer(seqpapilo_regex, out.capturedtext):
             self.assertEqual(str(g1.group('match')), 'True')
 
-    @parameterized.expand(files[0:2])
+    @parameterized.expand(files)
     def test_papilo(self, input_file):
         print("\n=========== instance ", input_file, " ==========")
         self.run_instance_checck_result(input_file)
