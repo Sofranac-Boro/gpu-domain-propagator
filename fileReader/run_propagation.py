@@ -6,8 +6,6 @@ import numpy as np
 from scipy.sparse import csr_matrix
 from typing import List
 
-from papiloInterface import PAPILO_PATH
-
 
 from papiloInterface import PapiloInterface
 from GPUDomPropInterface import propagateGPUReduction, propagateGPUAtomic, propagateSequential, propagateFullOMP, \
@@ -94,7 +92,7 @@ def prop_compare_seq_gpu(lp_file_path: str, datatype: _SimpleCData = c_double) -
    #  compare_arrays_diff_idx(seq_new_ubs, omp_new_ubs, "ubs")
 
 
-def papilo_comparison_run(lp_file_path: str, datatype: _SimpleCData = c_double) -> None:
+def papilo_comparison_run(lp_file_path: str, papilo_path: str,  datatype: _SimpleCData = c_double) -> None:
     reader: FileReaderInterface = get_reader(lp_file_path)
 
     n_cons = reader.get_n_cons()
@@ -122,10 +120,10 @@ def papilo_comparison_run(lp_file_path: str, datatype: _SimpleCData = c_double) 
    # (omp_new_lbs, omp_new_ubs) = propagateFullOMP(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_omp, ubs_omp, vartypes, datatype=c_double)
 
     (seq_new_lbs, seq_new_ubs, stdout) = propagateSequentialWithPapiloPostsolve(reader, n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss,
-                                                               lbs_seq, ubs_seq, vartypes, datatype=c_double)
+                                                               lbs_seq, ubs_seq, vartypes, papilo_path, datatype=c_double)
 
     print("papilo execution start...")
-    papilo = PapiloInterface(PAPILO_PATH, lp_file_path)
+    papilo = PapiloInterface(lp_file_path, papilo_path)
     papilo_output = papilo.run_papilo(use_rationals=False)
     lbs_papilo, ubs_papilo = papilo.get_presolved_bounds()
 
@@ -210,7 +208,7 @@ if __name__ == "__main__":
         elif args.testtype == "measure":
             propagation_measure_run(args.file)
         elif args.testtype == "papilo":
-            papilo_comparison_run(args.file, datatype)
+            papilo_comparison_run(args.file, "/home/bzfsofra/papilo", datatype)
         else:
             raise Exception("Unknown test type: ", args.testtype)
 

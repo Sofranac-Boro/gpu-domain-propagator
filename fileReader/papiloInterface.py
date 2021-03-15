@@ -7,19 +7,19 @@ from typing import List, Tuple, Union
 from regexes import *
 from readerInterface import FileReaderInterface, get_reader
 
-#PAPILO_PATH = "/home/bzfsofra/papilo"
-PAPILO_PATH = "/home/optimi/bzfsofra/papilo"
 
 
-def propagatePapilo(input_file_path: str):
-    papilo = PapiloInterface(PAPILO_PATH, input_file_path)
+
+def propagatePapilo(input_file_path: str, papilo_path: str):
+    papilo = PapiloInterface(input_file_path, papilo_path)
     stdout = papilo.run_papilo()
     lbs, ubs = papilo.get_presolved_bounds()
     return lbs, ubs, stdout
 
 
 class PapiloInterface():
-    def __init__(self, papilo_path: str, input_file: str):
+
+    def __init__(self, input_file: str, papilo_path: str):
         self.input_file = input_file
         _, instance_name = os.path.split(input_file)
         self.instance_name = instance_name

@@ -13,7 +13,6 @@ seq_to_ato_pattern = r"cpu_seq to gpu_atomic results match:  (?P<match>.*)"
 seq_to_dis_pattern = r"cpu_seq to cpu_seq_dis results match:  (?P<match>.*)"
 prob_name_pattern = r"Reding of  (?P<prob_file>.*)  model done!"
 
-
 # regexes for progress measure plotting
 def with_measure_output_pattern(alg): return "(?s)====   Running the {} with measure  ====(.*?)====   end {} with measure  ====".format(alg, alg)
 def without_measure_output_pattern(alg): return "(?s)====   Running the {} without measure  ====(.*?)====   end {} without measure  ====".format(alg, alg)
