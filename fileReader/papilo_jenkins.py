@@ -4,22 +4,24 @@ import unittest
 from parameterized import parameterized
 from run_propagation import papilo_comparison_run
 from regexes import *
+import argparse
+import sys
 
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 MIPLIB_PATH = "/nfs/optimi/kombadon/IP/miplib2017"
 #MIPLIB_PATH = "/home/bzfsofra/miplib2017"
-PAPILO_PATH = "/home/optimi/bzfsofra/papilo"
-#PAPILO_PATH = "/home/bzfsofra/papilo"
+
 files = [f for f in os.listdir(MIPLIB_PATH) if os.path.isfile(os.path.join(MIPLIB_PATH, f))]
 
 class TestGDP(unittest.TestCase):
 
+    PAPILO_PATH = ""
 
     def run_instance_checck_result(self, instance_name: str) -> None:
         out = OutputGrabber()
         with out:
-            papilo_comparison_run(os.path.join(MIPLIB_PATH, instance_name), PAPILO_PATH)
+            papilo_comparison_run(os.path.join(MIPLIB_PATH, instance_name), self.PAPILO_PATH)
 
         print(out.capturedtext)
 
@@ -38,7 +40,7 @@ class TestGDP(unittest.TestCase):
         for g1 in re.finditer(seqpapilo_regex, out.capturedtext):
             self.assertEqual(str(g1.group('match')), 'True')
 
-    @parameterized.expand(files[0:10])
+    @parameterized.expand(files[0:2])
     def test_papilo(self, input_file):
         print("\n=========== instance ", input_file, " ==========")
         self.run_instance_checck_result(input_file)
@@ -46,4 +48,10 @@ class TestGDP(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    parser = argparse.ArgumentParser(description='Propagate MIP or LP file')
+    parser.add_argument("-p", "--papilo", type=str, required=True)
+    args = parser.parse_args()
+    TestGDP.PAPILO_PATH = args.papilo
+    unittest.main(argv=[sys.argv[0]])
+
+
