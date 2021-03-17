@@ -161,7 +161,7 @@ GDP_Retcode propagateConstraintsGPUAtomic(
 
          gpu.setMemGPU<bool>(d_change_found, false);
 
-         VERBOSE_CALL_2(printf("\nPropagation round: %d, ", prop_round));
+         VERBOSE_CALL_2(printf("Propagation round: %d, ", prop_round));
 
 #ifdef FOLLOW_VAR
          datatype lb, ub;

@@ -148,6 +148,7 @@ def papilo_comparison_run(lp_file_path: str, papilo_path: str,  datatype: _Simpl
 
 
 def propagation_measure_run(input_file: str):
+    print("\n========== Starting measure executions for the ", input_file, " file. ==========\n")
     out = OutputGrabber()
 
     with out:
@@ -184,8 +185,8 @@ def propagation_measure_run(input_file: str):
         print("cpu_seq to gpu_atomic results match: ", equal_seq_gpu_atomic)
 
     print(out.capturedtext)
-
-    plot_progress_save_pdf(out.capturedtext)
+    print("========== End measure executions for the ", input_file, " file. ==========\n")
+    #plot_progress_save_pdf(out.capturedtext)
 
 
 if __name__ == "__main__":
