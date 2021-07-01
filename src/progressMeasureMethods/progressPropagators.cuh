@@ -90,6 +90,42 @@ __device__ __host__ __forceinline__ datatype normalizeScore(
 }
 
 template<typename datatype>
+void checkPreprocessorResult(
+        const int n_vars,
+        const datatype* lbs_orig,
+        const datatype* ubs_orig,
+        const datatype* lbs_w,
+        const datatype* ubs_w
+        )
+{
+   for (int j=0; j<n_vars; j++)
+   {
+      // if weakest is inf, then original also has to be inf
+      // if weakest not inf and orig not inf, then they have to be equal
+
+      if (EPSLE(lbs_w[j], -GDP_INF))
+      {
+         assert(EPSLE(lbs_orig[j], -GDP_INF));
+      } else {
+         if (EPSGT(lbs_orig[j], -GDP_INF))
+         {
+            assert(EPSEQ(lbs_w[j], lbs_orig[j]));
+         }
+      }
+
+      if (EPSGE(ubs_w[j], GDP_INF))
+      {
+         assert(EPSGE(ubs_orig[j], GDP_INF));
+      } else {
+         if (EPSLT(ubs_orig[j], GDP_INF))
+         {
+            assert(EPSEQ(ubs_w[j], ubs_orig[j]));
+         }
+      }
+   }
+}
+
+template<typename datatype>
 void initMeasureData
         (
                 const int n_cons,
@@ -117,6 +153,7 @@ void initMeasureData
    printf("\n====   Running the preprocessor  ====");
    executePreprocessor<datatype>(n_cons, n_vars, csr_col_indices, csr_row_ptrs, csc_col_ptrs, csc_row_indices, csr_vals,
                                  lhss, rhss, lbs_start, ubs_start, vartypes);
+   DEBUG_CALL( checkPreprocessorResult<datatype>(n_vars,lbs,ubs,lbs_start,ubs_start) );
    printf("====   end preprocessor  ====");
    // run sequnetial propagator to get limit bounds
    memcpy(lbs_limit, lbs, n_vars * sizeof(datatype));
@@ -370,6 +407,7 @@ __global__ void GPUAtomicPropEntryKernelWithMeasure
    free(abs_measure_n);
    free(lbs_prev);
    free(ubs_prev);
+   free(change_found);
 
    VERBOSE_CALL(printf("gpu_atomic propagation done. Num rounds: %d\n", prop_round - 1));
 }

@@ -11,9 +11,10 @@ seq_to_papilo_pattern = r"cpu_seq to pailo results match:  (?P<match>.*)"
 seq_to_red_pattern = r"cpu_seq to gpu_reduction results match:  (?P<match>.*)"
 seq_to_ato_pattern = r"cpu_seq to gpu_atomic results match:  (?P<match>.*)"
 seq_to_dis_pattern = r"cpu_seq to cpu_seq_dis results match:  (?P<match>.*)"
-prob_name_pattern = r"Reding of  (?P<prob_file>.*)  model done!"
+prob_name_pattern = r"Reading of  (?P<prob_file>.*)  model done!"
 
 # regexes for progress measure plotting
+max_measure_pattern = "Maximum measure: score=(?P<score>\d+.\d+), k=(?P<k>\d+)"
 def with_measure_output_pattern(alg): return "(?s)====   Running the {} with measure  ====(.*?)====   end {} with measure  ====".format(alg, alg)
 def without_measure_output_pattern(alg): return "(?s)====   Running the {} without measure  ====(.*?)====   end {} without measure  ====".format(alg, alg)
 def num_rounds_pattern(alg): return "{} propagation done\. Num rounds: (?P<nrounds>\d+)".format(alg)
@@ -31,6 +32,7 @@ papilo_found_more_changes_pattern = r"execution of  (?P<prob_file>.*)  failed\. 
 
 no_bdchgs_after_papilo_pattern = r"papilo did not find any bound changes after cpu_seq!"
 
+
 def get_regex_result(regex_string: str, search_string: str, group_name: str = None):
     m = re.compile(regex_string).search(search_string)
 
@@ -38,6 +40,17 @@ def get_regex_result(regex_string: str, search_string: str, group_name: str = No
         return m.group(group_name) if group_name is not None else m.group()
     else:
         return None
+
+
+def get_all_regex_result(regex_string: str, search_string: str, group_name: str = None):
+    def fun(m):
+        if m is not None:
+            return m.group(group_name) if group_name is not None else m.group()
+        else:
+            return None
+
+    ms = re.compile(regex_string).finditer(search_string)
+    return list(map(fun, ms))
 
 
 class OutputGrabber(object):

@@ -4,7 +4,7 @@ project(gpu-domain-propagator LANGUAGES CUDA CXX)
 # CUDA
 find_package(CUDA 10.0 REQUIRED)
 include_directories(${CUDA_INCLUDE_DIRS})
-
+set(CMAKE_CXX_STANDARD 11)
 #OpenMP
 find_package(OpenMP)
 if (OPENMP_FOUND)

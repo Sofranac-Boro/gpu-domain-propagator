@@ -9,6 +9,13 @@ from regexes import *
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 
 
+def EPSLE(x, y): return (x-y) <= 1e-7
+def EPSLT(x, y): return (x-y) < -1e-7
+def EPSGE(x, y): return (x-y) >= -1e-7
+def EPSGT(x, y): return (x-y) > 1e-7
+def EPSEQ(x, y, eps=1e-7): return abs(x-y) <= eps
+
+
 def normalize_infs(arr: List[float]) -> List[float]:
     arr = list(map(lambda val: 1e20 if val >= 1e20 else val, arr))
     arr = list(map(lambda val: -1e20 if val <= -1e20 else val, arr))
@@ -151,6 +158,15 @@ def plot_progress_save_pdf(output: str) -> None:
     }
     # cpu_seq
     create_progress_plots(prob_name, plot_data)
+
+
+def check_monotonic_increase(L):
+    for i in range(0, len(L)-1):
+        assert EPSLT(L[i], L[i+1])
+
+def get_slope(x1, x2, y1, y2):
+    assert not np.isclose(x2-x1, 0.0)
+    return (y2-y1)/(x2-x1)
 
 
 

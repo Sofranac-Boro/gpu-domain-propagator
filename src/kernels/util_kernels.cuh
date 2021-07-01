@@ -147,6 +147,8 @@ void csr_to_csc(
    CUDA_CALL(cudaDeviceSynchronize());
 
    CUDA_CALL(cudaFree(pBuffer));
+   CUDA_CALL(cudaStreamDestroy(stream) );
+   CUSPARSE_CALL( cusparseDestroy(handle) );
 }
 
 template<typename datatype>
@@ -222,6 +224,8 @@ void csr_to_csc_device_only
    }
 
    CUDA_CALL(cudaFree(pBuffer));
+   CUDA_CALL(cudaStreamDestroy(stream) );
+   CUSPARSE_CALL( cusparseDestroy(handle) );
 }
 
 // double atomicMin

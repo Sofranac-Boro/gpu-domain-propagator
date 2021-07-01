@@ -1,7 +1,7 @@
 {
-  "base_case": "example1.log",
+  "base_case": "progress_example.log",
   "log_files": {
-    "example1.log": {
+    "progress_example.log": {
       "cpu_omp": "xeon",
       "gpu_reduction": "V100",
       "gpu_atomic": "V100"

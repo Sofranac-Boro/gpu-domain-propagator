@@ -64,6 +64,18 @@ bool isUbBetter(const datatype lb, const datatype ub, const datatype newub) {
 }
 
 template<class datatype>
+bool isLbWorse(const datatype lb, const datatype ub, const datatype newlb) {
+   assert(EPSLE(lb, ub));
+   return EPSLT(newlb, lb);
+}
+
+template<class datatype>
+bool isUbWorse(const datatype lb, const datatype ub, const datatype newub) {
+   assert(EPSLE(lb, ub));
+   return EPSGT(newub, ub);
+}
+
+template<class datatype>
 NewBoundTuple<datatype>
 tightenVarUpperBound(const datatype coeff, const datatype slack, const datatype surplus, const int num_inf_contr,
                      const datatype lb, const datatype ub,
