@@ -208,7 +208,7 @@ def create_plots(dist_data, speedups):
     ### Subplot A ###
     if plot_a:
         ax = fig.add_subplot(111)
-        # plt.text(0.5, 1.05, "(a)", transform=ax.transAxes, size='x-large')
+      #  plt.text(0.5, 1.05, "(a)", transform=ax.transAxes, size='x-large')
         ys = []
         for algorithm in speedups:
             for machine in speedups[algorithm]:
@@ -216,6 +216,8 @@ def create_plots(dist_data, speedups):
                 plt.plot(np.arange(len(speedups[algorithm][machine][0])), speedups[algorithm][machine][1],
                          label=str(algorithm) + "-" + str(machine), linestyle=get_linestyle(algorithm, machine),
                          color=get_line_color(machine, algorithm))
+        # constant one - the baseline case
+        plt.plot(np.arange(8), np.ones(8), label="cpu_seq-xeon", linestyle='dashdot', color='tab:gray')
 
         plt.yscale('log')
         yticks = get_y_ticks(ys, 10)
@@ -229,19 +231,24 @@ def create_plots(dist_data, speedups):
     ### Subplot B ###
     plot_b = False
     if plot_b:
-        ax2 = fig.add_subplot(122)
-        plt.text(0.5, 1.05, "(b)", transform=ax2.transAxes, size='x-large')
+        ax2 = fig.add_subplot(111)
+       # plt.text(0.5, 1.05, "(b)", transform=ax2.transAxes, size='x-large')
         # create x and y axis arrays
         ys = []
+        max_len = 0
         for algorithm in dist_data:
             for machine in dist_data[algorithm]:
                 ys += dist_data[algorithm][machine]
-                plt.plot(np.arange(len(dist_data[algorithm][machine])), dist_data[algorithm][machine],
+                _len = len(dist_data[algorithm][machine])
+                if _len > max_len: max_len = _len
+                plt.plot(np.arange(_len), dist_data[algorithm][machine],
                          label=str(algorithm) + "-" + str(machine), linestyle=get_linestyle(algorithm, machine),
                          color=get_line_color(machine, algorithm))
-        #  print("machine ", machine, " alg: ", algorithm, " min speedup: ", min(dist_data[algorithm][machine]))
+        #plot the constant one - the baseline
+        plt.plot(np.arange(max_len), np.ones(max_len), label="cpu_seq-xeon", linestyle='dashdot', color='tab:gray')
 
-        # plt.legend(fancybox=True, framealpha=0.5)
+
+        plt.legend(fancybox=True, framealpha=0.5)
         plt.yscale('log')
         yticks = get_y_ticks(ys, 10)
         plt.yticks(yticks, yticks)
@@ -496,4 +503,4 @@ if __name__ == "__main__":
         base_case_run = data["base_case"]
 
     process_data_GDP(log_files_data)
-# process_data_papilo(log_files_data)
+   # process_data_papilo(log_files_data)

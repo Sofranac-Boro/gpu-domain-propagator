@@ -1,8 +1,7 @@
-import numpy as np
 from typing import List, Dict
-import os
 from matplotlib import pyplot as plt
 import numpy as np
+import pandas as pd
 
 from regexes import *
 
@@ -164,9 +163,22 @@ def check_monotonic_increase(L):
     for i in range(0, len(L)-1):
         assert EPSLT(L[i], L[i+1])
 
+
 def get_slope(x1, x2, y1, y2):
     assert not np.isclose(x2-x1, 0.0)
     return (y2-y1)/(x2-x1)
+
+
+def num_instances_with_numerics_tag_in_miplib(instances: List[str]) -> None:
+    df = pd.read_csv("numerics.csv", usecols=["Instance  Ins."])
+    yes = 0
+    no = 0
+    for fl in instances:
+        if df["Instance  Ins."].str.contains(fl).any():
+            yes+=1
+        else:
+            no+=1
+    print("Out of ", len(instances), " instances, ", yes, " are tagged with 'numerics' in MIPLIB2017, and ", no, " are not")
 
 
 
