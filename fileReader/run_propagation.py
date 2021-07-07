@@ -1,10 +1,11 @@
 import argparse, sys, traceback
 from ctypes import c_float, c_double, _SimpleCData
+import random
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.sparse import csr_matrix
-from typing import List
+from typing import List, Tuple
 
 
 from papiloInterface import PapiloInterface
@@ -22,6 +23,32 @@ def vis_sparsity_pattern(m: int, n: int, col_indices: List[float], row_ptrs: Lis
     exit(1)
 
 
+def permute_mip(
+        m: int,
+        n: int,
+        vals: List[float],
+        col_indices: List[int],
+        row_ptrs: List[int],
+        lbs: List[float],
+        ubs: List[float],
+        lhss: List[float],
+        rhss: List[float],
+        vartypes: List[int],
+        seed: int
+) -> Tuple:
+    if seed == 0:
+        return vals, col_indices, row_ptrs, lbs, ubs, lhss, rhss, vartypes
+    row_perm = list(range(m))
+    col_perm = list(range(n))
+
+    random.Random(seed).shuffle(row_perm)
+    random.Random(seed+1000).shuffle(col_perm)
+
+    A = csr_matrix((vals, col_indices, row_ptrs), shape=(m, n))
+    Aperm = A[:,col_perm][row_perm,:]
+    return Aperm.data, Aperm.indices, Aperm.indptr, np.array(lbs)[col_perm], np.array(ubs)[col_perm], np.array(lhss)[row_perm], np.array(rhss)[row_perm], np.array(vartypes)[col_perm]
+
+
 def normalize_infs(arr: List[float]) -> List[float]:
     arr = list(map(lambda val: 1e20 if val >= 1e20 else val, arr))
     arr = list(map(lambda val: -1e20 if val <= -1e20 else val, arr))
@@ -35,17 +62,23 @@ def arrays_equal(bds1: List[float], bds2: List[float]) -> bool:
         return False
 
 
-def prop_compare_seq_gpu(lp_file_path: str, datatype: _SimpleCData = c_double) -> None:
-    reader: FileReaderInterface = get_reader(lp_file_path)
+def compare_results(lbs_1, ubs_1, lbs_2, ubs_2, name_1, name_2):
+    lbs_1 = normalize_infs(lbs_1)
+    lbs_2 = normalize_infs(lbs_2)
+    ubs_1 = normalize_infs(ubs_1)
+    ubs_2 = normalize_infs(ubs_2)
 
-    n_cons = reader.get_n_cons()
-    n_vars = reader.get_n_vars()
-    nnz = reader.get_nnz()
-    lbs, ubs = reader.get_var_bounds()
-    lhss, rhss = reader.get_lrhss()
-    coeffs, row_ptrs, col_indices = reader.get_cons_matrix()
-    vartypes = reader.get_SCIP_vartypes()
+    equal = arrays_equal(lbs_1, lbs_2) and arrays_equal(ubs_1, ubs_2)
+    print(name_1, "to", name_2, "results match: ", equal)
+    return equal
 
+
+def exec_run(
+        n_vars,
+        n_cons,
+        nnz,
+        coeffs, col_indices, row_ptrs, lbs, ubs, lhss, rhss, vartypes
+):
     # print sparsity and input data size
     print("num vars: ", n_vars)
     print("num cons: ", n_cons)
@@ -59,37 +92,44 @@ def prop_compare_seq_gpu(lp_file_path: str, datatype: _SimpleCData = c_double) -
 
     (omp_new_lbs, omp_new_ubs) = propagateFullOMP(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_omp, ubs_omp, vartypes, datatype=c_double)
 
-   # (gpu_new_lbs, gpu_new_ubs) = propagateGPUReduction(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_gpu, ubs_gpu, vartypes, datatype=datatype)
+    # (gpu_new_lbs, gpu_new_ubs) = propagateGPUReduction(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_gpu, ubs_gpu, vartypes, datatype=datatype)
 
-   # (dis_new_lbs, dis_new_ubs) = propagateSequentialDisjoint( n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_dis, ubs_dis, vartypes)
-  #  idx = 1
+    # (dis_new_lbs, dis_new_ubs) = propagateSequentialDisjoint( n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_dis, ubs_dis, vartypes)
+    #  idx = 1
 
     (gpuatomic_new_lbs, gpuatomic_new_ubs) = propagateGPUAtomic(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_gpuatomic, ubs_gpuatomic, vartypes, fullAsync=False, datatype=datatype)
+    print("")
+    eq1 = compare_results(seq_new_lbs, seq_new_ubs, omp_new_lbs, omp_new_ubs,"cpu_seq", "cpu_omp")
+    eq2 = compare_results(seq_new_lbs, seq_new_ubs, gpuatomic_new_lbs, gpuatomic_new_ubs, "cpu_seq", "gpu_atomic")
+    print("all results match: ", eq1 and eq2)
 
-    seq_new_lbs = normalize_infs(seq_new_lbs)
-    seq_new_ubs = normalize_infs(seq_new_ubs)
-    # gpu_new_lbs = normalize_infs(gpu_new_lbs)
-    # gpu_new_ubs = normalize_infs(gpu_new_ubs)
-    omp_new_lbs = normalize_infs(omp_new_lbs)
-    omp_new_ubs = normalize_infs(omp_new_ubs)
-    gpuatomic_new_lbs = normalize_infs(gpuatomic_new_lbs)
-    gpuatomic_new_ubs = normalize_infs(gpuatomic_new_ubs)
-    # # dis_new_lbs = normalize_infs(dis_new_lbs)
-    # # dis_new_ubs = normalize_infs(dis_new_ubs)
-    #
+#  compare_arrays_diff_idx(seq_new_lbs, omp_new_lbs, "lbs")
+#  compare_arrays_diff_idx(seq_new_ubs, omp_new_ubs, "ubs")
 
-    equal_seq_omp = arrays_equal(seq_new_lbs, omp_new_lbs) and arrays_equal(seq_new_ubs, omp_new_ubs)
-    equal_seq_gpu_atomic = arrays_equal(seq_new_lbs, gpuatomic_new_lbs) and arrays_equal(seq_new_ubs, gpuatomic_new_ubs)
-    # equal_seq_gpu_full = arrays_equal(seq_new_lbs, gpu_new_lbs) and arrays_equal(seq_new_ubs, gpu_new_ubs)
-    # # equal_seq_dis = arrays_equal(seq_new_lbs, dis_new_lbs) and arrays_equal(seq_new_ubs, dis_new_ubs)
-    print("\ncpu_seq to cpu_omp results match: ", equal_seq_omp)
-    # print("cpu_seq to gpu_reduction results match: ", equal_seq_gpu_full)
-    print("cpu_seq to gpu_atomic results match: ", equal_seq_gpu_atomic)
-    # # print("cpu_seq to cpu_seq_dis results match: ", equal_seq_dis)
-    print("all results match: ", equal_seq_gpu_atomic and equal_seq_omp)
 
-   #  compare_arrays_diff_idx(seq_new_lbs, omp_new_lbs, "lbs")
-   #  compare_arrays_diff_idx(seq_new_ubs, omp_new_ubs, "ubs")
+def prop_compare_seq_gpu(lp_file_path: str, datatype: _SimpleCData = c_double, seed: int = 0) -> None:
+    reader: FileReaderInterface = get_reader(lp_file_path)
+
+    n_cons = reader.get_n_cons()
+    n_vars = reader.get_n_vars()
+    nnz = reader.get_nnz()
+    lbs, ubs = reader.get_var_bounds()
+    lhss, rhss = reader.get_lrhss()
+    coeffs, row_ptrs, col_indices = reader.get_cons_matrix()
+    vartypes = reader.get_SCIP_vartypes()
+
+    #num_seeds = 5
+   # for seed in range(num_seeds):
+    #    print("\nRunning seed ", seed)
+    if seed != 0:
+        coeffs, col_indices, row_ptrs, lbs, ubs, lhss, rhss, vartypes = permute_mip(n_cons, n_vars, coeffs, col_indices, row_ptrs, lbs, ubs, lhss, rhss, vartypes, seed)
+
+    exec_run(
+        n_vars,
+        n_cons,
+        nnz,
+        coeffs, col_indices, row_ptrs, lbs, ubs, lhss, rhss, vartypes
+    )
 
 
 def papilo_comparison_run(lp_file_path: str, papilo_path: str,  datatype: _SimpleCData = c_double) -> None:
@@ -194,6 +234,7 @@ if __name__ == "__main__":
     parser.add_argument("-f", "--file", type=str, required=True)
     parser.add_argument("-d", "--datatype", type=str, required=False, default="double")
     parser.add_argument("-t", "--testtype", type=str, required=False, default="gdp", choices=['gdp', 'measure', 'papilo'])
+    parser.add_argument("-s", "--seed", type=int, required=False)
     args = parser.parse_args()
 
     if args.datatype == "" or args.datatype == "double":
@@ -203,9 +244,14 @@ if __name__ == "__main__":
     else:
         raise Exception("Unsupported datatype: ", args.datatype)
 
+    if args.seed == "" or args.seed is None:
+        seed = 0
+    else:
+        seed = args.seed
+
     try:
         if args.testtype == "gdp":
-            prop_compare_seq_gpu(args.file, datatype)
+            prop_compare_seq_gpu(args.file, datatype, seed)
         elif args.testtype == "measure":
             propagation_measure_run(args.file)
         elif args.testtype == "papilo":
