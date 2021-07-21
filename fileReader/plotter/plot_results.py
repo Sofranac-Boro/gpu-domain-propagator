@@ -66,6 +66,17 @@ def get_line_color(machine, algorithm):
     if algorithm == 'papilo':
         return 'tab:red'
 
+    if 'seed0' in machine:
+        return 'tab:blue'
+    if 'seed1' in machine:
+        return 'tab:red'
+    if 'seed2' in machine:
+        return 'tab:orange'
+    if 'seed3' in machine:
+        return 'tab:green'
+    if 'seed4' in machine:
+        return 'tab:purple'
+
     if 'V100' in machine:
         return 'tab:blue'
     elif 'TITAN' in machine:
@@ -217,7 +228,7 @@ def create_plots(dist_data, speedups):
                          label=str(algorithm) + "-" + str(machine), linestyle=get_linestyle(algorithm, machine),
                          color=get_line_color(machine, algorithm))
         # constant one - the baseline case
-        plt.plot(np.arange(8), np.ones(8), label="cpu_seq-xeon", linestyle='dashdot', color='tab:gray')
+    #    plt.plot(np.arange(8), np.ones(8), label="cpu_seq-xeon", linestyle='dashdot', color='tab:gray')
 
         plt.yscale('log')
         yticks = get_y_ticks(ys, 10)
