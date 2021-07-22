@@ -5,6 +5,7 @@
 #include "../propagators/sequential_propagator.h"
 #include "preprocessor.h"
 #include "../kernels/atomic_kernel.cuh"
+#include "../../lib/cub/cub.cuh"
 #include <memory>
 
 
@@ -506,7 +507,7 @@ GDP_Retcode propagateConstraintsGPUAtomicWithMeasure(
 
    VERBOSE_CALL(printf("\n====   Running the gpu_atomic without measure  ====\n"));
    propagateConstraintsGPUAtomic<datatype>(n_cons, n_vars, nnz, csr_col_indices, csr_row_ptrs, csr_vals, lhss, rhss,
-                                           lbs_orig, ubs_orig, vartypes, false);
+                                           lbs_orig, ubs_orig, vartypes, CPU_LOOP);
    VERBOSE_CALL(printf("====   end gpu_atomic without measure  ====\n"));
 
    // CUDA_CALL( cudaProfilerStop() );

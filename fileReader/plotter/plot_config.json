@@ -1,9 +1,8 @@
 {
-  "base_case": "progress_example.log",
+  "base_case": "megakernel_correctness_tests_21_07_2021_planck.log",
   "log_files": {
-    "progress_example.log": {
+    "megakernel_correctness_tests_21_07_2021_planck.log": {
       "cpu_omp": "xeon",
-      "gpu_reduction": "V100",
       "gpu_atomic": "V100"
     }
   }

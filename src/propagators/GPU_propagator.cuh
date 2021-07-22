@@ -7,6 +7,7 @@
 #include "../cuda_def.cuh"
 #include "../misc.h"
 #include "../kernels/atomic_kernel.cuh"
+#include "../kernels/atomic_megakernel.cuh"
 #include "../kernels/bound_reduction_kernel.cuh"
 #include "../kernels/util_kernels.cuh"
 #include "../params.h"
@@ -107,7 +108,7 @@ GDP_Retcode propagateConstraintsGPUAtomic(
         datatype *lbs,
         datatype *ubs,
         const GDP_VARTYPE *vartypes,
-        bool fullAsync = true
+        const GDP_SYNCTYPE sync_type = CPU_LOOP
 ) {
    if (n_cons == 0 || n_vars == 0 || nnz == 0) {
       printf("propagation of 0 size problem. Nothing to propagate.\n");
@@ -134,18 +135,19 @@ GDP_Retcode propagateConstraintsGPUAtomic(
    const int max_num_cons_in_block = maxConsecutiveElemDiff<int>(row_blocks.get(), blocks_count + 1);
    int *d_row_blocks = gpu.initArrayGPU<int>(row_blocks.get(), blocks_count + 1);
 
-   bool *d_change_found = gpu.allocArrayGPU<bool>(1);
-   gpu.setMemGPU<bool>(d_change_found, true);
-
    VERBOSE_CALL(printf(
-           "\ngpu_atomic execution start... Datatype: %s, MAXNUMROUNDS: %d, fullAsync: %s\n",
-           getDatatypeName<datatype>(), MAX_NUM_ROUNDS, fullAsync ? "true" : "false"
+           "\ngpu_atomic execution start... Datatype: %s, MAXNUMROUNDS: %d, sync type: %s\n",
+           getDatatypeName<datatype>(), MAX_NUM_ROUNDS, sync_type_to_str(sync_type)
    ));
 #ifdef VERBOSE
    auto start = std::chrono::steady_clock::now();
 #endif
 
-   if (fullAsync) {
+   if (sync_type == GPU_LOOP) {
+
+      bool *d_change_found = gpu.allocArrayGPU<bool>(1);
+      gpu.setMemGPU<bool>(d_change_found, true);
+
       GPUAtomicPropEntryKernel<datatype> <<<1, 1>>>
               (
                       blocks_count, n_cons, n_vars, max_num_cons_in_block, d_col_indices, d_row_ptrs, d_row_blocks,
@@ -154,7 +156,10 @@ GDP_Retcode propagateConstraintsGPUAtomic(
               );
       CUDA_CALL(cudaPeekAtLastError());
       CUDA_CALL(cudaDeviceSynchronize());
-   } else {
+   }
+   else  if (sync_type == CPU_LOOP){
+      bool *d_change_found = gpu.allocArrayGPU<bool>(1);
+      gpu.setMemGPU<bool>(d_change_found, true);
       int prop_round;
       bool change_found = true;
       for (prop_round = 1; prop_round <= MAX_NUM_ROUNDS && change_found; prop_round++) {
@@ -197,6 +202,62 @@ GDP_Retcode propagateConstraintsGPUAtomic(
       }
       VERBOSE_CALL(printf("gpu_atomic propagation done. Num rounds: %d\n", prop_round - 1));
    }
+   else if (sync_type == MEGAKERNEL)
+   {
+      bool change_found[2] = {true, true};
+      bool *d_change_found = gpu.initArrayGPU<bool>(change_found, 2);
+      int* d_round = gpu.allocArrayGPU<int>(1);
+
+      int numBlocksPerSm = 0;
+      // Number of threads my_kernel will be launched with
+      cudaDeviceProp deviceProp;
+      cudaGetDeviceProperties(&deviceProp, 0);
+
+      // make sure the GPU supports cooperative group launch functionality
+      assert(deviceProp.cooperativeLaunch == 1);
+
+      cudaOccupancyMaxActiveBlocksPerMultiprocessor(&numBlocksPerSm, GPUAtomicDomainPropagation<datatype>, NNZ_PER_WG, 0);
+      int max_num_resident_blocks = deviceProp.multiProcessorCount * numBlocksPerSm;
+      //  printf("SMs: %d\n", deviceProp.multiProcessorCount);
+      //  printf("max num resident blocks: %d, blocks_count: %d\n", max_num_resident_blocks, blocks_count);
+
+      void *kernelArgs[16] = {
+              (void*)&max_num_resident_blocks,
+              (void*)&blocks_count,
+              (void*)&n_cons,
+              (void*)&n_vars,
+              (void*)&max_num_cons_in_block,
+              (void*)&d_col_indices,
+              (void*)&d_row_ptrs,
+              (void*)&d_row_blocks,
+              (void*)&d_vals,
+              (void*)&d_lbs,
+              (void*)&d_ubs,
+              (void*)&d_vartypes,
+              (void*)&d_lhss,
+              (void*)&d_rhss,
+              (void*)&d_change_found,
+              (void*)&d_round
+      };
+      dim3 dimBlock(NNZ_PER_WG, 1, 1);
+      dim3 dimGrid(min(max_num_resident_blocks, blocks_count), 1, 1);
+
+      cudaLaunchCooperativeKernel((void*)GPUAtomicDomainPropagationMegakernel<datatype>, dimGrid, dimBlock, kernelArgs, (size_t)(2 * max_num_cons_in_block * (sizeof(datatype) + sizeof(int))));
+
+
+      CUDA_CALL(cudaPeekAtLastError());
+      CUDA_CALL(cudaDeviceSynchronize());
+
+      int round;
+      gpu.getMemFromGPU<int>(d_round, &round);
+      VERBOSE_CALL(printf("gpu_atomic propagation done. Num rounds: %d\n", round-1)); // todo rounds printing
+
+   }
+   else
+   {
+      throw std::runtime_error("Unknown sync type\n");
+   }
+
 
    VERBOSE_CALL(measureTime("gpu_atomic", start, std::chrono::steady_clock::now()));
    gpu.getMemFromGPU<datatype>(d_ubs, ubs, n_vars);

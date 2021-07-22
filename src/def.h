@@ -11,7 +11,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 /** return codes for GDP methods: non-positive return codes are errors */
 enum GDP_Retcode {
     GDP_OKAY = +1,       /**< normal termination */
@@ -19,7 +18,6 @@ enum GDP_Retcode {
     GDP_NOTIMPLEMENTED = -18        /**< function not implemented */
 };
 typedef enum GDP_Retcode GDP_RETCODE;           /**< return code for GDP method */
-
 #ifdef __cplusplus
 }
 #endif
@@ -28,14 +26,25 @@ typedef enum GDP_Retcode GDP_RETCODE;           /**< return code for GDP method 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 enum GDP_Vartype {
     GDP_BINARY = 0,
     GDP_INTEGER = 1,
     GDP_CONTINUOUS = 3
 };
 typedef enum GDP_Vartype GDP_VARTYPE;
+#ifdef __cplusplus
+}
+#endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+enum GDP_Synctype {
+    CPU_LOOP = 0,
+    GPU_LOOP = 1,
+    MEGAKERNEL = 2
+};
+typedef enum GDP_Synctype GDP_SYNCTYPE;
 #ifdef __cplusplus
 }
 #endif
@@ -44,8 +53,6 @@ typedef enum GDP_Vartype GDP_VARTYPE;
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-/** return codes for GDP methods: non-positive return codes are errors */
 enum GDP_algorithm {
     CPU_SEQ_DOUBLE = 0,
     CPU_OMP_DOUBLE = 1,
@@ -54,7 +61,6 @@ enum GDP_algorithm {
     CPU_SEQ_DISJOINT_DOUBLE = 4
 };
 typedef enum GDP_algorithm GDP_ALGORITHM;
-
 #ifdef __cplusplus
 }
 #endif

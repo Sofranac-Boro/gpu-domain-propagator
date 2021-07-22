@@ -5,7 +5,6 @@
 #include "../params.h"
 #include "util_kernels.cuh"
 #include "../misc.h"
-#include "../../lib/cub/cub.cuh"
 
 template<typename datatype>
 __global__ void GPUAtomicDomainPropagation

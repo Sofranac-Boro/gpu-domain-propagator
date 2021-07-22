@@ -77,7 +77,7 @@ def exec_run(
         n_vars,
         n_cons,
         nnz,
-        coeffs, col_indices, row_ptrs, lbs, ubs, lhss, rhss, vartypes
+        coeffs, col_indices, row_ptrs, lbs, ubs, lhss, rhss, vartypes, synctype
 ):
     # print sparsity and input data size
     print("num vars: ", n_vars)
@@ -97,7 +97,7 @@ def exec_run(
     # (dis_new_lbs, dis_new_ubs) = propagateSequentialDisjoint( n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_dis, ubs_dis, vartypes)
     #  idx = 1
 
-    (gpuatomic_new_lbs, gpuatomic_new_ubs) = propagateGPUAtomic(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_gpuatomic, ubs_gpuatomic, vartypes, fullAsync=False, datatype=datatype)
+    (gpuatomic_new_lbs, gpuatomic_new_ubs) = propagateGPUAtomic(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_gpuatomic, ubs_gpuatomic, vartypes, synctype=synctype, datatype=datatype)
     print("")
     eq1 = compare_results(seq_new_lbs, seq_new_ubs, omp_new_lbs, omp_new_ubs,"cpu_seq", "cpu_omp")
     eq2 = compare_results(seq_new_lbs, seq_new_ubs, gpuatomic_new_lbs, gpuatomic_new_ubs, "cpu_seq", "gpu_atomic")
@@ -107,7 +107,7 @@ def exec_run(
 #  compare_arrays_diff_idx(seq_new_ubs, omp_new_ubs, "ubs")
 
 
-def prop_compare_seq_gpu(lp_file_path: str, datatype: _SimpleCData = c_double, seed: int = 0) -> None:
+def prop_compare_seq_gpu(lp_file_path: str, datatype: _SimpleCData = c_double, seed: int = 0, synctype: int = 0) -> None:
     reader: FileReaderInterface = get_reader(lp_file_path)
 
     n_cons = reader.get_n_cons()
@@ -128,7 +128,7 @@ def prop_compare_seq_gpu(lp_file_path: str, datatype: _SimpleCData = c_double, s
         n_vars,
         n_cons,
         nnz,
-        coeffs, col_indices, row_ptrs, lbs, ubs, lhss, rhss, vartypes
+        coeffs, col_indices, row_ptrs, lbs, ubs, lhss, rhss, vartypes, synctype
     )
 
 
@@ -235,6 +235,7 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--datatype", type=str, required=False, default="double")
     parser.add_argument("-t", "--testtype", type=str, required=False, default="gdp", choices=['gdp', 'measure', 'papilo'])
     parser.add_argument("-s", "--seed", type=int, required=False)
+    parser.add_argument("-c", "--synctype", type=int, required=False, choices=[0, 1, 2])
     args = parser.parse_args()
 
     if args.datatype == "" or args.datatype == "double":
@@ -249,9 +250,16 @@ if __name__ == "__main__":
     else:
         seed = args.seed
 
+    if args.synctype == "" or args.synctype is None:
+        synctype = 0
+    else:
+        synctype = args.synctype
+
+
+
     try:
         if args.testtype == "gdp":
-            prop_compare_seq_gpu(args.file, datatype, seed)
+            prop_compare_seq_gpu(args.file, datatype, seed, synctype)
         elif args.testtype == "measure":
             propagation_measure_run(args.file)
         elif args.testtype == "papilo":

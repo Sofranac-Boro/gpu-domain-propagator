@@ -99,7 +99,7 @@ def propagateGPUAtomic(
         lbs: List[float],
         ubs: List[float],
         vartypes: List[int],
-        fullAsync = True,
+        synctype: int = 0,
         datatype = c_double
 ) -> Tuple[List[float]]:
     C = CDLL(so_file)
@@ -118,7 +118,7 @@ def propagateGPUAtomic(
     c_lbs = (datatype * n_vars)(*lbs)
     c_ubs = (datatype * n_vars)(*ubs)
     c_vartypes = (c_int * n_vars)(*vartypes)
-    c_fullAsync = (c_bool)(fullAsync)
+    c_synctype = (c_int)(synctype)
 
     if datatype == c_double:
         fun = C.propagateConstraintsGPUAtomicDouble
@@ -139,7 +139,7 @@ def propagateGPUAtomic(
         c_lbs,
         c_ubs,
         c_vartypes,
-        c_fullAsync
+        c_synctype
     )
 
     return list(c_lbs), list(c_ubs)

@@ -13,10 +13,10 @@
 
 // #define FOLLOW_CONS 581830
 
-
-
 void measureTime(const char alg_name[30], std::chrono::_V2::steady_clock::time_point start,
                  std::chrono::_V2::steady_clock::time_point end);
+
+const char * sync_type_to_str(GDP_SYNCTYPE type);
 
 template<class datatype>
 void countPrintNumMarkedCons(int n_cons, int *consmarked) {

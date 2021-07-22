@@ -89,7 +89,7 @@ GDP_RETCODE propagateConstraintsGPUAtomicDouble(
         double *lbs,
         double *ubs,
         const int *vartypes,
-        const bool fullAsync
+        const int sync_type
 ) {
    CALL_AND_HANDLE(propagateConstraintsGPUAtomic<double>
                            (
@@ -104,7 +104,7 @@ GDP_RETCODE propagateConstraintsGPUAtomicDouble(
                                    lbs,
                                    ubs,
                                    (GDP_VARTYPE *) vartypes,
-                                   fullAsync
+                                   static_cast<GDP_SYNCTYPE>(sync_type)
                            ))
 }
 
@@ -120,7 +120,7 @@ GDP_RETCODE propagateConstraintsGPUAtomicFloat(
         float *lbs,
         float *ubs,
         const int *vartypes,
-        const bool fullAsync
+        const int sync_type
 ) {
    CALL_AND_HANDLE(propagateConstraintsGPUAtomic<float>
                            (
@@ -135,7 +135,7 @@ GDP_RETCODE propagateConstraintsGPUAtomicFloat(
                                    lbs,
                                    ubs,
                                    (GDP_VARTYPE *) vartypes,
-                                   fullAsync
+                                   static_cast<GDP_SYNCTYPE>(sync_type)
                            ))
 }
 

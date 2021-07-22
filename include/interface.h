@@ -63,7 +63,7 @@ GDP_RETCODE propagateConstraintsGPUAtomicDouble(
         double *lbs,
         double *ubs,
         const int *vartypes,
-        const bool fullAsync = true
+        const int sync_type = 0
 );
 
 #ifdef __cplusplus
@@ -86,7 +86,7 @@ GDP_RETCODE propagateConstraintsGPUAtomicFloat(
         float *lbs,
         float *ubs,
         const int *vartypes,
-        const bool fullAsync
+        const int sync_type = 0
 );
 
 #ifdef __cplusplus
