@@ -4,8 +4,10 @@ Given a Mixed Integer Linear Program (MIP), this code performs iterated domain p
 The following algorithm implementations are provided:
 * **cpu_seq** is the sequential (single-threaded) implementation of domain propagation
 * **cpu_omp** is the parallelized version of the algorithm above. Parallelization is done in shared CPU memory with OpenMP.
-* **gpu_atomic** is a GPU implementation of domain propagation. It uses atomic updates in GPU global memory to resolve dependencies. After sending the initial input memory to the GPU, this algorithm runs fully on the GPU and requires no interaction with the CPU.
-* **gpu_reduciton** is a version of the GPU implementation which avoids using atomics by saving the data in global memory followed by a reduction.
+* **gpu_atomic** is a GPU implementation of domain propagation. It uses atomic updates in GPU global memory to resolve dependencies. After sending the initial input memory to the GPU, this algorithm is capable of running fully on the GPU, requiring no interaction with the CPU. A better-performing version of the algorithm with minimal CPU synchronization is also available, for the case where minimal CPU involvemnt is acceptable.
+
+This repository contains all the methods used to generate results of [this paper](https://arxiv.org/abs/2009.07785).
+This code also contains methods for measuring progress of iterative domain propagation algorithms, see [this paper](https://arxiv.org/abs/2106.07573).
 
 ## Building
 
