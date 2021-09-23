@@ -4,6 +4,8 @@ import threading
 import time
 import re
 
+nnz_pattern = r"nnz     :  (?P<nnz>\d+)\n"
+
 #result_pattern = r"Reding of  (?P<prob_file>.*)  model done!\nnum vars:  (?P<n_vars>\d*)\nnum cons:  (?P<n_cons>\d*)\nnnz     :  (?P<nnz>\d*)\n\n.*\n.*cpu_seq propagation done. Num rounds: (?P<cpu_seq_rounds>\d*)\ncpu_seq execution time : (?P<cpu_seq_time>\d*).*\n\n.*\n.*cpu_omp propagation done. Num rounds: (?P<cpu_omp_rounds>\d*)\ncpu_omp execution time : (?P<cpu_omp_time>\d*).*\n\n.*\n.*gpu_reduction propagation done. Num rounds: (?P<gpu_reduction_rounds>\d*)\ngpu_reduction execution time : (?P<gpu_reduction_time>\d*).*\n\n.*\n.*gpu_atomic propagation done. Num rounds: (?P<gpu_atomic_rounds>\d*)\ngpu_atomic execution time : (?P<gpu_atomic_time>\d*).*\n\n.*\n.*\n.*\nall results match:  (?P<results_correct>.*)"
 result_pattern = r"Reading of  (?P<prob_file>.*)  model done!\nnum vars:  (?P<n_vars>\d*)\nnum cons:  (?P<n_cons>\d*)\nnnz     :  (?P<nnz>\d*)\n\n.*\n.*cpu_seq propagation done. Num rounds: (?P<cpu_seq_rounds>\d*)\ncpu_seq execution time : (?P<cpu_seq_time>\d*).*\n\n.*\n.*cpu_omp propagation done. Num rounds: (?P<cpu_omp_rounds>\d*)\ncpu_omp execution time : (?P<cpu_omp_time>\d*).*\n\n.*\n.*gpu_atomic propagation done. Num rounds: (?P<gpu_atomic_rounds>\d*)\ngpu_atomic execution time : (?P<gpu_atomic_time>\d*).*\n\ncpu_seq to cpu_omp results match:  (?P<dsadasdas>.*)\ncpu_seq to gpu_atomic results match:  (?P<dadadas>.*)\nall results match:  (?P<results_correct>.*)"
 seq_to_omp_pattern = r"cpu_seq to cpu_omp results match:  (?P<match>.*)"
@@ -32,6 +34,17 @@ papilo_found_more_changes_pattern = r"execution of  (?P<prob_file>.*)  failed\. 
 
 no_bdchgs_after_papilo_pattern = r"papilo did not find any bound changes after cpu_seq!"
 
+
+# Roofline analysis regexes
+roofline_prob_out_pattern = r"(?s)read with 0 errors\n(.*?)Reding lp file"
+roofline_flops_pattern = r"[ ]+(?P<invocations>\d*)[ ]+flop_count_dp[ ]+Floating Point Operations\(Double Precision\)[ ]+(?P<min>\d+.\d+e\+\d+|\d+)[ ]+(?P<max>\d+.\d+e\+\d+|\d+)[ ]+(?P<avg>\d+.\d+e\+\d+|\d+)\n"
+roofline_flops_float_pattern = r"[ ]+(?P<invocations>\d*)[ ]+flop_count_sp[ ]+Floating Point Operations\(Single Precision\)[ ]+(?P<min>\d+.\d+e\+\d+|\d+)[ ]+(?P<max>\d+.\d+e\+\d+|\d+)[ ]+(?P<avg>\d+.\d+e\+\d+|\d+)\n"
+roofline_TR_pattern = r"[ ]+(?P<invocations>\d*)[ ]+dram_read_throughput[ ]+Device Memory Read Throughput[ ]+(?P<min>\d+.\d+)(?P<min_unit>.*)[ ]+(?P<max>\d+.\d+)(?P<max_unit>.*)[ ]+(?P<avg>\d+.\d+)(?P<avg_unit>.*)\n"
+roofline_TW_pattern = r"[ ]+(?P<invocations>\d*)[ ]+dram_write_throughput[ ]+Device Memory Write Throughput[ ]+(?P<min>\d+.\d+)(?P<min_unit>.*)[ ]+(?P<max>\d+.\d+)(?P<max_unit>.*)[ ]+(?P<avg>\d+.\d+)(?P<avg_unit>.*)\n"
+roofline_DR_pattern = r"[ ]+(?P<invocations>\d*)[ ]+dram_read_transactions[ ]+Device Memory Read Transactions[ ]+(?P<min>\d+)[ ]+(?P<max>\d+)[ ]+(?P<avg>\d+)\n"
+roofline_DW_pattern = r"[ ]+(?P<invocations>\d*)[ ]+dram_write_transactions[ ]+Device Memory Write Transactions[ ]+(?P<min>\d+)[ ]+(?P<max>\d+)[ ]+(?P<avg>\d+)\n"
+roofline_success_run = r"gpu_atomic propagation done."
+roofline_runtime_pattern = r" GPU activities:[ ]+\d+.\d+\%[ ]+\d+.\d+[a-z]+[ ]+\d+[ ]+(?P<avg>\d+.\d+)(?P<avg_unit>[a-z]+)[ ]+(?P<min>\d+.\d+)(?P<min_unit>[a-z]+)[ ]+(?P<max>\d+.\d+)(?P<max_unit>[a-z]+)[ ]+void GPUAtomicDomainPropagation"
 
 def get_regex_result(regex_string: str, search_string: str, group_name: str = None):
     m = re.compile(regex_string).search(search_string)

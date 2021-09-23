@@ -54,7 +54,8 @@ machine_to_time = {
 
 
 def get_linestyle(algorithm, machine):
-    if 'fastmath' in machine:
+
+    if any(x in machine for x in ['fastmath', 'megakernel']):
         return 'dotted'
     elif algorithm == 'cpu_omp' or any(x in machine for x in ['single', 'gpu_loop', '8thrds']):
         return 'dashed'
@@ -65,6 +66,13 @@ def get_linestyle(algorithm, machine):
 def get_line_color(machine, algorithm):
     if algorithm == 'papilo':
         return 'tab:red'
+
+    if 'cpu_loop' in machine:
+        return 'tab:green'
+    if 'gpu_loop' in machine:
+        return 'tab:red'
+    if 'megakernel' in machine:
+        return 'tab:blue'
 
     if 'seed0' in machine:
         return 'tab:blue'
@@ -213,7 +221,7 @@ def create_plots(dist_data, speedups):
         factor = 10.0 ** decimals
         return math.trunc(number * factor) / factor
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=(10,8))
     plt.style.use('bmh')
     plot_a = True
     ### Subplot A ###
@@ -228,10 +236,10 @@ def create_plots(dist_data, speedups):
                          label=str(algorithm) + "-" + str(machine), linestyle=get_linestyle(algorithm, machine),
                          color=get_line_color(machine, algorithm))
         # constant one - the baseline case
-    #    plt.plot(np.arange(8), np.ones(8), label="cpu_seq-xeon", linestyle='dashdot', color='tab:gray')
+        plt.plot(np.arange(8), np.ones(8), label="cpu_seq-xeon", linestyle='dashdot', color='tab:gray')
 
         plt.yscale('log')
-        yticks = get_y_ticks(ys, 10)
+        yticks = get_y_ticks(ys, 8)
         plt.yticks(yticks, yticks)
         plt.xticks(np.arange(len(speedups[algorithm][machine][0])),
                    map(lambda x: "Set-" + str(x + 1), np.arange(len(speedups[algorithm][machine][0]))))
@@ -268,6 +276,10 @@ def create_plots(dist_data, speedups):
         rc('font', **{'family': 'serif', 'serif': ['Times']})
         rc('text', usetex=True)
         ax2.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+        from matplotlib.pyplot import figure
+
+
+
     plt.show()
 
 

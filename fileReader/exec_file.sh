@@ -61,6 +61,6 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 printf "\n\n === $FILE ===\n"
 
-
+#nvprof --profile-child-processes --profile-from-start off  --kernels "GPUAtomicDomainPropagation" --metrics flop_count_dp  --metrics dram_read_throughput  --metrics dram_write_throughput --metrics dram_read_transactions --metrics dram_write_transactions python3 -u "$DIR/run_propagation.py" -f "$FILE" -d "$DATATYPE" -t "$TESTTYPE" -s "$SEED" -c "$SYNCTYPE" 2>&1 | tee -a $LOGFILE
 python3 -u "$DIR/run_propagation.py" -f "$FILE" -d "$DATATYPE" -t "$TESTTYPE" -s "$SEED" -c "$SYNCTYPE" 2>&1 | tee -a $LOGFILE
-
+#nvprof --profile-child-processes --profile-from-start off --concurrent-kernels off --openacc-profiling off --print-gpu-summary python3 -u "$DIR/run_propagation.py" -f "$FILE" -d "$DATATYPE" -t "$TESTTYPE" -s "$SEED" -c "$SYNCTYPE" 2>&1 | tee -a $LOGFILE

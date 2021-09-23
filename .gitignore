@@ -1,4 +1,5 @@
 fileReader/venv
 .idea/
+build/
 cmake-build-debug/
 *__pycache__*

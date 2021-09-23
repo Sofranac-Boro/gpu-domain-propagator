@@ -88,9 +88,9 @@ def exec_run(
     ubs_dis = ubs_seq = ubs_gpuatomic = ubs_gpu = ubs_omp = ubs
 
 
-    (seq_new_lbs, seq_new_ubs) = propagateSequential(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_seq, ubs_seq, vartypes, datatype=c_double)
+   # (seq_new_lbs, seq_new_ubs) = propagateSequential(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_seq, ubs_seq, vartypes, datatype=c_double)
 
-    (omp_new_lbs, omp_new_ubs) = propagateFullOMP(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_omp, ubs_omp, vartypes, datatype=c_double)
+    #(omp_new_lbs, omp_new_ubs) = propagateFullOMP(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_omp, ubs_omp, vartypes, datatype=c_double)
 
     # (gpu_new_lbs, gpu_new_ubs) = propagateGPUReduction(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_gpu, ubs_gpu, vartypes, datatype=datatype)
 
@@ -98,10 +98,10 @@ def exec_run(
     #  idx = 1
 
     (gpuatomic_new_lbs, gpuatomic_new_ubs) = propagateGPUAtomic(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_gpuatomic, ubs_gpuatomic, vartypes, synctype=synctype, datatype=datatype)
-    print("")
-    eq1 = compare_results(seq_new_lbs, seq_new_ubs, omp_new_lbs, omp_new_ubs,"cpu_seq", "cpu_omp")
-    eq2 = compare_results(seq_new_lbs, seq_new_ubs, gpuatomic_new_lbs, gpuatomic_new_ubs, "cpu_seq", "gpu_atomic")
-    print("all results match: ", eq1 and eq2)
+   # print("")
+   # eq1 = compare_results(seq_new_lbs, seq_new_ubs, omp_new_lbs, omp_new_ubs,"cpu_seq", "cpu_omp")
+   # eq2 = compare_results(seq_new_lbs, seq_new_ubs, gpuatomic_new_lbs, gpuatomic_new_ubs, "cpu_seq", "gpu_atomic")
+   # print("all results match: ", eq1 and eq2)
 
 #  compare_arrays_diff_idx(seq_new_lbs, omp_new_lbs, "lbs")
 #  compare_arrays_diff_idx(seq_new_ubs, omp_new_ubs, "ubs")
