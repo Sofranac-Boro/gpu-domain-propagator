@@ -35,7 +35,7 @@ public:
     }
 
     template<typename T>
-    void getMemFromGPU(T *src, T *dst, int len = 1) {
+    void getMemFromGPU(const T *src, T *dst, int len = 1) {
        CUDA_CALL(cudaMemcpy(dst, src, sizeof(T) * len, cudaMemcpyDeviceToHost));
     }
 

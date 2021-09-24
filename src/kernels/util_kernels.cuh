@@ -273,15 +273,6 @@ __device__ __forceinline__ float atomicMax(float *address, float val) {
 }
 
 template<typename datatype>
-__host__ __device__ __forceinline__ void atomicAdd1(datatype *val) {
-#ifdef  __CUDA_ARCH__
-   atomicAdd(val, 1);
-#else
-   __sync_fetch_and_add(val, 1);
-#endif
-}
-
-template<typename datatype>
 __device__ __forceinline__ datatype adjustUpperBound(datatype ub, bool is_var_cont) {
    return is_var_cont ? ub : EPSFLOOR(ub);
 }
@@ -401,117 +392,6 @@ print_acts_csr_stream(int nnz_in_block, int *validx_considx_map, int n_cons, int
    }
 
    __syncthreads();
-}
-
-// returns score value. It is equal to lb score + ub score.
-template<typename datatype>
-__device__ __host__ datatype calcVarRelProgressMeasure(
-        const datatype lb,
-        const datatype ub,
-        const datatype lb_start,
-        const datatype ub_start,
-        const datatype lb_limit,
-        const datatype ub_limit,
-        const datatype lb_prevround,
-        const datatype ub_prevround,
-        int *inf_change_found,
-        int *rel_measure_k
-) {
-   assert(*rel_measure_k >= 0);
-   //  lb <= lb_limit and  ub_limit <= ub
-   // lb_start <= lb_limit and ub_limit <= ub_start
-   assert(EPSGE(lb_limit, lb));
-   assert(EPSLE(ub_limit, ub));
-   assert(EPSLE(lb_start, lb_limit));
-   assert(EPSGE(ub_start, ub_limit));
-   // lb_start <= ub_initial and lb <= ub and lb_start <= ub_limit
-   assert(EPSLE(lb_start, ub_start));
-   assert(EPSLE(lb, ub));
-   assert(EPSLE(lb_limit, ub_limit));
-
-   // if limit bound is finite, so should be the starting value.
-   DEBUG_CALL(EPSGT(lb_limit, -GDP_INF) ? assert(EPSGT(lb_start, -GDP_INF)) : assert(true));
-   DEBUG_CALL(EPSLT(ub_limit, GDP_INF) ? assert(EPSLT(ub_start, GDP_INF)) : assert(true));
-
-   // if start bound is inf, it means it should never be possible to get a finite value for this bound
-   DEBUG_CALL(EPSLE(lb_start, -GDP_INF) ? assert(EPSLE(lb, -GDP_INF)) : assert(true));
-   DEBUG_CALL(EPSGE(ub_start, GDP_INF) ? assert(EPSGE(ub, GDP_INF)) : assert(true));
-
-   // if start bound is finite, it should never be possible to get a "worse" finite value of the bound
-   DEBUG_CALL(EPSGT(lb_start, -GDP_INF) && EPSGT(lb, -GDP_INF) ? assert(EPSGE(lb, lb_start)) : assert(true));
-   DEBUG_CALL(EPSLT(ub_start, GDP_INF) && EPSLT(ub, GDP_INF) ? assert(EPSLE(ub, ub_start)) : assert(true));
-   // measure contribution to finite-finite progress
-   datatype score = 0.0;
-   datatype increment;
-   // Checking that current bound is finite prevents numerical issues even though the math works in infinite space.
-   // Do not try to compute case where start value is infinite. This means that limit value is also infinite, see above.
-   // lb >= lb_start is reduntant here because of the assert but added for readibility as it is present in the paper.
-   // if limit == start bound, no progress can be made.
-   if (EPSGT(lb_start, -GDP_INF) && EPSGT(lb, -GDP_INF) && EPSGE(lb, lb_start) && !EPSEQ(lb_limit, lb_start)) {
-      increment = (lb - lb_start) / (lb_limit - lb_start);
-      assert(EPSLE(increment, 1.0));
-      score += increment;
-   }
-   // Upper bound
-   if (EPSLT(ub_start, GDP_INF) && EPSLT(ub, GDP_INF) && EPSLE(ub, ub_start) && !(EPSEQ(ub_start, ub_limit))) {
-      increment = (ub_start - ub) / (ub_start - ub_limit);
-      assert(EPSLE(increment, 1.0));
-      score += increment;
-   }
-
-   // measure contribution to infinite-finite progress
-   if (EPSLE(lb_prevround, -GDP_INF) && EPSGT(lb, -GDP_INF)) {
-      *inf_change_found = 1;
-      atomicAdd1<int>(rel_measure_k);
-   }
-
-   if (EPSGE(ub_prevround, GDP_INF) && EPSLT(ub, GDP_INF)) {
-      *inf_change_found = 1;
-      atomicAdd1<int>(rel_measure_k);
-   }
-
-   return score;
-}
-
-template<typename datatype>
-__global__ void calcRelProgressMeasure(
-        const int n_vars,
-        const datatype *lbs,
-        const datatype *ubs,
-        const datatype *lbs_start,
-        const datatype *ubs_start,
-        const datatype *lbs_limit,
-        const datatype *ubs_limit,
-        const datatype *lbs_prev,
-        const datatype *ubs_prev,
-        datatype *measures,
-        int *inf_change_found,
-        int *abs_measure_k
-) {
-   int varidx = blockIdx.x * blockDim.x + threadIdx.x;
-
-   if (varidx < n_vars) {
-      measures[varidx] = calcVarRelProgressMeasure(lbs[varidx], ubs[varidx], lbs_start[varidx], ubs_start[varidx],
-                                                   lbs_limit[varidx], ubs_limit[varidx], lbs_prev[varidx],
-                                                   ubs_prev[varidx],
-                                                   inf_change_found, abs_measure_k);
-   }
-}
-
-template<typename datatype>
-__global__ void copy_bounds_kernel(
-        const int n_vars,
-        datatype *lbs,
-        datatype *ubs,
-        const datatype *newlbs,
-        const datatype *newubs
-) {
-   int varidx = blockIdx.x * blockDim.x + threadIdx.x;
-
-   if (varidx < n_vars) {
-      lbs[varidx] = newlbs[varidx];
-      ubs[varidx] = newubs[varidx];
-   }
 }
 
 template<typename datatype>

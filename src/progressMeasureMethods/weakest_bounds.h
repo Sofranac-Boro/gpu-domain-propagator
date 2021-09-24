@@ -1,10 +1,46 @@
-#ifndef GPU_DOMAIN_PROPAGATOR_PREPROCESSOR_H
-#define GPU_DOMAIN_PROPAGATOR_PREPROCESSOR_H
+#ifndef GPU_DOMAIN_PROPAGATOR_WEAKEST_BOUNDS_H
+#define GPU_DOMAIN_PROPAGATOR_WEAKEST_BOUNDS_H
 
 #include "../propagators/sequential_propagator.h"
 #include <vector>
 
 using namespace std;
+
+template<typename datatype>
+void checkWeakestBoundsResult(
+        const int n_vars,
+        const datatype* lbs_orig,
+        const datatype* ubs_orig,
+        const datatype* lbs_w,
+        const datatype* ubs_w
+)
+{
+   for (int j=0; j<n_vars; j++)
+   {
+      // if weakest is inf, then original also has to be inf
+      // if weakest not inf and orig not inf, then they have to be equal
+
+      if (EPSLE(lbs_w[j], -GDP_INF))
+      {
+         assert(EPSLE(lbs_orig[j], -GDP_INF));
+      } else {
+         if (EPSGT(lbs_orig[j], -GDP_INF))
+         {
+            assert(EPSEQ(lbs_w[j], lbs_orig[j]));
+         }
+      }
+
+      if (EPSGE(ubs_w[j], GDP_INF))
+      {
+         assert(EPSGE(ubs_orig[j], GDP_INF));
+      } else {
+         if (EPSLT(ubs_orig[j], GDP_INF))
+         {
+            assert(EPSEQ(ubs_w[j], ubs_orig[j]));
+         }
+      }
+   }
+}
 
 template<class datatype>
 NewBoundTuple<datatype>
@@ -209,7 +245,7 @@ bool preprocessorPropagationRound
 }
 
 template<class datatype>
-void executePreprocessor
+void executeWeakestBounds
         (
                 const int n_cons,
                 const int n_vars,
@@ -543,4 +579,4 @@ void executePreprocessorNew
    return;
 }
 
-#endif //GPU_DOMAIN_PROPAGATOR_PREPROCESSOR_H
+#endif //GPU_DOMAIN_PROPAGATOR_WEAKEST_BOUNDS_H
