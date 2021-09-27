@@ -11,6 +11,7 @@
 #include "testCases/test_performance.cuh"
 #include "testCases/test_propagator.cuh"
 #include "testCases/test_components.cuh"
+#include "testCases/test_weakest_bounds.cuh"
 
 
 

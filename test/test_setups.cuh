@@ -6,6 +6,7 @@
 #include "../src/def.h"
 #include "test_infra.cuh"
 #include "../src/params.h"
+#include "../src/kernels/util_kernels.cuh"
 
 template<typename datatype>
 class TestSetup {
@@ -67,6 +68,13 @@ public:
           printArray<datatype>(dense_cons.data(), n_vars, "");
        }
        printf("\n");
+    }
+
+    void fill_csc_matrix()
+    {
+       csr_to_csc(n_cons, n_vars, nnz, csr_col_indices, csr_row_ptrs, csc_col_ptrs,
+                  csc_row_indices,
+                  csc_vals, csr_vals);
     }
 
 protected:
@@ -647,6 +655,58 @@ public:
        memcpy(this->ubs, tmp_ubs, n * sizeof(datatype));
        memcpy(this->vartypes, tmp_vartypes, n * sizeof(int));
        memcpy(this->consmarked, tmp_consmarked, m * sizeof(int));
+    }
+
+};
+
+template<typename datatype>
+class WeakestBoundsExample1 : public TestSetup<datatype> {
+
+public:
+    WeakestBoundsExample1() : TestSetup<datatype>() {
+
+       this->n_cons = 5;
+       this->n_vars = 4;
+       this->nnz = 9;
+
+       this->allocMem(this->n_cons, this->n_vars, this->nnz);
+       initProblem();
+    }
+
+    ~WeakestBoundsExample1() {
+       this->freeMem();
+    }
+
+    void initProblem() {
+       int m = 5; // number of constraints
+       int n = 4; // number of variables
+       int nnz = 9; // number of non zeros in the A matrix
+
+       datatype tmp_vals[] = {1.0, 1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0}; // dim nnz
+
+       int tmp_col_indices[] = {0, 0, 2, 3, 1, 2, 1, 3, 1}; // dim nnz
+
+       int tmp_row_indices[] = {0, 1, 4, 6, 8, 9}; // dim m+1
+       datatype tmp_lhss[] = {-GDP_INF, -GDP_INF, -GDP_INF, -GDP_INF, -GDP_INF}; // dim m
+       datatype tmp_rhss[] = {1.0, 1.0, 1.0, 1.0, 1.0}; // dim m
+       datatype tmp_lbs[] = {-GDP_INF, -GDP_INF, -GDP_INF, -GDP_INF}; // dim n
+       datatype tmp_ubs[] = {GDP_INF, GDP_INF, GDP_INF, GDP_INF}; // dim n
+       int tmp_vartypes[] = {GDP_CONTINUOUS, GDP_CONTINUOUS, GDP_CONTINUOUS, GDP_CONTINUOUS}; // dim n
+       int tmp_consmarked[] = {1, 1, 1};
+       datatype ubs_analytical[] = {5.0, 1.0, 2.0, 2.0};
+       datatype lbs_analytical[] = {-GDP_INF, -GDP_INF, -GDP_INF, -GDP_INF};
+
+       memcpy(this->csr_vals, tmp_vals, nnz * sizeof(datatype));
+       memcpy(this->csr_col_indices, tmp_col_indices, nnz * sizeof(int));
+       memcpy(this->csr_row_ptrs, tmp_row_indices, (m + 1) * sizeof(int));
+       memcpy(this->lhss, tmp_lhss, m * sizeof(datatype));
+       memcpy(this->rhss, tmp_rhss, m * sizeof(datatype));
+       memcpy(this->lbs, tmp_lbs, n * sizeof(datatype));
+       memcpy(this->ubs, tmp_ubs, n * sizeof(datatype));
+       memcpy(this->vartypes, tmp_vartypes, n * sizeof(int));
+       memcpy(this->consmarked, tmp_consmarked, m * sizeof(int));
+       memcpy(this->lbs_analytical, lbs_analytical, n * sizeof(datatype));
+       memcpy(this->ubs_analytical, ubs_analytical, n * sizeof(datatype));
     }
 
 };

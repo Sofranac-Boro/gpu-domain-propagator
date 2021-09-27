@@ -41,7 +41,7 @@ void initMeasureData
    memcpy(ubs_weakest, ubs, n_vars * sizeof(datatype));
 
    printf("\n====   Running the weakest bounds procedure  ====");
-   executeWeakestBounds<datatype>(n_cons, n_vars, csr_col_indices, csr_row_ptrs, csc_col_ptrs, csc_row_indices,
+   computeWeakestBounds<datatype>(n_cons, n_vars, csr_col_indices, csr_row_ptrs, csc_col_ptrs, csc_row_indices,
                                   csr_vals,
                                   lhss, rhss, lbs_weakest, ubs_weakest, vartypes);
    DEBUG_CALL(checkWeakestBoundsResult<datatype>(n_vars, lbs, ubs, lbs_weakest, ubs_weakest) );

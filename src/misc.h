@@ -40,6 +40,17 @@ void printArray(const T *arr, const int size, const char name[30]) {
    printf("]\n");
 }
 
+template<typename T>
+void printVector(std::vector<T> vec, std::string name) {
+
+   std::cout << name << ": [ ";
+   for (auto elem : vec)
+   {
+      std::cout << elem << " ";
+   }
+   std::cout << "]" << std::endl;
+}
+
 template<typename datatype>
 void printBoundCandidates
         (

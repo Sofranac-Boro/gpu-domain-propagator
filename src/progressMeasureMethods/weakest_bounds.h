@@ -3,8 +3,32 @@
 
 #include "../propagators/sequential_propagator.h"
 #include <vector>
+#include <iostream>
+#include <exception>
+#include "../misc.h"
 
 using namespace std;
+
+template<typename datatype>
+struct NewWeakestBound {
+    int bd_idx;
+    char type;
+    datatype newb;
+    bool is_valid= true; // sometimes the bound should not be applied. E.g. to init recursion
+};
+
+template<typename datatype>
+struct ConsIterator {
+    const datatype* vals;
+    const int* vars;
+    const int size;
+};
+
+enum ActivityType {
+    MAXACTIVITY = 0,
+    MINACTIVITY = 1,
+};
+typedef enum ActivityType ACTIVITY_TYPE;
 
 template<typename datatype>
 void checkWeakestBoundsResult(
@@ -41,6 +65,8 @@ void checkWeakestBoundsResult(
       }
    }
 }
+
+/* METHODS FOR THE OLD WEKAEST BOUNDS PROCEDURE FROM THE CP2021 PAPER */
 
 template<class datatype>
 NewBoundTuple<datatype>
@@ -329,232 +355,249 @@ void executeWeakestBounds
    free(lbs_inf);
    free(ubs_inf);
 }
+
+/* METHODS FOR THE NEW WEAKEST BOUNDS PROCEDURE */
+
 template<typename datatype>
-class Mat;
+class ConstProbData{
+public:
+    int n_vars;
+    int n_cons;
+    const datatype* vals;
+    const int* col_indices;
+    const int* row_ptrs;
+    const datatype* lhss;
+    const datatype* rhss;
+    const GDP_VARTYPE* vartypes;
+
+    ConstProbData(const int n_cons_, const int n_vars_, const datatype* vals_, const int* col_indices_, const int* row_ptrs_, const datatype* lhss_, const datatype* rhss_, const GDP_VARTYPE* vartypes_) {
+       n_cons = n_cons_;
+       n_vars = n_vars_;
+       vals = vals_;
+       col_indices = col_indices_;
+       row_ptrs = row_ptrs_;
+       lhss = lhss_;
+       rhss = rhss_;
+       vartypes = vartypes_;
+    }
+
+    ConsIterator<datatype> getConsIterator(const int cons) const
+    {
+       ConsIterator<datatype> it = {
+               .vals = &vals[row_ptrs[cons]],
+               .vars = &col_indices[row_ptrs[cons]],
+               .size = row_ptrs[cons+1] - row_ptrs[cons]
+       };
+       return it;
+    }
+   };
 
 template<typename datatype>
 class Bounds {
-private:
-    vector<bool> active_lbs;
-    vector<bool> active_ubs;
-
 public:
     int n_vars;
-    datatype* lbs;
-    datatype* ubs;
-    const GDP_VARTYPE* vartypes;
+    vector<datatype> lbs;
+    vector<datatype> ubs;
 
-    Bounds(const int n_vars_, datatype* lbs_, datatype* ubs_, const GDP_VARTYPE *vartypes_)
+    Bounds(const int n_vars_, const datatype* lbs_, const datatype* ubs_)
     {
        n_vars = n_vars_;
-       lbs=lbs_;
-       ubs=ubs_;
-       vartypes = vartypes_;
 
-       active_lbs.reserve(n_vars_);
-       active_ubs.reserve(n_vars_);
+       lbs.reserve(n_vars);
+       ubs.reserve(n_vars);
 
-       fill(active_lbs.begin(),active_lbs.end(), false);
-       fill(active_ubs.begin(),active_ubs.end(), false);
+       lbs.insert(lbs.end(), &lbs_[0], &lbs_[n_vars_]);
+       ubs.insert(ubs.end(), &ubs_[0], &ubs_[n_vars_]);
     }
 
-    bool is_lb_inf(int var)
+    Bounds(const Bounds& bds1)
     {
-       return EPSLE(lbs[var], -GDP_INF);
+       n_vars = bds1.n_vars;
+       lbs = bds1.lbs;
+       ubs = bds1.ubs;
     }
 
-    bool is_ub_inf(int var)
+    void updateWeakestBound(NewWeakestBound<datatype> new_wbd)
     {
-       return EPSGE(ubs[var], GDP_INF);
-    }
+       if (new_wbd.is_valid) {
+          const int j = new_wbd.bd_idx;
+          const bool is_lower = new_wbd.type == 'l';
+          const datatype newb = new_wbd.newb;
 
-    bool is_lb_active(int var)
-    {
-       return (is_lb_inf(var) || active_lbs[var]);
-    }
+          assert((!is_lower && EPSLT(newb, GDP_INF) || (is_lower && EPSGT(newb, -GDP_INF))));
 
-    bool is_ub_active(int var)
-    {
-       return (is_ub_inf(var) || active_ubs[var]);
-    }
-
-    void activate_lb(int var)
-    {
-       active_lbs[var] = true;
-    }
-
-    void activate_ub(int var)
-    {
-       active_ubs[var] = true;
-    }
-
-    void tightenVariable
-            (
-                    const datatype coeff,
-                    const datatype lhs,
-                    const datatype rhs,
-                    const datatype minact,
-                    const datatype maxact,
-                    const int num_minact_inf,
-                    const int num_maxact_inf,
-                    const bool isVarCont,
-                    const datatype lb,
-                    const datatype ub
-            ) const
-    {
-       datatype slack = rhs - minact;
-       datatype surplus = lhs - maxact;
-
-       if (EPSGT(coeff, 0.0))
-       {
-         if (EPSLT(rhs, GDP_INF) && EPSGT(minact, -GDP_INF))
-         {
-
-         }
+          // old is infinite and new finite OR old is finite and new is weaker
+          if (is_lower && ( EPSLE(lbs[j], -GDP_INF) || ( EPSGT(lbs[j], -GDP_INF) && EPSLT(newb, lbs[j])) ) ) {
+             lbs[j] = newb;
+          }
+          if (!is_lower && ( EPSGE(ubs[j], GDP_INF) || ( EPSLT(ubs[j], GDP_INF) && EPSGT(new_wbd.newb, ubs[j]) ) )) {
+             ubs[new_wbd.bd_idx] = new_wbd.newb;
+          }
        }
     }
 };
 
 template<typename datatype>
-class Mat {
+class Activities{
 public:
-       int n_vars;
-       int n_cons;
-       int nnz;
-       const datatype* vals;
-      const int* col_indices;
-    const int* row_ptrs;
-    const datatype* lhss;
-    const datatype* rhss;
-    int max_n_vars = 0;
-
     vector<datatype> minacts;
     vector<datatype> maxacts;
     vector<int> minacts_inf;
     vector<int> maxacts_inf;
-    vector<datatype> maxactdeltas;
 
-    Mat(const int nnz_, const int n_cons_, const int n_vars_, const datatype* vals_, const int* col_indices_, const int* row_ptrs_, const datatype* lhss_, const datatype* rhss_){
-       n_cons = n_cons_;
-       n_vars=n_vars_;
-       nnz = nnz_;
-       vals = vals_;
-       col_indices = col_indices_;
-       row_ptrs = row_ptrs_;
-       lhss=lhss_;
-       rhss=rhss_;
+    explicit Activities(const int n_cons)
+    {
+       minacts.resize(n_cons);
+       maxacts.resize(n_cons);
+       minacts_inf.resize(n_cons);
+       maxacts_inf.resize(n_cons);
+    }
 
-       for(int i=0; i<n_cons; i++)
-       {
-          if (row_ptrs[i+1] - row_ptrs[i] > max_n_vars)
-          {
-             max_n_vars = row_ptrs[i+1] - row_ptrs[i];
-          }
+    Activities(const Activities& acts1)
+    {
+       minacts = acts1.minacts;
+       maxacts = acts1.maxacts;
+       minacts_inf = acts1.minacts_inf;
+       maxacts_inf = acts1.maxacts_inf;
+    }
+
+    void updateActivities(const ConstProbData<datatype>& p, const Bounds<datatype>& bds)
+    {
+       for (int considx = 0; considx < p.n_cons; considx++) {
+          ActivitiesTuple activities = computeActivities(considx, p.col_indices, p.row_ptrs, p.vals, bds.ubs.data(), bds.lbs.data());
+          minacts[considx] = activities.minact;
+          maxacts[considx] = activities.maxact;
+          minacts_inf[considx] = activities.minact_inf;
+          maxacts_inf[considx] = activities.maxact_inf;
        }
-
-       minacts.resize(n_cons_);
-       maxacts.resize(n_cons_);
-       minacts_inf.resize(n_cons_);
-       maxacts_inf.resize(n_cons_);
-       maxactdeltas.resize(n_cons_);
     }
 
-    void compute_activities(Bounds<datatype>& bds)
+    void printActivities()
     {
-       sequentialComputeActivities<datatype>(n_cons, col_indices, row_ptrs, vals, bds.ubs, bds.lbs, minacts.data(), maxacts.data(),
-                                             minacts_inf.data(), maxacts_inf.data(),
-                                             maxactdeltas.data());
-    }
-
-    bool contains_inf_bd(int cons, Bounds<datatype>& bds)
-    {
-       for (int i= row_ptrs[cons]; i<row_ptrs[cons+1]; i++)
-       {
-          int var = col_indices[i];
-          if (bds.is_lb_inf(var) || bds.is_ub_inf(var))
-          {
-             return true;
-          }
-       }
-       return false;
-    }
-
-    bool inf_tight_possible(int cons)
-    {
-       return (minacts_inf[cons] <= 1 && EPSLT(rhss[cons], GDP_INF) || (maxacts_inf[cons] <= 1 && EPSGT(lhss[cons], -GDP_INF)));
-    }
-
-    datatype tightenCons(
-            int cons,
-            Bounds<datatype>& bds
-    ) const
-    {
-       const int str = row_ptrs[cons];
-       const int end = row_ptrs[cons+1];
-
-       for (int validx=str; validx<end; validx++)
-       {
-          const int var = col_indices[validx];
-          if (bds.is_lb_active(var))
-          {
-
-          }
-       }
+       printVector(minacts, "minacts");
+       printVector(maxacts, "maxacts");
     }
 };
 
+template<typename datatype>
+NewWeakestBound<datatype> computeInfiniteReduction(const int cons, const ConstProbData<datatype>& p, const Bounds<datatype>& bds, const Activities<datatype>& acts, ACTIVITY_TYPE type)
+{
+   NewWeakestBound<datatype> wbd;
+
+   const ConsIterator<datatype> it = p.getConsIterator(cons);
+   for (int i = 0; i < it.size; i++)
+   {
+      const datatype coeff = it.vals[i];
+      const int var_idx = it.vars[i];
+      const datatype lb = bds.lbs[var_idx];
+      const datatype ub = bds.ubs[var_idx];
+
+      const bool is_minact = type == MINACTIVITY;
+      const bool is_coeff_neg = EPSLT(coeff, 0.0);
+
+      // check if this variable is the infinity contribution in this constraint
+      bool is_inf_contr;
+      if (is_minact)
+      {
+         is_inf_contr = EPSGT(coeff, 0) ? EPSLE(lb, -GDP_INF) : EPSGE(ub, GDP_INF);
+      }
+      else
+      {
+         is_inf_contr = EPSGT(coeff, 0) ? EPSGE(ub, GDP_INF) : EPSLE(lb, -GDP_INF);
+      }
+
+      if (is_inf_contr)
+      {
+         datatype slack = p.rhss[cons] - acts.minacts[cons];
+         datatype surplus = p.lhss[cons] - acts.maxacts[cons];
+
+         if ((( is_minact && is_coeff_neg ) || ( !is_minact && !is_coeff_neg )) && EPSLE(lb, -GDP_INF))
+         {
+            // lower bound is the infinity contributor
+
+            assert(
+                    (EPSGT(coeff, 0.0) && EPSGT(p.lhss[cons], -GDP_INF) && EPSLT(acts.maxacts[cons], GDP_INF)) ||
+                    (EPSLT(coeff, 0.0) && EPSLT(p.rhss[cons], GDP_INF) && EPSGT(acts.minacts[cons], -GDP_INF))
+                    );
+
+            datatype newlb = EPSGT(coeff, 0) ? surplus / coeff : slack / coeff;
+            newlb = adjustLowerBound(p.vartypes[var_idx] == GDP_CONTINUOUS, newlb);
+            assert(EPSLE(lb, -GDP_INF) && EPSGT(newlb, -GDP_INF));
+            assert(EPSLE(newlb, ub));
+            wbd.newb = newlb;
+            wbd.type = 'l';
+            wbd.bd_idx = var_idx;
+            return wbd;
+         }
+         else  if ((( !is_minact && is_coeff_neg ) || ( is_minact && !is_coeff_neg )) && EPSGE(ub, GDP_INF)) {
+            // upper bound is the infinity contributor
+            assert(
+                    (EPSGT(coeff, 0.0) &&  EPSLT(p.rhss[cons], GDP_INF) && EPSGT(acts.minacts[cons], -GDP_INF) ) ||
+                    (EPSLT(coeff, 0.0) && EPSGT(p.lhss[cons], -GDP_INF) && EPSLT(acts.maxacts[cons], GDP_INF) )
+            );
+
+            datatype newub = EPSGT(coeff, 0) ? slack / coeff : surplus / coeff;
+            newub = adjustUpperBound(p.vartypes[var_idx] == GDP_CONTINUOUS, newub);
+            assert(EPSGE(ub, GDP_INF) && EPSLT(newub, GDP_INF));
+            assert(EPSLE(lb, newub));
+            wbd.newb = newub;
+            wbd.type = 'u';
+            wbd.bd_idx = var_idx;
+            return wbd;
+         }
+      }
+   }
+   // no tightening found.
+   wbd.is_valid = false;
+   return wbd;
+}
 
 
 template<typename datatype>
-class Preprocessor {
-public:
-    vector<int> active_cons;
-    vector<int> processed_lbs;
-    vector<int> processed_ubs;
+void weakestBoundsAlgorithm(const ConstProbData<datatype>& p, Bounds<datatype>& global_wbds, Bounds<datatype> bds, Activities<datatype> acts, NewWeakestBound<datatype> new_wbd)
+{
+   // todo cons marking, after correctness has been proven
+   bds.updateWeakestBound(new_wbd);
+   global_wbds.updateWeakestBound(new_wbd);
+
+   acts.updateActivities(p, bds);
 
 
-    Preprocessor(const int nnz, const int n_cons, const int n_vars, Mat<datatype>& mat_, Bounds<datatype>& bds_){
-       active_cons.reserve(n_cons);
-       processed_lbs.reserve(n_vars);
-       processed_ubs.reserve(n_vars);
-
-       for (int i=0; i<n_cons; i++)
-       {
-          if (mat_.contains_inf_bd(i, bds_))
-          {
-             active_cons.push_back(i);
-          }
-       }
-       cout << "size of active cons: " << active_cons.size() << " out of total: " << n_cons << endl;
-    }
+   // check for cons with exactly one infinity contribution in the minimum or maximum activity
+   for (int cons=0; cons < p.n_cons; cons++)
+   {
 
 
-    void weakest_bounds(Mat<datatype>& mat, Bounds<datatype>& bds)
-    {
-      // only cons that have at least one infinity are activated in the constructor.
-       mat.compute_activities(bds);
-       for (auto cons: active_cons)
-       {
-          if (mat.inf_tight_possible(cons))
-          {
+      if (acts.minacts_inf[cons] == 1 && EPSLT(p.rhss[cons], GDP_INF))
+      {
+         // each of these becomes a new subproblem
+         NewWeakestBound<datatype> wbd = computeInfiniteReduction(cons, p, bds, acts, MINACTIVITY);
+         if (wbd.is_valid)
+         {
+            weakestBoundsAlgorithm(p,global_wbds,bds,acts,wbd);
+         }
 
+      }
 
-
-          }
-//
-       }
-    }
-
-};
+      if (acts.maxacts_inf[cons] == 1 && EPSGT(p.lhss[cons], -GDP_INF))
+      {
+         // each of these becomes a new subproblem
+         NewWeakestBound<datatype> wbd1 = computeInfiniteReduction(cons, p, bds, acts, MAXACTIVITY);
+         if (wbd1.is_valid)
+         {
+            weakestBoundsAlgorithm(p,global_wbds,bds,acts,wbd1);
+         }
+      }
+   }
+}
 
 template<class datatype>
-void executePreprocessorNew
+void computeWeakestBounds
         (
-                const int nnz,
                 const int n_cons,
                 const int n_vars,
                 const int *col_indices,
-                const int *row_indices,
+                const int *row_ptrs,
                 const int *csc_col_ptrs,
                 const int *csc_row_indices,
                 const datatype *vals,
@@ -564,19 +607,28 @@ void executePreprocessorNew
                 datatype *ubs,
                 const GDP_VARTYPE *vartypes
         ) {
-   printf("\nNew preprocessor!\n\n");
+   const ConstProbData<datatype> p(n_cons, n_vars, vals, col_indices, row_ptrs, lhss, rhss, vartypes);
+   Bounds<datatype> bds(n_vars, lbs, ubs);
+   Activities<datatype> acts(n_cons);
 
-   vector<int> processed_lbs(n_vars);
-   vector<int> processed_ubs(n_vars);
-   vector<int> active_cons(n_cons);
+   // need a bound to start the recursive calls
+   NewWeakestBound<datatype> wbd;
+   wbd.is_valid=false;
+   // copy of bounds to keep best (weakest) solutions
+   Bounds<datatype> global_wbds = bds;
+#ifdef VERBOSE
+   auto start = std::chrono::steady_clock::now();
+#endif
+   weakestBoundsAlgorithm<datatype>(p, global_wbds, bds, acts, wbd);
 
-   Bounds<datatype> bds(n_vars,lbs,ubs,vartypes);
-   Mat<datatype> mat(nnz,n_cons,n_vars,vals,col_indices,row_indices, lhss, rhss);
-   Preprocessor<datatype> pp(nnz,n_cons,n_vars,mat, bds);
+   VERBOSE_CALL(printf("\nweakest_bounds procedure done.\n"));
+   VERBOSE_CALL(measureTime("weakest_bounds", start, std::chrono::steady_clock::now()));
 
-   pp.weakest_bounds(mat, bds);
-
-   return;
+   // update the problem:
+   for (int i=0; i<n_vars; i++)
+   {
+      lbs[i] = global_wbds.lbs[i];
+      ubs[i] = global_wbds.ubs[i];
+   }
 }
-
 #endif //GPU_DOMAIN_PROPAGATOR_WEAKEST_BOUNDS_H

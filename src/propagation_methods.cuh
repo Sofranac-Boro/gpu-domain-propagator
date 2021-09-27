@@ -276,4 +276,29 @@ NewBounds<datatype> tightenVariable
    return newbds;
 }
 
+template<class datatype>
+void sequentialComputeActivities
+        (
+                const int n_cons,
+                const int *col_indices,
+                const int *row_indices,
+                const datatype *vals,
+                const datatype *ubs,
+                const datatype *lbs,
+                datatype *minacts,
+                datatype *maxacts,
+                int *minacts_inf,
+                int *maxacts_inf,
+                datatype *maxactdeltas
+        ) {
+   for (int considx = 0; considx < n_cons; considx++) {
+      ActivitiesTuple activities = computeActivities(considx, col_indices, row_indices, vals, ubs, lbs);
+      minacts[considx] = activities.minact;
+      maxacts[considx] = activities.maxact;
+      minacts_inf[considx] = activities.minact_inf;
+      maxacts_inf[considx] = activities.maxact_inf;
+      maxactdeltas[considx] = activities.maxactdelta;
+   }
+}
+
 #endif
