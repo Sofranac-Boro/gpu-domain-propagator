@@ -87,7 +87,7 @@ tightenVarUpperBound(const datatype coeff, const datatype slack, const datatype 
    if (num_inf_contr == 0) {
       newb = EPSGT(coeff, 0) ? slack / coeff : surplus / coeff;
       newb += lb;
-   } else if (num_inf_contr == 1) {
+   } else if (num_inf_contr == 1 && EPSLE(lb, -GDP_INF)) {
       newb = EPSGT(coeff, 0) ? slack / coeff : surplus / coeff;
    } else {
       return newb_tuple;
@@ -117,7 +117,7 @@ tightenVarLowerBound(const datatype coeff, const datatype slack, const datatype 
    if (num_inf_contr == 0) {
       newb = EPSGT(coeff, 0) ? surplus / coeff : slack / coeff;
       newb += ub;
-   } else if (num_inf_contr == 1) {
+   } else if (num_inf_contr == 1 && EPSGE(ub, GDP_INF)) {
       newb = EPSGT(coeff, 0) ? surplus / coeff : slack / coeff;
    } else {
       return newb_tuple;
