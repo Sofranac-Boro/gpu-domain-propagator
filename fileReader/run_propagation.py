@@ -1,4 +1,4 @@
-import argparse, sys, traceback
+import argparse, sys, os, traceback
 from ctypes import c_float, c_double, _SimpleCData
 import random
 
@@ -7,6 +7,8 @@ import numpy as np
 from scipy.sparse import csr_matrix
 from typing import List, Tuple
 
+# add the folder of this script to path in case it is executed from a different directory
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 
 from papiloInterface import PapiloInterface
 from GPUDomPropInterface import propagateGPUReduction, propagateGPUAtomic, propagateSequential, propagateFullOMP, \
@@ -189,40 +191,44 @@ def papilo_comparison_run(lp_file_path: str, papilo_path: str,  datatype: _Simpl
 
 def propagation_measure_run(input_file: str):
     print("\n========== Starting measure executions for the ", input_file, " file. ==========\n")
-    out = OutputGrabber()
+    out = OutputGrabber(sys.stderr)
 
-    with out:
-        reader: FileReaderInterface = get_reader(input_file)
+   # with out:
+    reader: FileReaderInterface = get_reader(input_file)
 
-        n_cons = reader.get_n_cons()
-        n_vars = reader.get_n_vars()
-        nnz = reader.get_nnz()
-        lbs, ubs = reader.get_var_bounds()
-        lhss, rhss = reader.get_lrhss()
-        coeffs, row_ptrs, col_indices = reader.get_cons_matrix()
-        vartypes = reader.get_SCIP_vartypes()
+    n_cons = reader.get_n_cons()
+    n_vars = reader.get_n_vars()
+    nnz = reader.get_nnz()
+    lbs, ubs = reader.get_var_bounds()
+    lhss, rhss = reader.get_lrhss()
+    coeffs, row_ptrs, col_indices = reader.get_cons_matrix()
+    vartypes = reader.get_SCIP_vartypes()
 
-        # print sparsity and input data size
-        print("num vars: ", n_vars)
-        print("num cons: ", n_cons)
-        print("nnz     : ", nnz)
+    lbs = list(filter(lambda x: x < -1e20, lbs))
+    ubs = list(filter(lambda x: x > 1e20, ubs))
+    print("num inf: ", len(lbs) + len(ubs))
+    exit(1)
+    # print sparsity and input data size
+    print("num vars: ", n_vars)
+    print("num cons: ", n_cons)
+    print("nnz     : ", nnz)
 
-        lbs_seq = lbs_gpuatomic = lbs
-        ubs_seq = ubs_gpuatomic = ubs
+    lbs_seq = lbs_gpuatomic = lbs
+    ubs_seq = ubs_gpuatomic = ubs
 
-        (seq_new_lbs, seq_new_ubs) = propagateSequentialWithMeasure(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss,
-                                                                    lbs_seq, ubs_seq, vartypes)
+    (seq_new_lbs, seq_new_ubs) = propagateSequentialWithMeasure(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss,
+                                                                lbs_seq, ubs_seq, vartypes)
 
-        (gpuatomic_new_lbs, gpuatomic_new_ubs) = propagateGPUAtomicWithMeasure(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs,
-                                                                               lhss, rhss, lbs_gpuatomic, ubs_gpuatomic, vartypes)
+    (gpuatomic_new_lbs, gpuatomic_new_ubs) = propagateGPUAtomicWithMeasure(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs,
+                                                                           lhss, rhss, lbs_gpuatomic, ubs_gpuatomic, vartypes)
 
-        seq_new_lbs = normalize_infs(seq_new_lbs)
-        seq_new_ubs = normalize_infs(seq_new_ubs)
-        gpuatomic_new_lbs = normalize_infs(gpuatomic_new_lbs)
-        gpuatomic_new_ubs = normalize_infs(gpuatomic_new_ubs)
+    seq_new_lbs = normalize_infs(seq_new_lbs)
+    seq_new_ubs = normalize_infs(seq_new_ubs)
+    gpuatomic_new_lbs = normalize_infs(gpuatomic_new_lbs)
+    gpuatomic_new_ubs = normalize_infs(gpuatomic_new_ubs)
 
-        equal_seq_gpu_atomic = arrays_equal(seq_new_lbs, gpuatomic_new_lbs) and arrays_equal(seq_new_ubs, gpuatomic_new_ubs)
-        print("cpu_seq to gpu_atomic results match: ", equal_seq_gpu_atomic)
+    equal_seq_gpu_atomic = arrays_equal(seq_new_lbs, gpuatomic_new_lbs) and arrays_equal(seq_new_ubs, gpuatomic_new_ubs)
+    print("cpu_seq to gpu_atomic results match: ", equal_seq_gpu_atomic)
 
     print(out.capturedtext)
     print("========== End measure executions for the ", input_file, " file. ==========\n")

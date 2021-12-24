@@ -85,10 +85,10 @@ tightenVarUpperBound(const datatype coeff, const datatype slack, const datatype 
    datatype newb;
 
    if (num_inf_contr == 0) {
-      newb = EPSGT(coeff, 0) ? slack / coeff : surplus / coeff;
+      newb = coeff > 0 ? slack / coeff : surplus / coeff;
       newb += lb;
-   } else if (num_inf_contr == 1 && EPSLE(lb, -GDP_INF)) {
-      newb = EPSGT(coeff, 0) ? slack / coeff : surplus / coeff;
+   } else if (num_inf_contr == 1 && ISNEGINF(lb)) {
+      newb = coeff > 0 ? slack / coeff : surplus / coeff;
    } else {
       return newb_tuple;
    }
@@ -113,12 +113,11 @@ tightenVarLowerBound(const datatype coeff, const datatype slack, const datatype 
    NewBoundTuple<datatype> newb_tuple = {false, lb}; // output
    datatype newb;
 
-
    if (num_inf_contr == 0) {
-      newb = EPSGT(coeff, 0) ? surplus / coeff : slack / coeff;
+      newb = coeff > 0 ? surplus / coeff : slack / coeff;
       newb += ub;
-   } else if (num_inf_contr == 1 && EPSGE(ub, GDP_INF)) {
-      newb = EPSGT(coeff, 0) ? surplus / coeff : slack / coeff;
+   } else if (num_inf_contr == 1 && ISPOSINF(ub)) {
+      newb = coeff > 0 ? surplus / coeff : slack / coeff;
    } else {
       return newb_tuple;
    }
@@ -201,16 +200,16 @@ ActivitiesTuple computeActivities
       if (EPSGT(maxactdelta, actsTuple.maxactdelta))
          actsTuple.maxactdelta = maxactdelta;
 
-      const int is_minac_inf = EPSGT(coeff, 0) ? EPSLE(lb, -GDP_INF) : EPSGE(ub, GDP_INF);
-      const int is_maxact_inf = EPSGT(coeff, 0) ? EPSGE(ub, GDP_INF) : EPSLE(lb, -GDP_INF);
+      const int is_minac_inf = EPSGT(coeff, 0) ? ISNEGINF(lb) : ISPOSINF(ub);
+      const int is_maxact_inf = EPSGT(coeff, 0) ? ISPOSINF(ub) : ISNEGINF(lb);
       minact_inf += is_minac_inf;
       maxact_inf += is_maxact_inf;
 
       if (is_minac_inf == 0) {
-         minactivity += EPSGT(coeff, 0) ? coeff * lb : coeff * ub;
+         minactivity += coeff > 0 ? coeff * lb : coeff * ub;
       }
       if (is_maxact_inf == 0) {
-         maxactivity += EPSGT(coeff, 0) ? coeff * ub : coeff * lb;
+         maxactivity += coeff > 0 ? coeff * ub : coeff * lb;
       }
    }
 
@@ -244,8 +243,8 @@ NewBounds<datatype> tightenVariable
    newbds.lb = {false, lb};
    newbds.ub = {false, ub};
 
-   if (EPSGT(coeff, 0.0)) {
-      if (EPSGT(coeff * (ub - lb), rhs - minact) && EPSLT(rhs, GDP_INF) && EPSGT(minact, -GDP_INF)) {
+   if (coeff > 0.0) {
+      if (EPSGT(coeff * (ub - lb), rhs - minact) && !ISPOSINF(rhs) && !ISNEGINF(minact)) {
 
          newbds.ub = tightenVarUpperBound(coeff, slack, surplus, num_minact_inf, lb, ub, isVarCont);
          // update data for lower bound tightening
@@ -255,11 +254,11 @@ NewBounds<datatype> tightenVariable
 //         }
       }
 
-      if (EPSGT(coeff * (ub - lb), maxact - lhs) && EPSGT(lhs, -GDP_INF) && EPSLT(maxact, GDP_INF)) {
+      if (EPSGT(coeff * (ub - lb), maxact - lhs) && !ISNEGINF(lhs) && !ISPOSINF(maxact)) {
          newbds.lb = tightenVarLowerBound(coeff, slack, surplus, num_maxact_inf, lb, ub, isVarCont);
       }
    } else {
-      if (EPSGT(coeff * (lb - ub), rhs - minact) && EPSLT(rhs, GDP_INF) && EPSGT(minact, -GDP_INF)) {
+      if (EPSGT(coeff * (lb - ub), rhs - minact) && !ISPOSINF(rhs) && !ISNEGINF(minact)) {
 
          newbds.lb = tightenVarLowerBound(coeff, slack, surplus, num_minact_inf, lb, ub, isVarCont);
          // update data for upper bound tightening
@@ -269,7 +268,7 @@ NewBounds<datatype> tightenVariable
 //         }
       }
 
-      if (EPSGT(coeff * (lb - ub), maxact - lhs) && EPSGT(lhs, -GDP_INF) && EPSLT(maxact, GDP_INF)) {
+      if (EPSGT(coeff * (lb - ub), maxact - lhs) && !ISNEGINF(lhs) && !ISPOSINF(maxact)) {
          newbds.ub = tightenVarUpperBound(coeff, slack, surplus, num_maxact_inf, lb, ub, isVarCont);
       }
    }

@@ -6,6 +6,7 @@ from typing import Tuple, List, Union, Generator, Dict
 import shutil
 import tempfile
 import os
+from numpy import isclose
 
 if using_python_mip:
     from mip import Model, LinExpr, Var
@@ -64,6 +65,7 @@ class PythonMIPReader(FileReaderInterface):
 
     def __del__(self):
         shutil.rmtree(self.tmp_reader_dir)
+
 
     def write_model_with_new_bounds(self, lbs: List[float], ubs: [List[float]]) -> str:
         assert(len(lbs) == len(ubs) == len(self.m.vars))
@@ -130,6 +132,13 @@ class PythonMIPReader(FileReaderInterface):
     def get_SCIP_vartypes(self) -> List[int]:
         conversion_dict = {'B': 0, 'I': 1, 'C': 3}
         python_mip_vartypes = map(lambda var: var.var_type, self.vars)
+
+        # if a variable is binary, assert that the bounds are [0,1]
+        for var in self.vars:
+            if var.var_type == 'B':
+                assert(isclose(var.ub, 1.0))
+                assert(isclose(var.lb, 0.0))
+
         return list(map(
             conversion_dict.get,
             python_mip_vartypes

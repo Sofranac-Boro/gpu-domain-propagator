@@ -75,6 +75,8 @@ typedef enum GDP_algorithm GDP_ALGORITHM;
 #define MIN(x, y)      ((x) <= (y) ? (x) : (y))
 #define EPSFLOOR(x)   (floor((x)+(GDP_EPS)))
 #define EPSCEIL(x)    (ceil((x)-(GDP_EPS)))
+#define ISPOSINF(x)    ( EPSGE(x, GDP_INF) )
+#define ISNEGINF(x)    ( EPSLE(x, -GDP_INF) )
 
 inline static void *safe_malloc(size_t n, unsigned long line) {
    void *p = malloc(n);
@@ -96,6 +98,12 @@ inline static void *safe_malloc(size_t n, unsigned long line) {
 #define VERBOSE_CALL_2(ans) {(ans);}
 #else
 #define VERBOSE_CALL_2(ans) do { } while(0)
+#endif
+
+#if VERBOSE >= 3
+#define VERBOSE_CALL_3(ans) {(ans);}
+#else
+#define VERBOSE_CALL_3(ans) do { } while(0)
 #endif
 
 #ifdef DEBUG

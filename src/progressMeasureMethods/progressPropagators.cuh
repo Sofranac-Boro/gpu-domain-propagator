@@ -53,7 +53,7 @@ GDP_Retcode sequentialPropagateWithMeasure
 
    initMeasureData<datatype>
            (n_cons, n_vars, nnz, lbs, ubs, col_indices, row_indices, vals,
-            lhss, rhss, vartypes, csc_row_indices, csc_col_ptrs, lbs_weakest, ubs_weakest, lbs_limit, ubs_limit
+            lhss, rhss, vartypes, csc_row_indices, csc_col_ptrs, csc_vals, lbs_weakest, ubs_weakest, lbs_limit, ubs_limit
            );
 
    const ProgressMeasure<datatype> P_max = calcMaxMeasureValues(n_vars, lbs_orig, ubs_orig, lbs_weakest, ubs_weakest, lbs_limit, ubs_limit); // maximum attainable measure
@@ -181,7 +181,7 @@ GDP_Retcode propagateConstraintsGPUAtomicWithMeasure(
 
    initMeasureData<datatype>
            (n_cons, n_vars, nnz, lbs, ubs, csr_col_indices, csr_row_ptrs, csr_vals,
-            lhss, rhss, vartypes, csc_row_indices, csc_col_ptrs, lbs_weakest, ubs_weakest, lbs_limit, ubs_limit
+            lhss, rhss, vartypes, csc_row_indices, csc_col_ptrs, csc_vals, lbs_weakest, ubs_weakest, lbs_limit, ubs_limit
            );
 
    // run atomic propagator with measure

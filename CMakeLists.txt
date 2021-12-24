@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 project(gpu-domain-propagator LANGUAGES CUDA CXX)
 
+#python3
+find_package(PythonLibs REQUIRED)
+include_directories(${PYTHON_INCLUDE_DIRS})
+
+
 # CUDA
 find_package(CUDA 10.0 REQUIRED)
 include_directories(${CUDA_INCLUDE_DIRS})
@@ -84,6 +89,11 @@ set_property(TARGET testexec PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 set_property(TARGET testexec PROPERTY CUDA_ARCHITECTURES ${ARCH})
 set_target_properties(testexec PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(testexec ${CUDA_cusparse_LIBRARY} GpuProp)
+
+add_executable(gdp src/main.cpp)
+target_link_libraries(gdp GpuProp ${PYTHON_LIBRARIES})
+
+
 
 
 

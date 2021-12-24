@@ -32,6 +32,7 @@ void initMeasureData
                 const GDP_VARTYPE *vartypes,
                 const int *csc_row_indices,
                 const int *csc_col_ptrs,
+                const datatype* csc_vals,
                 datatype *lbs_weakest,
                 datatype *ubs_weakest,
                 datatype *lbs_limit,
@@ -41,8 +42,7 @@ void initMeasureData
    memcpy(ubs_weakest, ubs, n_vars * sizeof(datatype));
 
    printf("\n====   Running the weakest bounds procedure  ====");
-   computeWeakestBounds<datatype>(n_cons, n_vars, csr_col_indices, csr_row_ptrs, csc_col_ptrs, csc_row_indices,
-                                  csr_vals,
+   computeWeakestBounds<datatype>(n_cons, n_vars, csr_vals, csr_col_indices, csr_row_ptrs, csc_vals, csc_col_ptrs, csc_row_indices,
                                   lhss, rhss, lbs_weakest, ubs_weakest, vartypes);
    DEBUG_CALL(checkWeakestBoundsResult<datatype>(n_vars, lbs, ubs, lbs_weakest, ubs_weakest) );
    printf("====   end weakest bounds procedure  ====");
@@ -177,6 +177,11 @@ int measureAndPrintProgress(
    ProgressMeasure<datatype> P = {.P_fin = 0.0, .P_inf = 0};
 
    for (int varidx = 0; varidx < n_vars; varidx++) {
+      if (EPSLT(ubs_limit[varidx], GDP_INF) && EPSGE(ubs_weakest[varidx], GDP_INF))
+      {
+         printf("varidx: %d\n", varidx);
+         exit(1);
+      }
       const ProgressMeasure<datatype> P_tmp = calcProgressMeasureVar<datatype>(lbs[varidx], ubs[varidx], lbs_weakest[varidx], ubs_weakest[varidx],
                                     lbs_limit[varidx], ubs_limit[varidx], lbs_prev[varidx], ubs_prev[varidx]);
       P.P_fin += P_tmp.P_fin;

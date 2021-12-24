@@ -11,14 +11,15 @@
 
 TEST_CASE("Weakest bounds example 1") {
    WeakestBoundsExample1<double> p;
+//   AchterbergExample<double> p;
+
    p.fill_csc_matrix();
 
-   computeWeakestBounds<double>(p.n_cons, p.n_vars, p.csr_col_indices, p.csr_row_ptrs, p.csc_col_ptrs, p.csc_row_indices,
-                                  p.csr_vals,
+   computeWeakestBounds<double>(p.n_cons, p.n_vars, p.csr_vals, p.csr_col_indices, p.csr_row_ptrs, p.csc_vals, p.csc_col_ptrs, p.csc_row_indices,
                                   p.lhss, p.rhss, p.lbs, p.ubs, p.vartypes);
 
 
-   p.compareAnalyticalSolution();
+  p.compareAnalyticalSolution();
 
 }
 
