@@ -37,6 +37,8 @@ class RunData():
         self.cpu_data = {0: {"score": 0.0, "k": 0, "n":0, "timestamp": 0}}
         self.gpu_data = {0: {"score": 0.0, "k": 0, "n":0, "timestamp": 0}}
         self.cpu_num_rounds = 0
+        self.cpu_end_time = 0
+        self.weakest_bound_end_time = 0
         self.gpu_num_rounds = 0
         self.max_k = 0
 
@@ -254,6 +256,15 @@ class RunData():
 def get_run_object(output: str) -> RunData:
     runData = RunData()
     runData.prob_name = get_regex_result(prob_name_pattern, output, "prob_file")
+
+    cpu_wihtout_measure = get_regex_result(without_measure_output_pattern("cpu_seq"), output)
+    cpu_runtime = get_regex_result("(?s)cpu_seq propagation done. Num rounds:(.*?)====   end cpu_seq without measure  ====", cpu_wihtout_measure)
+    runData.cpu_end_time = int(get_regex_result("cpu_seq execution time : (?P<t>\d+) nanoseconds", cpu_runtime, 't'))
+
+    cpu_output = get_regex_result("(?s)=== cpu_seq execution with measure of progress ===(.*)=== gpu_atomic execution with measure of progress ===", output)
+    preprocessor_output = get_regex_result("(?s)====   Running the preprocessor  ====(.*?)====   end preprocessor  ====", cpu_output)
+    runData.weakest_bound_end_time = int(get_regex_result("cpu_seq_dis execution time : (?P<t>\d+) nanoseconds", preprocessor_output, "t"))
+
     for alg in ["cpu_seq", "gpu_atomic"]:
         with_measure_output = get_regex_result(with_measure_output_pattern(alg), output)
         without_measure_output = get_regex_result(without_measure_output_pattern(alg), output)
@@ -277,6 +288,10 @@ def get_run_object(output: str) -> RunData:
             runData.add_round(alg, prop_round, score, k, n, timestamp)
     return runData
 
+def wb_to_dp_runtime(instances_output):
+    objects = list(map(lambda x: get_run_object(x), instances_output))
+    speedups = list(map(lambda x: float(x.cpu_end_time) / x.weakest_bound_end_time, objects))
+    print("geo mean speedup WB over DP: ", geo_mean_overflow(speedups), "Num instances in the test set: ", len(speedups))
 
 def parse_results_progress_run(results_file):
     def no_max_rounds(instance_output):
@@ -332,6 +347,8 @@ def parse_results_progress_run(results_file):
     rem = ["momentum1", "neos-4335793-snake", 'neos-5273874-yomtsa', 'ns2034125']
     instances_output = list(filter(lambda output: get_regex_result(prob_name_pattern, output, "prob_file").split("/")[-1] not in rem, instances_output))
     print("num instances after manual removal (numerical difficulties): ", len(instances_output))
+
+    wb_to_dp_runtime(instances_output)
 
     # FINITE PROGRESS
     finite_run_data_objects = list(map(lambda x: get_run_object(x), instances_output))

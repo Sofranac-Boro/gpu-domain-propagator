@@ -1,0 +1,3 @@
+[submodule "fileReader/logs-parser"]
+	path = fileReader/logs-parser
+	url = git@github.com:Sofranac-Boro/logs-parser.git

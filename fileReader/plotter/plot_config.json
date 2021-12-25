@@ -1,16 +1,8 @@
 {
   "base_case": "17_02_double_V100.log",
   "log_files": {
-    "megakernel_correctness_tests_21_07_2021_planck.log": {
+    "progress_example.log": {
       "gpu_atomic": "RTXSuper_megakernel"
-    },
-    "17_02_double_planck.log": {
-      "gpu_atomic": "RTXSuper_cpu_loop"
-    },
-    "17_02_double_gpu_loop_planck.log": {
-      "gpu_atomic": "RTXSuper_gpu_loop"
-    },
-    "17_02_double_V100.log": {
     }
   }
 }

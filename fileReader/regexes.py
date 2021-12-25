@@ -19,6 +19,7 @@ prob_name_pattern = r"Reading of  (?P<prob_file>.*)  model done!"
 max_measure_pattern = "Maximum measure: score=(?P<score>\d+.\d+), k=(?P<k>\d+)"
 def with_measure_output_pattern(alg): return "(?s)====   Running the {} with measure  ====(.*?)====   end {} with measure  ====".format(alg, alg)
 def without_measure_output_pattern(alg): return "(?s)====   Running the {} without measure  ====(.*?)====   end {} without measure  ====".format(alg, alg)
+def preprocessor_output_pattern(): return
 def num_rounds_pattern(alg): return "{} propagation done\. Num rounds: (?P<nrounds>\d+)".format(alg)
 def round_measures_pattern(prop_round): return "round {} total score: (?P<score>\d+.\d+), k=(?P<k>\d+), n=(?P<n>\d+)".format(prop_round)
 def round_timestamp_pattern(prop_round, alg): return "Propagation round: {}, {} execution time : (?P<timestamp>\d+) nanoseconds".format(prop_round, alg)
