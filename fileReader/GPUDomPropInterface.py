@@ -6,8 +6,19 @@ from enum import Enum
 from readerInterface import FileReaderInterface
 from papiloInterface import PapiloInterface
 
+from julia.api import LibJulia
+api = LibJulia.load()
+api.sysimage = "/home/atalasik/sys.so"
+api.init_julia()
+
+from julia import Main
+from julia import MultiFloats
+
 so_file = "../build/libGpuProp.so"
 
+function_MultiFloats = Main.include("./sequential_propagator_julia_MultiFloats/TestCase.jl")
+Main.eval('using MultiFloats')
+# function_BigFloat = Main.include("./sequential_propagator_julia_BigFloat/TestCase.jl")
 
 def check_input(
         n_vars: int,
@@ -204,10 +215,10 @@ def propagateSequential(
         lbs: List[float],
         ubs: List[float],
         vartypes: List[int],
-        datatype = c_double
+        datatype
 ) -> Tuple[List[float]]:
     C = CDLL(so_file)
-
+    # print("210")
     check_input(n_vars, n_cons, nnz, csr_col_indices, csr_row_ptrs, csr_vals, lhss, rhss,
                 lbs, ubs, vartypes)
 
@@ -216,34 +227,51 @@ def propagateSequential(
     c_nnz = c_int(nnz)
     c_csr_col_indices = (c_int * nnz)(*csr_col_indices)
     c_csr_row_ptrs = (c_int * (n_cons + 1))(*csr_row_ptrs)
-    c_csr_vals = (datatype * nnz)(*csr_vals)
-    c_lhss = (datatype * n_cons)(*lhss)
-    c_rhss = (datatype * n_cons)(*rhss)
-    c_lbs = (datatype * n_vars)(*lbs)
-    c_ubs = (datatype * n_vars)(*ubs)
+    if datatype == c_double or datatype == c_float:
+        c_csr_vals = (datatype * nnz)(*csr_vals)
+        c_lhss = (datatype * n_cons)(*lhss)
+        c_rhss = (datatype * n_cons)(*rhss)
+        c_lbs = (datatype * n_vars)(*lbs)
+        c_ubs = (datatype * n_vars)(*ubs)
+    # if datatype == MultiFloats:
+    #     c_csr_vals = Main.eval('Array{MultiFloat{Float64,8},1}(Ptr{csr_vals})')
+    #     c_lhss = Main.eval('Array{MultiFloat{Float64,8},1}(*lhss)')
+    #     c_rhss = Main.eval('Array{MultiFloat{Float64,8},1}(*rhss)')
+    #     c_lbs = Main.eval('Array{MultiFloat{Float64,8},1}(*lbs)')
+    #     c_ubs = Main.eval('Array{MultiFloat{Float64,8},1}(*ubs)')
     c_vartypes = (c_int * n_vars)(*vartypes)
-
+    # print("225")
     if datatype == c_double:
         fun = C.propagateConstraintsSequentialDouble
+        print("entered here")
+        # print(vars(fun))
     elif datatype == c_float:
         fun = C.propagateConstraintsSequentialFloat
+    # elif datatype == Main.BigFloat:
+    #     c_lbs,c_ubs = function_BigFloat(n_cons,n_vars,nnz, csr_col_indices, csr_row_ptrs, csr_vals, lhss, rhss, lbs, ubs, vartypes)
+    #     print("entered here")
+    elif datatype == MultiFloats:
+        c_lbs,c_ubs = function_MultiFloats(n_cons,n_vars,nnz, csr_col_indices, csr_row_ptrs, csr_vals, lhss, rhss, lbs, ubs, vartypes)
     else:
         raise Exception("unsupported datatype")
-
-    fun(
-        c_n_cons,
-        c_n_vars,
-        c_nnz,
-        c_csr_col_indices,
-        c_csr_row_ptrs,
-        c_csr_vals,
-        c_lhss,
-        c_rhss,
-        c_lbs,
-        c_ubs,
-        c_vartypes
-    )
-
+    if datatype != MultiFloats:
+        fun(
+            c_n_cons,
+            c_n_vars,
+            c_nnz,
+            c_csr_col_indices,
+            c_csr_row_ptrs,
+            c_csr_vals,
+            c_lhss,
+            c_rhss,
+            c_lbs,
+            c_ubs,
+            c_vartypes
+        )
+    # print("lbs :") 
+    # print(list(c_lbs)) 
+    # print("ubs :")
+    # print(list(c_ubs))
     return list(c_lbs), list(c_ubs)
 
 

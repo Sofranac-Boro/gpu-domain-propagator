@@ -264,6 +264,7 @@ GDP_Retcode sequentialPropagate
                              lbs[FOLLOW_VAR],
                              ubs[FOLLOW_VAR]));
 
+      //printf(change_found);
       change_found = sequentialPropagationRound<datatype>
               (
                       n_cons, n_vars, col_indices, row_indices, csc_col_ptrs, csc_row_indices, vals, lhss, rhss,
