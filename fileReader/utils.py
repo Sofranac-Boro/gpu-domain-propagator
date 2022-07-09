@@ -181,5 +181,9 @@ def num_instances_with_numerics_tag_in_miplib(instances: List[str]) -> None:
     print("Out of ", len(instances), " instances, ", yes, " are tagged with 'numerics' in MIPLIB2017, and ", no, " are not")
 
 
+def instances_with_numerics_tab() -> List[str]:
+    df = pd.read_csv("numerics.csv", usecols=["Instance  Ins."])
+    return df["Instance  Ins."].tolist()
+
 
 

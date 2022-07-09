@@ -7,7 +7,7 @@ from scipy import interpolate
 from typing import Dict, List
 
 from utils import EPSGE, EPSLE, check_monotonic_increase, get_slope, EPSEQ, EPSGT, EPSLT, \
-    num_instances_with_numerics_tag_in_miplib
+    num_instances_with_numerics_tag_in_miplib, instances_with_numerics_tab
 from regexes import *
 from plotter.plot_results import geo_mean_overflow
 
@@ -332,6 +332,12 @@ def parse_results_progress_run(results_file):
     #non_matching = list(filter(lambda output: get_regex_result(seq_to_ato_pattern, output, 'match') == "False", instances_output))
     #non_matching = list(map(lambda output: get_regex_result(prob_name_pattern, output, "prob_file").split("/")[-1], non_matching))
     #num_instances_with_numerics_tag_in_miplib(non_matching)
+    remove_numerics_tag = False
+    if remove_numerics_tag:
+        numerics_instances = instances_with_numerics_tab()
+        print("number of instances in MIPLIB with numerics tab: ", len(numerics_instances))
+        instances_output = list(filter(lambda output: get_regex_result(prob_name_pattern, output, "prob_file").split("/")[-1] not in numerics_instances, instances_output))
+        print("num instances after removing those with numerics tag: ", len(instances_output))
 
     # remove instances with non-mathcing results
     instances_output = list(filter(lambda output: get_regex_result(seq_to_ato_pattern, output, 'match') == "True", instances_output))
