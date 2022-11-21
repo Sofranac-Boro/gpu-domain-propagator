@@ -8,7 +8,7 @@ eps_eq,eps_ceil,gdp_vartype
 # using MultiFloats
 
 const gdp_inf = 1e20
-const gdp_eps = BigFloat(1e-77) #e-15
+const gdp_eps = BigFloat(1e-6) #e-15
 const max_num_rounds = 1000
 
 # real_abs(x) = abs(x)

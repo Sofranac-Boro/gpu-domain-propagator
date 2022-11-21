@@ -203,7 +203,7 @@ public:
 
     void initProblem() {
        int m = 11; // number of constraints
-       int n = 12; // number of variables
+       int n = 12; // number of variables 
        int nnz = 52; // number of non zeros in the A matrix
 
        datatype tmp_vals[] = {2, 3, 2, 9, -1, -2, -3, 5, -3, -3, 9, -2, 9, -1, 2, -4, -7, 2, 5, -2, -1, 5, 4, -5, 1, -1,

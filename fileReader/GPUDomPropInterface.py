@@ -8,15 +8,17 @@ from papiloInterface import PapiloInterface
 
 from julia.api import LibJulia
 api = LibJulia.load()
-api.sysimage = "/home/atalasik/sys.so"
+api.sysimage = "/home/art/sys.so"
 api.init_julia()
 
 from julia import Main
 from julia import MultiFloats
 
-so_file = "../build/libGpuProp.so"
+so_file = "/home/art/ZIB/gpu-domain-propagator/build/libGpuProp.so"
 
-function_MultiFloats = Main.include("./sequential_propagator_julia_MultiFloats/TestCase.jl")
+Main.include("/home/art/ZIB/gpu-domain-propagator/fileReader/sequential_propagator_julia_MultiFloats/TestCase.jl")
+Main.eval("using ..TestCase")
+function_MultiFloats = Main.eval("TestCase.convert_to_higher_floating_point_accuracy_datatype")
 Main.eval('using MultiFloats')
 # function_BigFloat = Main.include("./sequential_propagator_julia_BigFloat/TestCase.jl")
 
@@ -243,7 +245,7 @@ def propagateSequential(
     # print("225")
     if datatype == c_double:
         fun = C.propagateConstraintsSequentialDouble
-        print("entered here")
+        # print("entered here")
         # print(vars(fun))
     elif datatype == c_float:
         fun = C.propagateConstraintsSequentialFloat
@@ -251,7 +253,7 @@ def propagateSequential(
     #     c_lbs,c_ubs = function_BigFloat(n_cons,n_vars,nnz, csr_col_indices, csr_row_ptrs, csr_vals, lhss, rhss, lbs, ubs, vartypes)
     #     print("entered here")
     elif datatype == MultiFloats:
-        c_lbs,c_ubs = function_MultiFloats(n_cons,n_vars,nnz, csr_col_indices, csr_row_ptrs, csr_vals, lhss, rhss, lbs, ubs, vartypes)
+        c_lbs,c_ubs = function_MultiFloats(n_vars,n_cons,nnz, csr_col_indices, csr_row_ptrs, csr_vals, lhss, rhss, lbs, ubs, vartypes)
     else:
         raise Exception("unsupported datatype")
     if datatype != MultiFloats:

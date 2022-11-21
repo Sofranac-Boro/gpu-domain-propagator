@@ -4,6 +4,8 @@
 #include "propagators/OMP_propagator.h"
 #include "progressMeasureMethods/progressPropagators.cuh"
 
+// using namespace Eigen;
+
 #define CALL_AND_HANDLE(expr)                     \
     try {                                         \
         return (expr);                            \
@@ -152,7 +154,13 @@ GDP_RETCODE propagateConstraintsSequentialDouble
                 double *lbs,
                 double *ubs,
                 const int *vartypes
-        ) {
+        ) {     
+                // printf("\nprinting csr values from interface.cu\n");
+                // for (int i =0;i<nnz;i++)
+                // {
+                //         printf("%f, ",*(vals+i));
+                // }
+                // printf("entered into interface.cu");
    CALL_AND_HANDLE(sequentialPropagate<double>
                            (
                                    n_cons,

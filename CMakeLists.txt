@@ -9,7 +9,7 @@ include_directories(${PYTHON_INCLUDE_DIRS})
 # CUDA
 find_package(CUDA 10.0 REQUIRED)
 include_directories(${CUDA_INCLUDE_DIRS})
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 #OpenMP
 find_package(OpenMP)
 if (OPENMP_FOUND)
@@ -64,34 +64,44 @@ if (FOLLOW_CONS)
     add_definitions(-DFOLLOW_CONS=${FOLLOW_CONS})
 endif()
 
+# Eigen3
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+
 add_library(GpuProp SHARED
         src/misc.cpp
         src/kernels/util_kernels.cu
         src/propagation_methods.cu
-        src/interface.cu)
+        src/interface.cu
+        src/kernels/csr_data.cpp)
 
 # build with -std=c++11. PUBLIC will make anything linking to this to also build with c++11
 # position independent code, -fPIC
 # -dc - separable compilation
-target_compile_features(GpuProp PUBLIC cxx_std_11)
+target_compile_features(GpuProp PUBLIC cxx_std_14)
 set_target_properties(GpuProp PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(GpuProp PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 set_property(TARGET GpuProp PROPERTY CUDA_ARCHITECTURES ${ARCH})
 target_link_libraries(GpuProp ${CUDA_cusparse_LIBRARY})
+# Eigen3
+target_link_libraries(GpuProp Eigen3::Eigen)
 
 add_executable(testexec test/test_main.cu
         src/misc.cpp
         src/kernels/util_kernels.cu
         src/propagation_methods.cu
         test/test_infra.cu
-        src/interface.cu)
+        src/interface.cu
+        src/kernels/csr_data.cpp)
+
 set_property(TARGET testexec PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 set_property(TARGET testexec PROPERTY CUDA_ARCHITECTURES ${ARCH})
 set_target_properties(testexec PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_link_libraries(testexec ${CUDA_cusparse_LIBRARY} GpuProp)
+target_link_libraries(testexec Eigen3::Eigen GpuProp)
 
-add_executable(gdp src/main.cpp)
+add_executable(gdp src/main.cpp src/kernels/csr_data.cpp)
 target_link_libraries(gdp GpuProp ${PYTHON_LIBRARIES})
+target_link_libraries(gdp GpuProp Eigen3::Eigen)
 
 
 

@@ -19,7 +19,7 @@ from utils import plot_progress_save_pdf, compare_arrays_diff_idx
 
 from julia.api import LibJulia
 api = LibJulia.load()
-api.sysimage = "/home/atalasik/sys.so"
+api.sysimage = "/home/art/sys.so"
 api.init_julia()
 
 from julia import Main
