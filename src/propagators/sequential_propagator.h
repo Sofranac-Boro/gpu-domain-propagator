@@ -50,8 +50,8 @@ bool sequentialPropagationRound
    std::fill(consmarked_nextround, consmarked_nextround + n_cons, 0);
    // printf("\nentered sequential propagation round\n");
 
-   // for (int considx = 0; considx < n_cons; considx++) {
-   for (int considx = 0; considx < 1; considx++) {
+   for (int considx = 0; considx < n_cons; considx++) {
+   // for (int considx = 0; considx < 1; considx++) {
       // printf("\nentered into the first for loop\n");
       if (consmarked[considx] == 1) {
          if (recomputeActs) {
