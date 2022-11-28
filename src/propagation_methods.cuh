@@ -54,6 +54,7 @@ datatype adjustLowerBound(const bool is_var_cont, const datatype lb) {
 template<class datatype>
 bool isLbBetter(const datatype lb, const datatype ub, const datatype newlb) {
    assert(EPSLE(lb, ub));
+   printf("is lb better %s\n", EPSGT(newlb, lb) ? "true" : "false");
    return EPSGT(newlb, lb);
 }
 
@@ -128,6 +129,8 @@ tightenVarLowerBound(const datatype coeff, const datatype slack, const datatype 
       newb_tuple.is_tightened = true;
       newb_tuple.newb = newb;
       assert(EPSLE(newb_tuple.newb, ub));
+      printf("\nold value %f\n", lb);
+      printf("\nnew value %f\n", newb);
       return newb_tuple;
    }
    return newb_tuple;
@@ -187,23 +190,33 @@ ActivitiesTuple computeActivities
 
    for (int var = 0; var < n_vars_in_cons; var++) {
       val_idx = row_indices[considx] + var;
+      printf("\nval_idx %d \n",val_idx);
       var_idx = col_indices[val_idx];
-
+      printf("var_idx %d \n",var_idx);
       coeff = vals[val_idx];
+      printf("coeff %f \n",coeff);
       lb = lbs[var_idx];
       ub = ubs[var_idx];
+      printf("lb %f \n",lb);
+      printf("ub %f \n",ub);
 
       FOLLOW_CONS_CALL(considx, printf("%9.2ex_%d [%9.2e, %9.2e] ", coeff, var_idx, lb, ub));
 
       maxactdelta = fabs(coeff) * (ub - lb);
-
+      printf("maxactdelta %f \n",maxactdelta);
+      printf("actsTuple.maxactdelta %f \n",actsTuple.maxactdelta);
       if (EPSGT(maxactdelta, actsTuple.maxactdelta))
          actsTuple.maxactdelta = maxactdelta;
 
       const int is_minac_inf = EPSGT(coeff, 0) ? ISNEGINF(lb) : ISPOSINF(ub);
       const int is_maxact_inf = EPSGT(coeff, 0) ? ISPOSINF(ub) : ISNEGINF(lb);
+      printf("is_minac_inf %s \n",is_minac_inf ? "true" : "false");
+      printf("is_maxact_inf %s \n",is_maxact_inf ? "true" : "false");
       minact_inf += is_minac_inf;
       maxact_inf += is_maxact_inf;
+
+      printf("minact_inf %d \n",minact_inf);
+      printf("maxact_inf %d \n",maxact_inf);
 
       if (is_minac_inf == 0) {
          minactivity += coeff > 0 ? coeff * lb : coeff * ub;
@@ -211,12 +224,20 @@ ActivitiesTuple computeActivities
       if (is_maxact_inf == 0) {
          maxactivity += coeff > 0 ? coeff * ub : coeff * lb;
       }
+      printf("minactivity %f \n",minactivity);
+      printf("maxactivity %f \n",maxactivity);
    }
 
    actsTuple.minact = minactivity;
    actsTuple.maxact = maxactivity;
    actsTuple.minact_inf = minact_inf;
    actsTuple.maxact_inf = maxact_inf;
+
+   printf("actsTuple.minact %f \n",actsTuple.minact);
+   printf("actsTuple.maxact %f \n",actsTuple.maxact);
+   printf("actsTuple.minact_inf %d \n",actsTuple.minact_inf);
+   printf("actsTuple.maxact_inf %d \n",actsTuple.maxact_inf);
+
    return actsTuple;
 }
 
@@ -235,6 +256,7 @@ NewBounds<datatype> tightenVariable
                 const datatype ub
         ) {
 
+   // printf("Entered method")        
    datatype slack = rhs - minact;
    datatype surplus = lhs - maxact;
 
@@ -255,11 +277,13 @@ NewBounds<datatype> tightenVariable
       }
 
       if (EPSGT(coeff * (ub - lb), maxact - lhs) && !ISNEGINF(lhs) && !ISPOSINF(maxact)) {
+         printf("\nentered if\n");
+         // break;
          newbds.lb = tightenVarLowerBound(coeff, slack, surplus, num_maxact_inf, lb, ub, isVarCont);
       }
    } else {
       if (EPSGT(coeff * (lb - ub), rhs - minact) && !ISPOSINF(rhs) && !ISNEGINF(minact)) {
-
+         printf("\nentered else\n");
          newbds.lb = tightenVarLowerBound(coeff, slack, surplus, num_minact_inf, lb, ub, isVarCont);
          // update data for upper bound tightening
 //         if (newbds.lb.is_tightened) {

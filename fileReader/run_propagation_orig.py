@@ -17,16 +17,6 @@ from readerInterface import FileReaderInterface, get_reader
 from regexes import OutputGrabber
 from utils import plot_progress_save_pdf, compare_arrays_diff_idx
 
-from julia.api import LibJulia
-api = LibJulia.load()
-api.sysimage = "/home/art/sys.so"
-api.init_julia()
-
-from julia import Main
-from julia import MultiFloats
-Main.eval('using MultiFloats')
-# x = Main.include("./sequential_propagator_julia_MultiFloats/TestCase.jl")
-
 
 def vis_sparsity_pattern(m: int, n: int, col_indices: List[float], row_ptrs: List[float], coeffs: List[float]) -> None:
     A = csr_matrix((coeffs, col_indices, row_ptrs), shape=(m, n)).toarray()
@@ -99,15 +89,8 @@ def exec_run(
     lbs_dis = lbs_seq = lbs_gpuatomic = lbs_gpu = lbs_omp = lbs
     ubs_dis = ubs_seq = ubs_gpuatomic = ubs_gpu = ubs_omp = ubs
 
-    # if excecute_julia_code == True:
-    #     (seq_new_lbs,seq_new_ubs) = x(n_cons,n_vars,nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_seq, ubs_seq, vartypes)
-    # else:
-    
-    (seq_new_lbs, seq_new_ubs) = propagateSequential(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_seq, ubs_seq, vartypes, datatype)
 
-    # seq_new_lbs = Main.eval('Array{MultiFloat{Float64,8},1}(zeros(size(lbs_seq)))')
-    # seq_new_ubs = Main.eval('Array{MultiFloat{Float64,8},1}(zeros(size(ubs_seq)))')
-    # (seq_new_lbs, seq_new_ubs) = propagateSequential(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_seq, ubs_seq, vartypes, datatype)
+    (seq_new_lbs, seq_new_ubs) = propagateSequential(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_seq, ubs_seq, vartypes, datatype=c_double)
 
     #(omp_new_lbs, omp_new_ubs) = propagateFullOMP(n_vars, n_cons, nnz, col_indices, row_ptrs, coeffs, lhss, rhss, lbs_omp, ubs_omp, vartypes, datatype=c_double)
 
@@ -126,9 +109,9 @@ def exec_run(
 #  compare_arrays_diff_idx(seq_new_ubs, omp_new_ubs, "ubs")
 
 
-def prop_compare_seq_gpu(lp_file_path: str, datatype, seed: int = 0, synctype: int = 0) -> None:
+def prop_compare_seq_gpu(lp_file_path: str, datatype: _SimpleCData = c_double, seed: int = 0, synctype: int = 0) -> None:
     reader: FileReaderInterface = get_reader(lp_file_path)
-    print(lp_file_path)
+
     n_cons = reader.get_n_cons()
     n_vars = reader.get_n_vars()
     nnz = reader.get_nnz()
@@ -166,7 +149,7 @@ def papilo_comparison_run(lp_file_path: str, papilo_path: str,  datatype: _Simpl
     print("num vars: ", n_vars)
     print("num cons: ", n_cons)
     print("nnz     : ", nnz)
-    print("152")
+
     lbs_dis = lbs_seq = lbs_gpuatomic = lbs_gpu = lbs_omp = lbs
     ubs_dis = ubs_seq = ubs_gpuatomic = ubs_gpu = ubs_omp = ubs
 
@@ -259,9 +242,14 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--testtype", type=str, required=False, default="gdp", choices=['gdp', 'measure', 'papilo'])
     parser.add_argument("-s", "--seed", type=int, required=False)
     parser.add_argument("-c", "--synctype", type=int, required=False, choices=[0, 1, 2])
-    # parser.add_argument("-j", "--JuliaCode", type = bool, required = True)
     args = parser.parse_args()
-    # print(vars(args))
+
+    if args.datatype == "" or args.datatype == "double":
+        datatype = c_double
+    elif args.datatype == "float":
+        datatype = c_float
+    else:
+        raise Exception("Unsupported datatype: ", args.datatype)
 
     if args.seed == "" or args.seed is None:
         seed = 0
@@ -273,23 +261,7 @@ if __name__ == "__main__":
     else:
         synctype = args.synctype
 
-    if args.datatype == "" or args.datatype == "double":
-        datatype = c_double
-    elif args.datatype == "float":
-        datatype = c_float
-    # elif args.datatype == "BigFloat":
-    #     datatype = Main.BigFloat
-    elif args.datatype == "MultiFloats":
-        datatype = MultiFloats    
-    else:
-        raise Exception("Unsupported datatype: ", args.datatype)
 
-    # if args.JuliaCode == True:
-    #     excecute_julia_code = args.JuliaCode
-    # elif args.JuliaCode == False:
-    #     excecute_julia_code = args.JuliaCode
-    # else:
-    #     raise Exception("Please enter a valid choice to execute the Julia Code i.e. either True or False")
 
     try:
         if args.testtype == "gdp":
